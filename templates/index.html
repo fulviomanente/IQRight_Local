@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Data Grid</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        .blinking {
+            font-size: 2em;
+            font-weight: bold;
+            color: red;
+            animation: blink-animation 1s steps(5, start) 3;
+        }
+        @keyframes blink-animation {
+            to {
+                visibility: hidden;
+            }
+        }
+        #messageLabel {
+            font-size: 2em;
+            font-weight: bold;
+            color: black;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center">Saint Vincent de Paul</h1>
+        <!-- Blinking label -->
+        <div id="messageLabel" class="text-center">Waiting for message...</div>
+        <p>Logged in as: {{ current_user.Name }}</p>
+
+        <div class="row">
+            <!-- Left Grid -->
+            <div class="col-md-6">
+                <h3>Left Grid</h3>
+                <table id="leftTable" class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Right Grid -->
+            <div class="col-md-6">
+                <h3>Right Grid</h3>
+                <table id="rightTable" class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Copy and Clear Button -->
+        <div class="text-center mt-4">
+            <button id="copyAndClearBtn" class="btn btn-primary">Copy Left Grid to Right Grid & Clear Left Grid</button>
+        </div>
+    </div>
+
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        var populateRight = false;  // Flag to switch from left to right table
+
+                // Function to trigger the blinking animation
+        function triggerBlinkingMessage(message) {
+            var messageLabel = document.getElementById('messageLabel');
+            messageLabel.textContent = message;
+            messageLabel.classList.add('blinking');
+
+            // Remove the blinking class after the animation finishes (3 seconds)
+            setTimeout(function() {
+                messageLabel.classList.remove('blinking');
+            }, 3000);
+        }
+
+        // Listen for new data from the server
+        socket.on('new_data', function(data) {
+            var table;
+
+            // Trigger the blinking message label with the new message
+            triggerBlinkingMessage(data.message);
+
+            // Check if the message is 'break'
+            if (data.message === 'break') {
+                populateRight = true;  // Switch to the right grid after "break"
+                return;
+            }
+
+            // Choose the table based on whether we are populating the right or left grid
+            if (!populateRight) {
+                table = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
+            } else {
+                table = document.getElementById('rightTable').getElementsByTagName('tbody')[0];
+            }
+
+            // Insert a new row into the chosen table
+            var newRow = table.insertRow();
+            var newCell = newRow.insertCell(0);
+            newCell.textContent = data.message;
+        });
+
+        // Function to copy the left grid to the right grid and clear the left grid
+        document.getElementById('copyAndClearBtn').addEventListener('click', function() {
+            var leftTableBody = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
+            var rightTableBody = document.getElementById('rightTable').getElementsByTagName('tbody')[0];
+
+            // Clear the right table
+            rightTableBody.innerHTML = '';
+
+            // Copy rows from the left grid to the right grid
+            var rows = Array.from(leftTableBody.rows);
+            rows.forEach(function(row) {
+                var newRow = rightTableBody.insertRow();
+                var newCell = newRow.insertCell(0);
+                newCell.textContent = row.cells[0].textContent;
+            });
+
+            // Clear the left grid
+            leftTableBody.innerHTML = '';
+        });
+    </script>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
