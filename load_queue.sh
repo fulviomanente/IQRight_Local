@@ -1,5 +1,5 @@
 #!/bin/sh
-mosquitto_pub -d -t IQSend -u IQRight -P 123456 -m "{\"name\":\"break1\", \"level1\":\"lalala\",\"level2\":\"lelele\",\"externalNumber\":\"123\"}"
+mosquitto_pub -d -t Class30 -u IQRight -P 123456 -m "{\"name\":\"break1\", \"level1\":\"lalala\",\"level2\":\"lelele\",\"externalNumber\":\"123\"}"
 mosquitto_pub -d -t IQSend -u IQRight -P 123456 -m "{\"name\":\"break2\", \"level1\":\"lalala\",\"level2\":\"lelele\",\"externalNumber\":\"1234\"}"
 mosquitto_pub -d -t IQSend -u IQRight -P 123456 -m "{\"name\":\"break3\", \"level1\":\"lalala\",\"level2\":\"lelele\",\"externalNumber\":\"1235\"}"
 mosquitto_pub -d -t IQSend -u IQRight -P 123456 -m "{\"name\":\"break4\", \"level1\":\"lalala\",\"level2\":\"lelele\",\"externalNumber\":\"1236\"}"
