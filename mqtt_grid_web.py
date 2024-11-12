@@ -1,3 +1,4 @@
+import datetime
 import os
 from datetime import datetime
 import time
@@ -14,7 +15,7 @@ import json
 from os.path import exists
 import logging
 import logging.handlers
-from flask import Flask, render_template, request, redirect, url_for, flash, g, abort, session
+from flask import Flask, render_template, request, redirect, url_for, flash, g, abort, session, jsonify
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_socketio import SocketIO
 import requests
@@ -34,6 +35,8 @@ app.config['BABEL_DEFAULT_LOCALE'] = 'en'
 babel = Babel(app)
 socketio = SocketIO(app)
 
+lastCommand = ''
+lastCommandTimestamp = datetime.now()
 
 # User class (for Flask-Login)
 class User(UserMixin):
@@ -243,61 +246,27 @@ def authenticate_user(username, password):
         return {'authenticated': True, 'classCodes': info['listHierarchy'], 'errorMsg': None, 'changePassword': info.get('changePassword', False), 'newUser': info.get('newUser', False), 'fullName': info.get('fullName', ' ')}
 
 def on_messageScreen(client, userdata, message, tmp=None):
-#     global currGrid
-#     global memoryData
-#     global currList
-#     global gridList
-#     global loadGrid
-#     global lastCommand
-     if os.environ.get("DEBUG", "FALSE").upper() == "TRUE":
-         logging.debug('Message Received')
-         logging.debug(str(message.payload, 'UTF-8'))
-         bleMsg = str(message.payload, 'UTF-8')
-         jsonObj = loadJson(str(message.payload, 'UTF-8'))
-         if isinstance(jsonObj, dict):
-             if 'command' in jsonObj:
-                 if lastCommand != jsonObj['command']:
+    global lastCommand
+    if os.environ.get("DEBUG", "FALSE").upper() == "TRUE":
+        logging.debug('Message Received')
+        logging.debug(str(message.payload, 'UTF-8'))
+        jsonObj = loadJson(str(message.payload, 'UTF-8'))
+        if isinstance(jsonObj, dict):
+            if 'command' in jsonObj:
+                if lastCommand != jsonObj['command'] or (datetime.now() - lastCommandTimestamp).total_seconds() > 6:
                      lastCommand = jsonObj['command']
-                     if jsonObj['command'] == 'break':
-                         if gridList == 1:
-                             currGrid = sheet2
-                             gridList = 2
-                         currList += 1
-#                         memoryData[f"list{currList}"] = []
-                         print(f'currGrid = sheet2 \ currList = {currList} \ griList = {gridList}')
-#                     elif jsonObj['command'] == 'release':
-#                         # move grid 2 to grid 1
-#                         sheet1.column_width(0, 400)
-#                         sheet1.column_width(1, 250)
-#                         sheet1.column_width(2, 250)
-#                         sheet1.set_sheet_data(sheet2.get_sheet_data(), redraw=True, reset_col_positions=False)
-#                         # empty grid 2
-#                         sheet2.delete_rows([x for x in range(0, currGrid.get_total_rows())], redraw=True)
-#                         loadGrid += 1
-#                         secondGrid = loadGrid + 1
-#                         if currList >= secondGrid:
-#                             sheet2.set_sheet_data(
-#                                 [[x['name'], x['level1'], x['level2']] for x in memoryData[f"list{secondGrid}"]],
-#                                 redraw=True)
-#                             sheet2.column_width(0, 400)
-#                             sheet2.column_width(1, 250)
-#                             sheet2.column_width(2, 250)
-#                             if secondGrid > 2:  # MEANS THERE WAS NOT AUDIO FOR THESE STUDENT
-#                                 playSoundList(listObj=memoryData[f"list{secondGrid}"], currGrid=currGrid, fillGrid=True)
-#                         if loadGrid == currList:  # MEANS THE LAST LIST IS CURRENT
-#                             currGrid = sheet1
-#                             gridList = 1
-                 return True
-         else:
-             # GOT A LORA MESSAGE INSERTED INTO THE QUEUE
-             bleMsgLst = bleMsg.split('|')
-             userInfo = getInfo(deviceID=f'{bleMsgLst[0]}{bleMsgLst[2]}', beacon=bleMsgLst[1], distance=bleMsgLst[3])
-             if userInfo:
-                 #Publish to the sockeio service so the JS can read it and update the HTML
-                 socketio.emit('new_data', userInfo)  # Emit the userInfo to the client
-             else:
-                 jsonObj = {}
-                 return None
+                     lastCommandTimestamp = datetime.now()
+                     # Publish to the sockeio service so the JS can read it and update the HTML
+                     userInfo = {"cmd": jsonObj['command']}
+                     socketio.emit('new_data', userInfo)
+            else:
+                # Publish to the sockeio service so the JS can read it and update the HTML
+                userInfo = {"fullName": jsonObj["name"], "location": jsonObj["location"]}
+                socketio.emit('new_data', userInfo)
+            return True
+        else:
+            logging.debug('NOT A VALID JSON OBJECT RECEIVED FROM QUEUE')
+            return False
          #externalNumber = f"{jsonObj['externalNumber']}"
 #         memoryData[f"list{currList}"].append(jsonObj)
 #         if currList < (loadGrid + 2):

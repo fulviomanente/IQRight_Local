@@ -10,4 +10,12 @@ if os.getenv('LOCAL', None) == 'TRUE':
 else:
     API_URL = 'https://integration.iqright.app/api/'
 
+TOPIC_PREFIX = 'Class'
+
+TOPIC = ''
+
+BEACON_LOCATIONS = [
+    {"idBeacon": 1, "beacon": "QR Reader", "location": "Gym Side"},
+    {"idBeacon": 2, "beacon": "QR Reader", "location": "East Side"},
+    {"idBeacon": 3, "beacon": "BLE Reader","location": "Main Entrance"}]
 

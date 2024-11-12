@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-time Data Grid</title>
+    <title>IQRight Local Operation</title>
     <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
@@ -36,27 +36,49 @@
         .header-right p {
             margin-right: 10px; /* Space between username and logout button */
         }
-    </style>
-    <script>
-        var socket = io(); // Connect to Socket.IO
-        socket.on('new_data', function (data) {
-            // Access the data attributes
-            var firstName = data.firstName;
-            var lastName = data.lastName;
-            var exit = data.exitName;
-            // Display the data in the grid
-            var table = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
-            var newRow = table.insertRow();
-            var firstNameCell = newRow.insertCell(0);
-            var lastNameCell = newRow.insertCell(1);
-            var exitCell = newRow.insertCell(2);
-            firstNameCell.textContent = firstName;
-            lastNameCell.textContent = lastName;
-            exitCell.textContent = exit;
-        });
 
-        // ... (Rest of your existing JavaScript code) ...
-    </script>
+        /* Styles for grids and message label */
+        .row {
+            margin-left: -15px; /* Adjust for default Bootstrap row padding */
+            margin-right: -15px;
+        }
+
+        .col-md-6 {
+            padding-left: 15px;
+            padding-right: 15px;
+            width: 50%; /* Ensure each grid takes up half the screen */
+        }
+
+        #messageLabel {
+            border: 2px solid black;
+            font-size: 2em;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        #messageLabel.blinking {
+            background-color: blue;
+            color: white;
+        }
+
+        /* Table styles */
+        table {
+            font-size: 1.2em; /* Increased font size */
+        }
+
+        #leftTable {
+            background-color: #e0f0e0; /* Soft green background */
+        }
+
+        #rightTable {
+            background-color: #ffe0e0; /* Soft red background */
+        }
+
+        .col-md-6 > h3 {
+            text-align: center;
+        }
+
+    </style>
 </head>
 <body>
     <header>
@@ -81,11 +103,12 @@
         <div class="row">
             <!-- Left Grid -->
             <div class="col-md-6">
-                <h3>Left Grid</h3>
+                <h3>Get Ready to Leave</h3>
                 <table id="leftTable" class="table table-bordered">
                     <thead>
                         <tr>
-                            <th>Message</th>
+                            <th>Student Name</th>
+                            <th>Exit Location</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -95,22 +118,18 @@
 
             <!-- Right Grid -->
             <div class="col-md-6">
-                <h3>Right Grid</h3>
+                <h3>Stand by</h3>
                 <table id="rightTable" class="table table-bordered">
                     <thead>
                         <tr>
-                            <th>Message</th>
+                            <th>Student Name</th>
+                            <th>Exit Location</th>
                         </tr>
                     </thead>
                     <tbody>
                     </tbody>
                 </table>
             </div>
-        </div>
-
-        <!-- Copy and Clear Button -->
-        <div class="text-center mt-4">
-            <button id="copyAndClearBtn" class="btn btn-primary">Copy Left Grid to Right Grid & Clear Left Grid</button>
         </div>
     </div>
 
@@ -132,49 +151,71 @@
 
         // Listen for new data from the server
         socket.on('new_data', function (data) {
+            if (data.cmd) {
+                if (data.cmd === 'break') {
+                    // Existing code for 'break' command
+                    populateRight = true;
+                } else if (data.cmd === 'release') {
+                    // Call the release function
+                    release();
+                } else if (data.cmd === 'clean') {
+                    // Clean up tables and messageLabel
+                    document.getElementById('leftTable').getElementsByTagName('tbody')[0].innerHTML = '';
+                    document.getElementById('rightTable').getElementsByTagName('tbody')[0].innerHTML = '';
+                    document.getElementById('messageLabel').textContent = 'Waiting for Car Line Information...';
+                }
+            } else {
+                // Call the lalala function if cmd is not found
+                populateTable(data);
+            }
+        });
+
+        function populateTable(data) {
             var table;
 
+            // Access the data attributes
+            var fullName = data.fullName;
+            var location = data.location;
             // Trigger the blinking message label with the new message
-            triggerBlinkingMessage(data.message);
-
-            // Check if the message is 'break'
-            if (data.message === 'break') {
-                populateRight = true;  // Switch to the right grid after "break"
-                return;
-            }
-
+            triggerBlinkingMessage(fullName);
             // Choose the table based on whether we are populating the right or left grid
             if (!populateRight) {
                 table = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
             } else {
                 table = document.getElementById('rightTable').getElementsByTagName('tbody')[0];
             }
+            //var table = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
 
             // Insert a new row into the chosen table
             var newRow = table.insertRow();
-            var newCell = newRow.insertCell(0);
-            newCell.textContent = data.message;
-        });
+            var fullNameCell = newRow.insertCell(0);
+            var locationCell = newRow.insertCell(1);
+            fullNameCell.textContent = fullName;
+            locationCell.textContent = location;
+        }
 
-        // Function to copy the left grid to the right grid and clear the left grid
-        document.getElementById('copyAndClearBtn').addEventListener('click', function () {
+        function release() {
             var leftTableBody = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
             var rightTableBody = document.getElementById('rightTable').getElementsByTagName('tbody')[0];
 
             // Clear the right table
-            rightTableBody.innerHTML = '';
+            leftTableBody.innerHTML = '';
 
-            // Copy rows from the left grid to the right grid
-            var rows = Array.from(leftTableBody.rows);
+            // Copy rows from the right grid to the left grid
+            var rows = Array.from(rightTableBody.rows);
             rows.forEach(function (row) {
-                var newRow = rightTableBody.insertRow();
-                var newCell = newRow.insertCell(0);
-                newCell.textContent = row.cells[0].textContent;
+                var newRow = leftTableBody.insertRow();
+                var newCell1 = newRow.insertCell(0); // Create the first cell
+                var newCell2 = newRow.insertCell(1); // Create the second cell
+                newCell1.textContent = row.cells[0].textContent; // Copy content for the first cell
+                newCell2.textContent = row.cells[1].textContent; // Copy content for the second cell
             });
 
             // Clear the left grid
-            leftTableBody.innerHTML = '';
-        });
+            rightTableBody.innerHTML = '';
+            populateRight = false;
+        }
+
         // Function to update the date and time
         function updateDateTime() {
         var now = new Date();

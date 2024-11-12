@@ -6,6 +6,8 @@ import os
 import json
 from datetime import datetime
 import pandas as pd
+from config import TOPIC_PREFIX, BEACON_LOCATIONS, TOPIC
+
 
 # Import LORA Libraries
 import busio
@@ -19,7 +21,16 @@ import paho.mqtt.client as mqtt
 from paho.mqtt.properties import Properties
 from paho.mqtt.packettypes import PacketTypes
 
-TOPIC = f'IQSend'
+topicPrefix: bool = False
+if TOPIC != '':
+    Topic = TOPIC
+elif TOPIC_PREFIX != '':
+    Topic = TOPIC_PREFIX
+    topicPrefix = True
+else:
+    Topic = 'IQSend'
+
+beacon_locations_dict = beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
 
 homeDir = os.environ['HOME']
 
@@ -106,16 +117,15 @@ def getInfo(beacon, code, distance):
     if code:
         try:
             logging.debug(f'Student Lookup')
-            name = df.loc[df['ExternalNumber'] == code]
+            name = df.loc[df['DeviceID'] == code]
             if name.empty:
                 logging.debug(f"Couldn't find Code: {code}")
                 return None
             else:
-                result = {"name": name['ChildName'].item(), "level1": name['HierarchyLevel1'].item(), "level2": name['HierarchyLevel2'].item(),
-                    "node": beacon, "externalID": code, "distance": abs(int(distance)), "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    "externalNumber": name['ExternalNumber'].item()}
+                result = {"name": name['ChildName'].item(), "hierarchyLevel2": name['HierarchyLevel2'].item(), "node": beacon, "externalID": code,
+                          "distance": abs(int(distance)), "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                          "externalNumber": name['ExternalNumber'].item(), "location": beaconLocator(beacon)}
                 return result
-            #return {"node": beacon, "phoneID": code, "distance": abs(int(distance)), "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         except Exception as e:
             logging.error(f'Error converting string {beacon}|{code}|{distance} into MQTT Object')
     else:
@@ -174,19 +184,29 @@ def publishMQTT(payload: str):
             logging.info('Connected to MQTT Server')
     return False
 
-def sendMessageMQTT(payload: str):
+def sendMessageMQTT(payload: str, topicSufix: str = None):
     logging.info(f"Sending {sendObj} to MQTT")
-    ret = client.publish(TOPIC, sendObj)
+    if topicPrefix and topicSufix:
+        ret = client.publish(f'{Topic}{topicSufix}', sendObj)
+    else:
+        ret = client.publish(Topic, sendObj)
     if ret[0] == 0:
-        logging.debug('Message sent to Topic: IQSend')
+        logging.debug('Message sent to Topic: {Topic}')
         logging.debug(f'Message ID {ret[1]}')
         return True
     else:
         logging.error(ret[0])
         logging.error(ret[1])
-        logging.error('FAILED to sent to Topic: IQSend')
+        logging.error('FAILED to sent to Topic: {Topic}')
         return False
-    
+
+def beaconLocator(idBeacon: int):
+    if idBeacon in beacon_locations_dict:
+        location = beacon_locations_dict[idBeacon]["location"]
+        return location
+    else:
+        return ''
+
 #Main Loop
 while True:
     packet = None
