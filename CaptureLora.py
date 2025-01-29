@@ -6,8 +6,10 @@ import os
 import json
 from datetime import datetime
 import pandas as pd
-from config import TOPIC_PREFIX, BEACON_LOCATIONS, TOPIC
-
+from config import TOPIC_PREFIX, BEACON_LOCATIONS, TOPIC, API_URL, IDFACILITY
+import asyncio
+import aiohttp
+from google.cloud import secretmanager
 
 # Import LORA Libraries
 import busio
@@ -21,6 +23,32 @@ import paho.mqtt.client as mqtt
 from paho.mqtt.properties import Properties
 from paho.mqtt.packettypes import PacketTypes
 
+def get_secret(secret, expected: str = None, compare: bool = False):
+    # Replace with your actual Secret Manager project ID and secret name
+    project_id = os.getenv('PROJECT_ID')
+    secret_name = secret
+    secretValue: str = None
+    result: bool = False
+    try:
+        # Create the Secret Manager client.
+        client = secretmanager.SecretManagerServiceClient()
+        # Build the resource name of the secret version.
+        name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+        # Access the secret version.
+        secretValue = client.access_secret_version(name=name)
+        if compare and expected:
+            if secret == expected:
+                result = True
+            else:
+                result = False
+            secretValue = None
+    except Exception as e:
+        logging.debug(f'Error getting secret {secret} from envinronment')
+        logging.debug(str(e))
+    finally:
+        response = {'value': secretValue.payload.data.decode('UTF-8'), 'result': result}
+    return response
+
 topicPrefix: bool = False
 if TOPIC != '':
     Topic = TOPIC
@@ -31,8 +59,8 @@ else:
     Topic = 'IQSend'
 
 beacon_locations_dict = beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
-
 homeDir = os.environ['HOME']
+
 
 df = pd.read_csv('/etc/iqright/LoraService/full_load.csv',
                  dtype={'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int \
@@ -100,6 +128,8 @@ logging.info('Connected to MQTT Server')
 
 lastCommand = None
 
+
+
 def getGrade(strGrade: str):
     if strGrade == 'First Grade':
         return '1st'
@@ -110,29 +140,91 @@ def getGrade(strGrade: str):
     elif strGrade == 'Fourth Grade':
         return '4th'
     else:
-        return 'Kind' 
+        return 'Kind'
 
-def getInfo(beacon, code, distance):
-    global df
-    if code:
-        try:
-            logging.debug(f'Student Lookup')
-            name = df.loc[df['DeviceID'] == code]
-            if name.empty:
-                logging.debug(f"Couldn't find Code: {code}")
-                return None
-            else:
-                result = {"name": name['ChildName'].item(), "hierarchyLevel2": name['HierarchyLevel2'].item(), "node": beacon, "externalID": code,
-                          "distance": abs(int(distance)), "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                          "externalNumber": name['ExternalNumber'].item(), "location": beaconLocator(beacon)}
-                return result
-        except Exception as e:
-            logging.error(f'Error converting string {beacon}|{code}|{distance} into MQTT Object')
-    else:
+
+async def get_user_from_api(code):
+    try:
+        async with aiohttp.ClientSession() as session:
+            api_url = f"{API_URL}/UserAccess"  # Replace with your actual API endpoint
+            payload = {"searchCode": code}
+            headers = {
+                "Content-Type": "application/json",
+                "accept": "application/json",
+                "caller": "LocalApp",
+                "idFacility": IDFACILITY
+            }
+
+            apiUsername = get_secret('apiUsername')
+            apiPassword = get_secret('apiPassword')
+
+            auth = (apiUsername["value"], apiPassword["value"])
+
+            async with session.post(api_url, json=payload, timeout=1.0, headers=headers, auth=auth) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    logging.error(f"API getUserAccess request failed with status: {response.status}")
+                    return None
+    except asyncio.TimeoutError:
+        logging.warning("API getUserAccess request timed out")
+        return None
+    except aiohttp.ClientError as e:
+        logging.error(f"API getUserAccess request error: {e}")
+        return None
+
+
+async def get_user_local(beacon, code, distance, df):
+    if not code:  # Return early if code is missing
         logging.error(f'Empty string sent for conversion into MQTT Object')
-    return None
+        return None
 
-def handleInfo(strInfo: str):
+    try:
+        logging.debug(f'Student Lookup (Local)')
+        name = df.loc[df['DeviceID'] == code]
+        if name.empty:
+            logging.debug(f"Couldn't find Code: {code} locally")
+            return None  # Return None if not found locally
+        else:
+            result = {
+                "name": name['ChildName'].item(),
+                "hierarchyLevel2": name['HierarchyLevel2'].item(),
+                "node": beacon,
+                "externalID": code,
+                "distance": abs(int(distance)),
+                "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                "externalNumber": name['ExternalNumber'].item(),
+                "location": beaconLocator(beacon),  # Use beaconLocator function here
+                "source": "local"  # Mark the source as local
+            }
+            return result
+    except Exception as e:
+        logging.error(f'Error converting local data: {e}')
+        return None
+
+
+async def getInfo(beacon, code, distance, df):
+    api_task = asyncio.create_task(get_user_from_api(code))
+    local_task = asyncio.create_task(get_user_local(beacon, code, distance, df))
+
+    try:
+        api_result = await asyncio.wait_for(api_task, timeout=1.0)  # Wait for the API with a timeout
+        if api_result:
+            api_result["source"] = "api"
+            logging.info("Using API results")
+            return api_result  # If successful, return the API result
+    except asyncio.TimeoutError:
+        logging.warning("API Timeout. Using local data if available.")
+        pass  # Handle timeout (use local result if available)
+    except Exception as ex:
+        logging.error(f'Error processing data: {ex}')
+        return None
+
+    local_result = await local_task  # Get the local result
+
+    return local_result  # Return local data if API timed out
+
+async def handleInfo(strInfo: str):
     global lastCommand
     ret = False
     payload = None
@@ -143,11 +235,22 @@ def handleInfo(strInfo: str):
             if command != lastCommand:
                 payload = {'command': command}
         else:    
-            sendObj = getInfo(beacon, payload, distance)
+            #sendObj = getInfo(beacon, payload, distance)
+            sendObj = await getInfo(beacon, payload, distance, df)
             payload = sendObj if sendObj else None
         if payload:
-            ret = True
-    return ret, payload
+            # IF ALL DATA COULD BE PARSED AND IDENTIFIED, SEND TO THE SCANNER
+            time.sleep(0.3)
+            if sendDataScanner(payload) == False:
+                logging.error(f'FAILED to sent to Scanner: {json.dumps(payload)}')
+            else:
+                sendObj = json.dumps(payload)
+                logging.info(sendObj)
+                if publishMQTT(sendObj):
+                    logging.info(' Message Sent')
+                else:
+                    logging.error('MQTT ERROR')
+    return True
 
 def sendDataScanner(payload: dict):
     startTime = time.time()
@@ -227,20 +330,9 @@ while True:
                     logging.debug(f'{packet_text} Converted to String')
                     logging.debug('RX: ')
                     logging.debug(packet_text)
-                    result, payload = handleInfo(packet_text)
-                if result:
-                    #IF ALL DATA COULD BE PARSED AND IDENTIFIED, SEND TO THE SCANNER
-                    time.sleep(0.3)
-                    if sendDataScanner(payload) == False:
-                        logging.error(f'FAILED to sent to Scanner: {json.dumps(payload)}')
-                    else:
-                        sendObj = json.dumps(payload)
-                        logging.info(sendObj)
-                        if publishMQTT(sendObj):
-                            logging.info(' Message Sent')
-                        else:
-                            logging.error('MQTT ERROR')
-                            
+                    #result, payload = handleInfo(packet_text)
+                    asyncio.run(handleInfo(packet_text))
+
                 else:
                     logging.error('No response received from MQ Topic: IQSend or Empty Message received from Lora')
             else:

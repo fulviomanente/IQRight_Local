@@ -247,6 +247,7 @@ def authenticate_user(username, password):
 
 def on_messageScreen(client, userdata, message, tmp=None):
     global lastCommand
+    global lastCommandTimestamp
     if os.environ.get("DEBUG", "FALSE").upper() == "TRUE":
         logging.debug('Message Received')
         logging.debug(str(message.payload, 'UTF-8'))

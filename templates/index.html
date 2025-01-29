@@ -165,7 +165,6 @@
                     document.getElementById('messageLabel').textContent = 'Waiting for Car Line Information...';
                 }
             } else {
-                // Call the lalala function if cmd is not found
                 populateTable(data);
             }
         });
@@ -178,6 +177,7 @@
             var location = data.location;
             // Trigger the blinking message label with the new message
             triggerBlinkingMessage(fullName);
+            playSound(data.fullName + ".mp3");
             // Choose the table based on whether we are populating the right or left grid
             if (!populateRight) {
                 table = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
@@ -218,10 +218,45 @@
 
         // Function to update the date and time
         function updateDateTime() {
-        var now = new Date();
-        var options = {year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric'};
-        document.getElementById('date-time').textContent = now.toLocaleDateString('en-US', options);
+            var now = new Date();
+            var options = {year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric'};
+            document.getElementById('date-time').textContent = now.toLocaleDateString('en-US', options);
         }
+
+        function playSound(filename) {
+            const audioPath = '/static/sounds/' + filename;
+
+            // Check if the audio file exists in the browser's cache (using Local Storage)
+            const cachedAudioUrl = localStorage.getItem(filename);
+
+            if (cachedAudioUrl) { // File exists in cache, play it
+                const audio = new Audio(cachedAudioUrl);
+                audio.play().catch(error => {
+                    console.error("Error playing cached sound:", error, filename);
+                    // If cached audio fails, remove it and try downloading again
+                    localStorage.removeItem(filename);
+                    playSound(filename); }); //Retry playing
+            }
+            else {
+                // File not in cache, download, cache, and then play
+                console.warn("Sound file not found locally, downloading...", filename);
+                fetch(audioPath)
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const audioUrl = URL.createObjectURL(blob);
+                        const audio = new Audio(audioUrl);
+                        audio.play().catch(error => {
+                            console.error("Error playing downloaded sound:", error, filename);
+                        });
+
+                        // Cache the audio URL in Local Storage
+                        localStorage.setItem(filename, audioUrl);
+                    })
+                    .catch(error => {
+                        console.error("Error downloading sound:", error, filename);});
+            }
+        }
+
         // Update the date and time immediately
         updateDateTime();
         // Update the time every minute

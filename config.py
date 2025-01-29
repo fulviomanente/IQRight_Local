@@ -14,6 +14,8 @@ TOPIC_PREFIX = 'Class'
 
 TOPIC = ''
 
+IDFACILITY = 1
+
 BEACON_LOCATIONS = [
     {"idBeacon": 1, "beacon": "QR Reader", "location": "Gym Side"},
     {"idBeacon": 2, "beacon": "QR Reader", "location": "East Side"},
