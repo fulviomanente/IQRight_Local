@@ -27,7 +27,6 @@ from flask_babel import Babel, gettext as _
 from configs.languages import supported_languages
 from urllib.parse import urlsplit
 from functools import wraps
-from google.cloud import storage
 
 app = Flask(__name__)
 app.secret_key = '1QrightS3cr3tKey'  # Secret key for session management
@@ -341,7 +340,6 @@ def playSoundList(listObj, currGrid, fillGrid: bool = False):
         if fillGrid:  # IF FILLING THE WHOLE GRID, SLEEP 2 SECONDS BEFORE PLAYING THE NEXT ONE
             time.sleep(2)
 
-<<<<<<< Updated upstream
 def download_and_read_csv(filename="full_load.iqr"):
     """Downloads the CSV file from the API, saves it locally, and then reads it into a Pandas DataFrame.
     Returns the DataFrame or None if there's an error.
@@ -389,20 +387,6 @@ def download_and_read_csv(filename="full_load.iqr"):
         else:
             logging.critical("No local CSV file found. Terminating.")
             exit(1)  # Terminate the app if the file doesn't exist locally either
-=======
-def get_file_from_gcs(bucket_name, source_blob_name, destination_file_name):
-    """Downloads a file from Google Cloud Storage."""
-    try:
-        storage_client = storage.Client()
-        bucket = storage_client.bucket(bucket_name)
-        blob = bucket.blob(source_blob_name)
-        blob.download_to_filename(destination_file_name)
-        logging.info(f"Downloaded {source_blob_name} from GCS to {destination_file_name}")
-        return True
-    except Exception as e:
-        logging.error(f"Error downloading file from GCS: {str(e)}")
-        return False
->>>>>>> Stashed changes
 
 # LOGGING Setup
 #log_filename = "IQRight_FE_WEB.debug"
@@ -418,28 +402,9 @@ def get_file_from_gcs(bucket_name, source_blob_name, destination_file_name):
 
 lastCommand = None
 
-<<<<<<< Updated upstream
 df = download_and_read_csv()
 if df is None: #If any error downloading the file or reading, exit the app
     exit(1)
-=======
-
-
-csv_file_path = './full_load.csv'
-
-if not exists(csv_file_path):
-    logging.info(f"File {csv_file_path} not found locally, attempting to download from GCS")
-    if not get_file_from_gcs('prod-iqright-filetransfer', 'full_load.csv', csv_file_path):
-        raise FileNotFoundError(f"Could not find or download {csv_file_path}")
-
-df = pd.read_csv(csv_file_path,
-                 dtype={'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int \
-                     , 'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str \
-                     , 'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str \
-                     , 'HierarchyLevel2': str, 'HierarchyLevel2Type': str, 'HierarchyLevel2Desc': str \
-                     , 'StartDate': str, 'ExpireDate': str, 'IDApprovalStatus': int, 'ApprovalStatus': str
-                     , 'MainContact': int, 'Relationship': str})
->>>>>>> Stashed changes
 
 babel.init_app(app, locale_selector=get_locale)
 
