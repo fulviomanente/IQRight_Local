@@ -1,12 +1,10 @@
-board==1.0
 certifi==2024.8.30
 charset-normalizer==3.4.0
 click==8.1.7
 cryptography
 gTTS==2.5.3
 idna==3.10
-numpy==2.1.2
-pandas==2.2.3
+pandas
 pydub==0.25.1
 python-dateutil==2.9.0.post0
 pytz==2024.2
@@ -18,3 +16,8 @@ paho-mqtt~=2.1.0
 flask~=3.0.3
 google~=3.0.0
 flask_socketio
+flask-login==0.6.3
+flask-socketio==5.3.6
+flask-babel==4.0.0
+google-cloud-secret-manager==2.16.4
+cryptography==41.0.4
