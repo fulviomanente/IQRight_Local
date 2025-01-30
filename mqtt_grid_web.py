@@ -27,6 +27,8 @@ from flask_babel import Babel, gettext as _
 from configs.languages import supported_languages
 from urllib.parse import urlsplit
 from functools import wraps
+from dotenv import load_dotenv
+
 
 app = Flask(__name__)
 app.secret_key = '1QrightS3cr3tKey'  # Secret key for session management
@@ -34,6 +36,8 @@ app.config.from_pyfile('config.py')
 app.config['BABEL_DEFAULT_LOCALE'] = 'en'
 babel = Babel(app)
 socketio = SocketIO(app)
+
+load_dotenv()
 
 lastCommand = ''
 lastCommandTimestamp = datetime.now()
@@ -80,7 +84,6 @@ def loadJson(inputStr: str) -> dict:
 
 #Function to retrieve secrets from Google Cloud Secret Manager, inputs are secret and expect value and output is the secret
 def get_secret(secret, expected: str = None, compare: bool = False):
-    # Replace with your actual Secret Manager project ID and secret name
     project_id = os.getenv('PROJECT_ID')
     secret_name = secret
     secretValue: str = None
