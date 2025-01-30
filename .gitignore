@@ -1,2 +1,9 @@
 .venv/
 .env
+
+# IQRight data files
+full_load*
+*.json
+
+# Encryption keys
+*.key

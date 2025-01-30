@@ -19,14 +19,12 @@ from flask import Flask, render_template, request, redirect, url_for, flash, g, 
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_socketio import SocketIO
 import requests
-import base64
+
 from google.cloud import secretmanager
 from forms import ChangePasswordForm
 from cryptography.fernet import Fernet
 from flask_babel import Babel, gettext as _
-from configs.languages import supported_languages
-from urllib.parse import urlsplit
-from functools import wraps
+
 from dotenv import load_dotenv
 
 
@@ -344,52 +342,68 @@ def playSoundList(listObj, currGrid, fillGrid: bool = False):
             time.sleep(2)
 
 def download_and_read_csv(filename="full_load.iqr"):
-    """Downloads the CSV file from the API, saves it locally, and then reads it into a Pandas DataFrame.
+    """Downloads the CSV file from the API, encrypts and saves it locally, then reads it into a Pandas DataFrame.
+    If download fails, attempts to read from local encrypted file.
     Returns the DataFrame or None if there's an error.
     """
     try:
-        #GET JWT Token
+        # GET JWT Token
         status_code, response_content = api_request(method="POST", url='apiGetToken/',
                                                     data={"idUser": "localuser", "password": "Lalala1234",  "idFacility": 1})
         if status_code == 200:
-            status_code, response_content = api_request(method="GET", url='apiGetLocalUserFile/download', data={'idFacility':1, 'searchType':'ALL'}, bearer=response_content['token'])
+            status_code, response_content = api_request(method="GET", url='apiGetLocalUserFile/download', 
+                                                      data={'idFacility':1, 'searchType':'ALL'}, 
+                                                      bearer=response_content['token'])
             if status_code == 200:  # Check for successful API call
-                if os.path.exists(filename):  # Check if full_load.iqr already exists
-                    try:
-                        os.replace(filename, "full_load.bak") #Rename to .bak, replaces existing .bak
-                    except OSError as e:
-                        logging.error(f"Error renaming existing file: {e}")
-                        os.replace(filename, "full_load.bak.error")
-
-                with open(filename, 'wb') as f:  # Save the content to a local file
-                    f.write(response_content)
-
-                df = pd.read_csv(filename, dtype={ # Read CSV into dataframe
-                    'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int,
-                    'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str,
+                # Create temporary DataFrame from downloaded content
+                temp_df = pd.read_csv(BytesIO(response_content), dtype={
+                    'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 
+                    'AppIDApprovalStatus': int, 'AppApprovalStatus': str, 'DeviceID': str, 
+                    'Phone': str, 'ChildName': str, 'ExternalNumber': str,
                     'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str,
                     'HierarchyLevel2': str, 'HierarchyLevel2Type': str, 'HierarchyLevel2Desc': str,
-                    'StartDate': str, 'ExpireDate': str, 'IDApprovalStatus': int, 'ApprovalStatus': str,
-                    'MainContact': int, 'Relationship': str
+                    'StartDate': str, 'ExpireDate': str, 'IDApprovalStatus': int, 
+                    'ApprovalStatus': str, 'MainContact': int, 'Relationship': str
                 })
-                return df
+                
+                # Backup existing file if it exists
+                if os.path.exists(filename):
+                    try:
+                        os.replace(filename, "full_load.bak")
+                        
+                    except OSError as e:
+                        logging.error(f"Error backing up existing file: {e}")
+                
+                # Encrypt and save the new data
+                encrypt_file(filename, filename + '.key', temp_df)
+                return temp_df
+
             else:
                 logging.error(f"Error downloading CSV from API. Status code: {status_code}")
                 if response_content.get('message'):
                     logging.error(f"API Error Message: {response_content.get('message')}")
-                return None
-    except requests.exceptions.RequestException as e:  # Handle timeout or connection errors
+                
+                # Try to load from local encrypted file
+                return load_local_file(filename)
+                
+    except requests.exceptions.RequestException as e:
         logging.error(f"API request error: {e}")
-        if exists(filename):  # Use existing local file if available
-            logging.warning("Using existing local CSV file due to API error.")
-            try:
-                return pd.read_csv(filename)
-            except Exception as read_error:
-                logging.error(f"Error reading the existing CSV: {read_error}")
-                return None
-        else:
-            logging.critical("No local CSV file found. Terminating.")
-            exit(1)  # Terminate the app if the file doesn't exist locally either
+        return load_local_file(filename)
+    
+    return None
+
+def load_local_file(filename):
+    """Helper function to load data from local encrypted file."""
+    if os.path.exists(filename) and os.path.exists(filename + '.key'):
+        logging.warning("Using existing local encrypted file due to API error.")
+        try:
+            return decrypt_file(filename, filename + '.key')
+        except Exception as read_error:
+            logging.error(f"Error reading the existing encrypted file: {read_error}")
+            return None
+    else:
+        logging.critical("No local file found. Terminating.")
+        return None
 
 # LOGGING Setup
 #log_filename = "IQRight_FE_WEB.debug"
