@@ -62,7 +62,7 @@ beacon_locations_dict = beacon_locations_dict = {beacon_info["beacon"]: beacon_i
 homeDir = os.environ['HOME']
 
 
-df = pd.read_csv('/etc/iqright/LoraService/full_load.csv',
+df = pd.read_csv('/etc/iqright/LoraService/full_load.iqr',
                  dtype={'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int \
                      , 'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str \
                      , 'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str \

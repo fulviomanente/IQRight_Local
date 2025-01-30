@@ -163,26 +163,30 @@ def decrypt_file(datafile, filename):
 
     return df
 
-def api_request(method, url, data, content: bool = False):
-    url = app.config['API_URL'] + url + "/"
+def api_request(method, url, data, content: bool = False, bearer: str = None):
+    url = app.config['API_URL'] + url
     headers = {
-        "Content-Type": "application/json",
         "accept": "application/json",
+        "Content-Type": "application/json",
         "caller": "LocalApp"
     }
 
-    apiUsername = get_secret('apiUsername')
-    apiPassword = get_secret('apiPassword')
-
-    auth = (apiUsername["value"], apiPassword["value"])
+    if bearer:
+        headers['Authorization'] = f'Bearer {bearer}'
+    else:
+        apiUsername = get_secret('apiUsername')
+        apiPassword = get_secret('apiPassword')
+        auth = (apiUsername["value"], apiPassword["value"])
 
     try:
         if method.upper() == 'POST':
+            url = url + "/"
             response = requests.post(url=url, auth=auth, headers=headers, data=json.dumps(data))
         else:
-            response = requests.get(url=url, headers=headers, data=data)
+            response = requests.get(url=url, headers=headers, params=data)
         if response.status_code == 200:
-            if content:
+
+            if 'text/csv' in response.headers.get('Content-Type', ''):
                 return 200, response.content
             else:
                 return 200, response.json()
@@ -336,7 +340,53 @@ def playSoundList(listObj, currGrid, fillGrid: bool = False):
         if fillGrid:  # IF FILLING THE WHOLE GRID, SLEEP 2 SECONDS BEFORE PLAYING THE NEXT ONE
             time.sleep(2)
 
+def download_and_read_csv(filename="full_load.iqr"):
+    """Downloads the CSV file from the API, saves it locally, and then reads it into a Pandas DataFrame.
+    Returns the DataFrame or None if there's an error.
+    """
+    try:
+        #GET JWT Token
+        status_code, response_content = api_request(method="POST", url='apiGetToken/',
+                                                    data={"idUser": "localuser", "password": "Lalala1234",  "idFacility": 1})
+        if status_code == 200:
+            status_code, response_content = api_request(method="GET", url='apiGetLocalUserFile/download', data={'idFacility':1, 'searchType':'ALL'}, bearer=response_content['token'])
+            if status_code == 200:  # Check for successful API call
+                if os.path.exists(filename):  # Check if full_load.iqr already exists
+                    try:
+                        os.replace(filename, "full_load.bak") #Rename to .bak, replaces existing .bak
+                    except OSError as e:
+                        logging.error(f"Error renaming existing file: {e}")
+                        os.replace(filename, "full_load.bak.error")
 
+                with open(filename, 'wb') as f:  # Save the content to a local file
+                    f.write(response_content)
+
+                df = pd.read_csv(filename, dtype={ # Read CSV into dataframe
+                    'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int,
+                    'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str,
+                    'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str,
+                    'HierarchyLevel2': str, 'HierarchyLevel2Type': str, 'HierarchyLevel2Desc': str,
+                    'StartDate': str, 'ExpireDate': str, 'IDApprovalStatus': int, 'ApprovalStatus': str,
+                    'MainContact': int, 'Relationship': str
+                })
+                return df
+            else:
+                logging.error(f"Error downloading CSV from API. Status code: {status_code}")
+                if response_content.get('message'):
+                    logging.error(f"API Error Message: {response_content.get('message')}")
+                return None
+    except requests.exceptions.RequestException as e:  # Handle timeout or connection errors
+        logging.error(f"API request error: {e}")
+        if exists(filename):  # Use existing local file if available
+            logging.warning("Using existing local CSV file due to API error.")
+            try:
+                return pd.read_csv(filename)
+            except Exception as read_error:
+                logging.error(f"Error reading the existing CSV: {read_error}")
+                return None
+        else:
+            logging.critical("No local CSV file found. Terminating.")
+            exit(1)  # Terminate the app if the file doesn't exist locally either
 
 # LOGGING Setup
 #log_filename = "IQRight_FE_WEB.debug"
@@ -352,13 +402,9 @@ def playSoundList(listObj, currGrid, fillGrid: bool = False):
 
 lastCommand = None
 
-df = pd.read_csv('./full_load.csv',
-                 dtype={'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int \
-                     , 'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str \
-                     , 'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str \
-                     , 'HierarchyLevel2': str, 'HierarchyLevel2Type': str, 'HierarchyLevel2Desc': str \
-                     , 'StartDate': str, 'ExpireDate': str, 'IDApprovalStatus': int, 'ApprovalStatus': str
-                     , 'MainContact': int, 'Relationship': str})
+df = download_and_read_csv()
+if df is None: #If any error downloading the file or reading, exit the app
+    exit(1)
 
 babel.init_app(app, locale_selector=get_locale)
 

@@ -32,7 +32,7 @@ logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
 lastCommand = None
 
-df = pd.read_csv('/etc/iqright/LoraService/full_load.csv',
+df = pd.read_csv('/etc/iqright/LoraService/full_load.iqr',
                  dtype={'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int \
                      , 'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str \
                      , 'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str \
@@ -77,7 +77,7 @@ properties.SessionExpiryInterval = 30 * 60  # in seconds
 
 #engine = pyttsx3.init()
 
-#df = pd.read_csv('full_load.csv',
+#df = pd.read_csv('full_load.iqr',
 #                 dtype={'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int \
 #                     , 'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str \
 #                     , 'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str \
