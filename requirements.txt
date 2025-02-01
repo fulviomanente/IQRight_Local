@@ -20,4 +20,5 @@ flask-login==0.6.3
 flask-socketio==5.3.6
 flask-babel==4.0.0
 google-cloud-secret-manager==2.16.4
-cryptography==41.0.4
+cryptography==43.0.1
+dotenv
