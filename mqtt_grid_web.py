@@ -22,10 +22,6 @@ from flask import Flask, render_template, request, redirect, url_for, flash, g, 
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_socketio import SocketIO
 import requests
-from google.cloud import secretmanager
-from forms import ChangePasswordForm
-from cryptography.fernet import Fernet
-from flask_babel import Babel, gettext as _
 from dotenv import load_dotenv
 
 
@@ -444,6 +440,7 @@ def playSoundList(listObj, currGrid, fillGrid: bool = False):
             label_call.flash(0)
         if fillGrid:  # IF FILLING THE WHOLE GRID, SLEEP 2 SECONDS BEFORE PLAYING THE NEXT ONE
             time.sleep(2)
+
 
 # LOGGING Setup
 #log_filename = "IQRight_FE_WEB.debug"
