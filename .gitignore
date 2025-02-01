@@ -1,2 +1,10 @@
 .venv/
 .env
+/full_load.bak
+/full_load.iqr
+/IQRight_FE.debug
+/IQRight_FE_WEB.debug
+/offline_users.iqr
+/offline_users.bak
+/offline.key
+/iqright-738e0d54551e.json

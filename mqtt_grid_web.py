@@ -1,13 +1,16 @@
+#mqtt_grid_web.py
+
 import datetime
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import paho.mqtt.client as mqtt
 from paho.mqtt.properties import Properties
 from paho.mqtt.packettypes import PacketTypes
 # import pyttsx3
 from gtts import gTTS
-from io import BytesIO
+from io import BytesIO, StringIO
+from pandas.core.interchange.dataframe_protocol import DataFrame
 from pydub import AudioSegment
 from pydub.playback import play
 import pandas as pd
@@ -19,14 +22,10 @@ from flask import Flask, render_template, request, redirect, url_for, flash, g, 
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_socketio import SocketIO
 import requests
-import base64
 from google.cloud import secretmanager
 from forms import ChangePasswordForm
 from cryptography.fernet import Fernet
 from flask_babel import Babel, gettext as _
-from configs.languages import supported_languages
-from urllib.parse import urlsplit
-from functools import wraps
 from dotenv import load_dotenv
 
 
@@ -47,6 +46,162 @@ class User(UserMixin):
     def __init__(self, id, class_codes):
         self.id = id
         self.class_codes = class_codes
+        self.offlineUsersDF: pd.DataFrame = None
+        self.offlineUserEnabled: bool = False
+
+# Class to handle Offline Token and information to be downloaded
+class OfflineData():
+    # API Token
+    _offlineAPIToken: str
+    _offlineAPITokenExp: datetime
+    _offlineUsersDF: DataFrame
+    _allUsersDF: DataFrame
+    offlineUserAvailable: bool
+
+    def __init__(self):
+        self._offlineAPIToken: str = ""
+        self._offlineAPITokenExp = datetime.now() - timedelta(hours=2)
+        self.offlineUserAvailable = False
+        self._allUsersDF = self.loadAppUsers()
+
+    def encrypt_file(self, datafile, filename, data):
+        """Encrypts a Pandas DataFrame and saves it to a file.
+        Args:
+            filename: The name of the file to save the encrypted data to.
+            data: The Pandas DataFrame to encrypt.
+        """
+        # Generate a new encryption key
+        key = Fernet.generate_key()
+        # Create a Fernet object with the encryption key
+        f = Fernet(key)
+        # Convert the DataFrame to a CSV string
+        csv_string = data.to_csv(index=False)
+        # Encrypt the CSV string
+        encrypted_data = f.encrypt(csv_string.encode())
+        # Save the encryption key to a separate file
+        with open(filename + '.key', 'wb') as key_file:
+            key_file.write(key)
+        # Save the encrypted data to the specified file
+        with open(datafile, 'wb') as encrypted_file:
+            encrypted_file.write(encrypted_data)
+        return True
+
+    def decrypt_file(self, datafile, filename: str ='offline.key'):
+        """Decrypts a file containing an encrypted Pandas DataFrame.
+        Args:
+            datafile: The name of the file containing the encrypted data.
+        Returns:
+            A Pandas DataFrame containing the decrypted data.
+        """
+        try:
+            # Read the encryption key from the key file
+            with open(filename, 'rb') as key_file:
+                key = key_file.read()
+            # Create a Fernet object with the encryption key
+            f = Fernet(key)
+            # Read the encrypted data from the file
+            with open(datafile, 'rb') as encrypted_file:
+                encrypted_data = encrypted_file.read()
+            # Decrypt the data
+            decrypted_data = f.decrypt(encrypted_data)
+            # Convert the decrypted CSV string to a Pandas DataFrame
+            df = pd.read_csv(StringIO(decrypted_data.decode('utf-8')))
+            return df
+        except Exception as read_error:
+            logging.error(f"Error reading the existing CSV: {read_error}")
+            return None
+
+    def openFile(self, filename, keyfilename: str = None):
+        if os.path.exists(filename):  # Use existing local file if available
+            if keyfilename:
+                return True, self.decrypt_file(datafile=filename, filename=keyfilename)
+            else:
+                return True, self.decrypt_file(datafile=filename)
+        else:
+            logging.critical("No local CSV file found. Terminating.")
+            return False, None
+
+    def getToken(self):
+        # GET JWT Token
+        if self._offlineAPITokenExp < datetime.now():
+            status_code, response_content = api_request(method="POST", url='apiGetToken/',
+                                                        data={"idUser": "localuser", "password": "Lalala1234",
+                                                              "idFacility": 1})
+            if status_code == 200:
+                self._offlineAPIToken = response_content['token']
+                self._offlineAPITokenExp = datetime.fromisoformat(response_content['expiration'].replace("Z", "+00:00"))
+                return self._offlineAPIToken
+            else:
+                return None
+        else:
+            return self._offlineAPIToken
+
+    def download_and_read_csv(self, url: str, filename: str = "full_load"):
+        """Downloads the CSV file from the API, saves it locally, and then reads it into a Pandas DataFrame.
+        Returns the DataFrame or None if there's an error.
+        """
+        try:
+            token = self.getToken()
+            if token:
+                # Download the file from the API
+                status_code, response_content = api_request(method="GET", url=f'{url}/download',
+                                                            data={'idFacility': os.getenv('FACILITY'),
+                                                                  'searchType': 'ALL'}, bearer=token)
+                if status_code == 200:  # Check for successful API call
+                    if os.path.exists(f"{filename}.iqr"):  # Check if full_load.iqr already exists
+                        try:
+                            os.replace(f"{filename}.iqr", f"{filename}.bak")  # Rename to .bak, replaces existing .bak
+                        except OSError as e:
+                            logging.error(f"Error renaming existing file: {e}")
+                            os.replace(f"{filename}.iqr", f"{filename}.bak.error")
+
+                    with open(f"{filename}.iqr", 'wb') as encrypted_file:  # Save the content to a local file
+                        encrypted_file.write(response_content)
+
+                else:
+                    logging.error(f"Error downloading CSV from API. Status code: {status_code}")
+                    if response_content.get('message'):
+                        logging.error(f"API Error Message: {response_content.get('message')}")
+                    return None
+            else:
+                logging.error(f"Failed to retrieve Offline Token")
+
+        except requests.exceptions.RequestException as e:  # Handle timeout or connection errors
+            logging.error(f"Download API request error: {e}")
+
+        # Regardless of the status of the API call it tries to open the file (You may already have a local file saved)
+        return self.openFile(filename=f"{filename}.iqr")
+
+    def getOfflineUsers(self):
+        if self.offlineUserAvailable == False:
+            self.offlineUserAvailable, self._offlineUsersDF = self.download_and_read_csv(url="apiGetLocalOfflineUserFile", filename="offline_users")
+        return self._offlineUsersDF
+
+    def findUser(self, userName):
+        userDF = self.getOfflineUsers()
+        if self.offlineUserAvailable:
+            # Retrieve the first matching row. Using iloc[0] handles cases where you only want the first match
+            user_row = userDF[userDF['Username'] == userName].iloc[0]
+            if not user_row.empty:  # Check if anything was returned
+                info = user_row.to_dict()  # Convert found record to dictionary
+                info['listFacilities'] = [IDFACILITY]
+                info['listHierarchy'] = info['listHierarchy'].split('|')
+                return info
+            else:
+                return None
+        else:
+            return None
+
+    def loadAppUsers(self):
+        status, df = self.download_and_read_csv(filename="full_load", url="apiGetLocalUserFile")
+        if status == False:  # If any error downloading the file or reading, exit the app
+            logging.error(f"UNABLE TO OPEN USER FILE, EXITING)")
+            exit(1)
+        else:
+            return df
+
+    def getAppUsers(self):
+        return self._allUsersDF
 
 #######################################################################################
 ##################### GENERAL UTILITY METHODS #########################################
@@ -108,64 +263,6 @@ def get_secret(secret, expected: str = None, compare: bool = False):
         response = {'value': secretValue.payload.data.decode('UTF-8'), 'result': result}
     return response
 
-def encrypt_file(datafile, filename, data):
-    """Encrypts a Pandas DataFrame and saves it to a file.
-
-    Args:
-        filename: The name of the file to save the encrypted data to.
-        data: The Pandas DataFrame to encrypt.
-    """
-    # Generate a new encryption key
-    key = Fernet.generate_key()
-
-    # Create a Fernet object with the encryption key
-    f = Fernet(key)
-
-    # Convert the DataFrame to a CSV string
-    csv_string = data.to_csv(index=False)
-
-    # Encrypt the CSV string
-    encrypted_data = f.encrypt(csv_string.encode())
-
-    # Save the encryption key to a separate file
-    with open(filename + '.key', 'wb') as key_file:
-        key_file.write(key)
-
-    # Save the encrypted data to the specified file
-    with open(datafile, 'wb') as encrypted_file:
-        encrypted_file.write(encrypted_data)
-
-    return True
-
-def decrypt_file(datafile, filename):
-    """Decrypts a file containing an encrypted Pandas DataFrame.
-
-    Args:
-        filename: The name of the file containing the encryption key.
-        datafile: The name of the file containing the encrypted data.
-
-    Returns:
-        A Pandas DataFrame containing the decrypted data.
-    """
-    # Read the encryption key from the key file
-    with open(filename, 'rb') as key_file:
-        key = key_file.read()
-
-    # Create a Fernet object with the encryption key
-    f = Fernet(key)
-
-    # Read the encrypted data from the file
-    with open(datafile, 'rb') as encrypted_file:
-        encrypted_data = encrypted_file.read()
-
-    # Decrypt the data
-    decrypted_data = f.decrypt(encrypted_data)
-
-    # Convert the decrypted CSV string to a Pandas DataFrame
-    df = pd.read_csv(BytesIO(decrypted_data))
-
-    return df
-
 def api_request(method, url, data, content: bool = False, bearer: str = None):
     url = app.config['API_URL'] + url
     headers = {
@@ -186,10 +283,10 @@ def api_request(method, url, data, content: bool = False, bearer: str = None):
             url = url + "/"
             response = requests.post(url=url, auth=auth, headers=headers, data=json.dumps(data))
         else:
-            response = requests.get(url=url, headers=headers, params=data)
+            response = requests.get(url=url, headers=headers, params=data, stream=True)
         if response.status_code == 200:
 
-            if 'text/csv' in response.headers.get('Content-Type', ''):
+            if 'application/octet-stream' in response.headers.get('Content-Type', ''):
                 return 200, response.content
             else:
                 return 200, response.json()
@@ -224,10 +321,15 @@ def authenticate_user(username, password):
     }
     errorMsg = None
 
-    returnCode, info = api_request(method="POST", url='apiGetSession', data=payload)
+    returnCode, info = api_request(method="POST", url='apiGetSessionss', data=payload)
+
+    offlineData = OfflineData()
 
     if info['message']:
-        if returnCode == 200:
+        #IF THERE IS NO CONNECTIVITY TRY TO LOGIN OFFLINE
+        if returnCode != 200:
+            info = offlineData.findUser(userName=username)
+        if info:
             # Validate if the Login matches the facility
             facilities = [x['idFacility'] for x in info['listFacilities']]
             if int(IDFACILITY) in facilities:
@@ -282,8 +384,8 @@ def on_messageScreen(client, userdata, message, tmp=None):
 
 
 def getInfo(beacon, distance, code: str = None, deviceID: str = None):
-    global df
     if code:
+        df = OfflineData.getAppUsers()
         try:
             logging.debug(f'Student Lookup')
             name = df.loc[df['ExternalNumber'] == code]
@@ -343,54 +445,6 @@ def playSoundList(listObj, currGrid, fillGrid: bool = False):
         if fillGrid:  # IF FILLING THE WHOLE GRID, SLEEP 2 SECONDS BEFORE PLAYING THE NEXT ONE
             time.sleep(2)
 
-def download_and_read_csv(filename="full_load.iqr"):
-    """Downloads the CSV file from the API, saves it locally, and then reads it into a Pandas DataFrame.
-    Returns the DataFrame or None if there's an error.
-    """
-    try:
-        #GET JWT Token
-        status_code, response_content = api_request(method="POST", url='apiGetToken/',
-                                                    data={"idUser": "localuser", "password": "Lalala1234",  "idFacility": 1})
-        if status_code == 200:
-            status_code, response_content = api_request(method="GET", url='apiGetLocalUserFile/download', data={'idFacility':1, 'searchType':'ALL'}, bearer=response_content['token'])
-            if status_code == 200:  # Check for successful API call
-                if os.path.exists(filename):  # Check if full_load.iqr already exists
-                    try:
-                        os.replace(filename, "full_load.bak") #Rename to .bak, replaces existing .bak
-                    except OSError as e:
-                        logging.error(f"Error renaming existing file: {e}")
-                        os.replace(filename, "full_load.bak.error")
-
-                with open(filename, 'wb') as f:  # Save the content to a local file
-                    f.write(response_content)
-
-                df = pd.read_csv(filename, dtype={ # Read CSV into dataframe
-                    'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int,
-                    'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str,
-                    'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str,
-                    'HierarchyLevel2': str, 'HierarchyLevel2Type': str, 'HierarchyLevel2Desc': str,
-                    'StartDate': str, 'ExpireDate': str, 'IDApprovalStatus': int, 'ApprovalStatus': str,
-                    'MainContact': int, 'Relationship': str
-                })
-                return df
-            else:
-                logging.error(f"Error downloading CSV from API. Status code: {status_code}")
-                if response_content.get('message'):
-                    logging.error(f"API Error Message: {response_content.get('message')}")
-                return None
-    except requests.exceptions.RequestException as e:  # Handle timeout or connection errors
-        logging.error(f"API request error: {e}")
-        if exists(filename):  # Use existing local file if available
-            logging.warning("Using existing local CSV file due to API error.")
-            try:
-                return pd.read_csv(filename)
-            except Exception as read_error:
-                logging.error(f"Error reading the existing CSV: {read_error}")
-                return None
-        else:
-            logging.critical("No local CSV file found. Terminating.")
-            exit(1)  # Terminate the app if the file doesn't exist locally either
-
 # LOGGING Setup
 #log_filename = "IQRight_FE_WEB.debug"
 #max_log_size = 20 * 1024 * 1024  # 20Mb
@@ -404,10 +458,6 @@ def download_and_read_csv(filename="full_load.iqr"):
 #logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
 lastCommand = None
-
-df = download_and_read_csv()
-if df is None: #If any error downloading the file or reading, exit the app
-    exit(1)
 
 babel.init_app(app, locale_selector=get_locale)
 
@@ -514,22 +564,32 @@ def login():
 @app.route('/home')
 @login_required
 def home():
-    client.user_data_set({"userAuthenticated": current_user.is_authenticated, 'classCode': session.get('_classCode', 0)})
-    client.connect(broker,
-                   port=myport,
-                   clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
-                   properties=properties,
-                   keepalive=60)
-    client.loop_start()
-    return render_template('index.html', class_codes=current_user.class_codes, newUser=session['_newUser'], fullName=session['fullName'])
+    try:
+        client.user_data_set({"userAuthenticated": current_user.is_authenticated, 'classCode': session.get('_classCode', 0)})
+        client.connect(broker,
+                       port=myport,
+                       clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
+                       properties=properties,
+                       keepalive=60)
+        client.loop_start()
+        return render_template('index.html', class_codes=current_user.class_codes, newUser=session['_newUser'], fullName=session['fullName'])
+
+    except Exception as e: #Catch MQTT connection errors
+        logging.error(f"MQTT Connection Error in /home: {e}")
+        return render_template('mqtt_error.html')  # Render error page
+
 
 # Route for logging out
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    client.unsubscribe()
-    return redirect(url_for('login'))
+    try:
+        client.unsubscribe()
+    except Exception as e: #Catch MQTT connection errors
+        logging.error(f"MQTT Connection Error in /logout (unsubscribe): {e}")
+    finally:
+        return redirect(url_for('login'))
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
