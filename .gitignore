@@ -1,9 +1,9 @@
 .venv/
 .env
-
 # IQRight data files
+/offline_users.*
 full_load*
 *.json
-
+*.debug
 # Encryption keys
 *.key
