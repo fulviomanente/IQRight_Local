@@ -181,11 +181,13 @@ class OfflineData():
         userDF = self.getOfflineUsers()
         if self.offlineUserAvailable:
             # Retrieve the first matching row. Using iloc[0] handles cases where you only want the first match
-            user_row = userDF[userDF['Username'] == userName].iloc[0]
+            user_row = userDF[userDF['UserId'] == userName].iloc[0]
             if not user_row.empty:  # Check if anything was returned
                 info = user_row.to_dict()  # Convert found record to dictionary
-                info['listFacilities'] = [IDFACILITY]
-                info['listHierarchy'] = info['listHierarchy'].split('|')
+                info['listFacilities'] = [{'idFacility': int(IDFACILITY)}]
+                info['listHierarchy'] = [{'IDHierarchy': str(x)} for x in str(info['IDHierarchy']).split('|')]
+                info['fullName'] = info.get('firstName', '') + ' ' + info.get('lastName', '')
+                info['roles'] = info['Role']
                 return info
             else:
                 return None
@@ -333,7 +335,6 @@ def authenticate_user(username, password):
             # Validate if the Login matches the facility
             facilities = [x['idFacility'] for x in info['listFacilities']]
             if int(IDFACILITY) in facilities:
-                teacher = info.get('firstName', '') + ' ' + info.get('lastName', '')
                 # Validate if the user can see the Students Grid
                 if 'StudentGrid' not in info.get('roles'):
                     errorMsg = 'User does not have enough permision to access the Student Grid'
