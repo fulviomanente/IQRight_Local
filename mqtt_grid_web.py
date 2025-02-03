@@ -46,8 +46,6 @@ class User(UserMixin):
     def __init__(self, id, class_codes):
         self.id = id
         self.class_codes = class_codes
-        self.offlineUsersDF: pd.DataFrame = None
-        self.offlineUserEnabled: bool = False
 
 # Class to handle Offline Token and information to be downloaded
 class OfflineData():
@@ -323,7 +321,7 @@ def authenticate_user(username, password):
     }
     errorMsg = None
 
-    returnCode, info = api_request(method="POST", url='apiGetSessionss', data=payload)
+    returnCode, info = api_request(method="POST", url='apiGetSession', data=payload)
 
     offlineData = OfflineData()
 
