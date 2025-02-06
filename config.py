@@ -21,3 +21,5 @@ BEACON_LOCATIONS = [
     {"idBeacon": 2, "beacon": "QR Reader", "location": "East Side"},
     {"idBeacon": 3, "beacon": "BLE Reader","location": "Main Entrance"}]
 
+LORASERVICE_PATH = '/etc/iqright/LoraService'
+LORASERVICE_LOG_PATH = '/etc/iqright/LoraService/LoraService.log'

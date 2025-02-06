@@ -6,7 +6,7 @@ import os
 import json
 from datetime import datetime
 import pandas as pd
-from config import TOPIC_PREFIX, BEACON_LOCATIONS, TOPIC, API_URL, IDFACILITY
+from config import TOPIC_PREFIX, API_URL, IDFACILITY, LORASERVICE_PATH
 import asyncio
 import aiohttp
 from google.cloud import secretmanager
@@ -62,7 +62,7 @@ beacon_locations_dict = beacon_locations_dict = {beacon_info["beacon"]: beacon_i
 homeDir = os.environ['HOME']
 
 
-df = pd.read_csv('/etc/iqright/LoraService/full_load.iqr',
+df = pd.read_csv(f'{LORASERVICE_PATH}/full_load.iqr',
                  dtype={'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int \
                      , 'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str \
                      , 'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str \
@@ -181,23 +181,27 @@ async def get_user_local(beacon, code, distance, df):
 
     try:
         logging.debug(f'Student Lookup (Local)')
-        name = df.loc[df['DeviceID'] == code]
-        if name.empty:
+        matches = df.loc[df['DeviceID'] == code]
+        if matches.empty:
             logging.debug(f"Couldn't find Code: {code} locally")
             return None  # Return None if not found locally
         else:
-            result = {
-                "name": name['ChildName'].item(),
-                "hierarchyLevel2": name['HierarchyLevel2'].item(),
-                "node": beacon,
-                "externalID": code,
-                "distance": abs(int(distance)),
-                "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                "externalNumber": name['ExternalNumber'].item(),
-                "location": beaconLocator(beacon),  # Use beaconLocator function here
-                "source": "local"  # Mark the source as local
-            }
-            return result
+            results = []
+            # Iterate through all matching rows
+            for _, row in matches.iterrows():
+                result = {
+                    "name": row['ChildName'],
+                    "hierarchyLevel2": row['HierarchyLevel2'],
+                    "node": beacon,
+                    "externalID": code,
+                    "distance": abs(int(distance)),
+                    "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    "externalNumber": row['ExternalNumber'],
+                    "location": beaconLocator(beacon),
+                    "source": "local"
+                }
+                results.append(result)
+            return results
     except Exception as e:
         logging.error(f'Error converting local data: {e}')
         return None
@@ -210,9 +214,12 @@ async def getInfo(beacon, code, distance, df):
     try:
         api_result = await asyncio.wait_for(api_task, timeout=1.0)  # Wait for the API with a timeout
         if api_result:
-            api_result["source"] = "api"
+            if not isinstance(api_result, list):
+                api_result = [api_result]  # Convert single result to list
+            for result in api_result:
+                result["source"] = "api"
             logging.info("Using API results")
-            return api_result  # If successful, return the API result
+            return api_result
     except asyncio.TimeoutError:
         logging.warning("API Timeout. Using local data if available.")
         pass  # Handle timeout (use local result if available)
@@ -231,25 +238,39 @@ async def handleInfo(strInfo: str):
     if len(strInfo) > 5:
         beacon, payload, distance = strInfo.split('|')
         if payload.find(":") >= 0:
-            strCmd, command = payload.split(":") 
+            strCmd, command = payload.split(":")
             if command != lastCommand:
                 payload = {'command': command}
-        else:    
-            #sendObj = getInfo(beacon, payload, distance)
+        else:
             sendObj = await getInfo(beacon, payload, distance, df)
             payload = sendObj if sendObj else None
+        
         if payload:
-            # IF ALL DATA COULD BE PARSED AND IDENTIFIED, SEND TO THE SCANNER
-            time.sleep(0.3)
-            if sendDataScanner(payload) == False:
-                logging.error(f'FAILED to sent to Scanner: {json.dumps(payload)}')
+            # Handle list of results
+            if isinstance(payload, list):
+                for item in payload:
+                    time.sleep(0.3)
+                    if sendDataScanner(item) == False:
+                        logging.error(f'FAILED to sent to Scanner: {json.dumps(item)}')
+                    else:
+                        sendObj = json.dumps(item)
+                        logging.info(sendObj)
+                        if publishMQTT(sendObj):
+                            logging.info(' Message Sent')
+                        else:
+                            logging.error('MQTT ERROR')
             else:
-                sendObj = json.dumps(payload)
-                logging.info(sendObj)
-                if publishMQTT(sendObj):
-                    logging.info(' Message Sent')
+                # Handle single command payload
+                time.sleep(0.3)
+                if sendDataScanner(payload) == False:
+                    logging.error(f'FAILED to sent to Scanner: {json.dumps(payload)}')
                 else:
-                    logging.error('MQTT ERROR')
+                    sendObj = json.dumps(payload)
+                    logging.info(sendObj)
+                    if publishMQTT(sendObj):
+                        logging.info(' Message Sent')
+                    else:
+                        logging.error('MQTT ERROR')
     return True
 
 def sendDataScanner(payload: dict):
@@ -288,11 +309,11 @@ def publishMQTT(payload: str):
     return False
 
 def sendMessageMQTT(payload: str, topicSufix: str = None):
-    logging.info(f"Sending {sendObj} to MQTT")
+    logging.info(f"Sending {payload} to MQTT")
     if topicPrefix and topicSufix:
-        ret = client.publish(f'{Topic}{topicSufix}', sendObj)
+        ret = client.publish(f'{Topic}{topicSufix}', payload)
     else:
-        ret = client.publish(Topic, sendObj)
+        ret = client.publish(Topic, payload)
     if ret[0] == 0:
         logging.debug('Message sent to Topic: {Topic}')
         logging.debug(f'Message ID {ret[1]}')
