@@ -3,17 +3,17 @@ import json
 import logging
 import requests
 from google.cloud import secretmanager
+from utils.config import API_URL, PROJECT_ID
 
 #Function to retrieve secrets from Google Cloud Secret Manager, inputs are secret and expect value and output is the secret
 
 def get_secret(secret, expected: str = None, compare: bool = False):
-    project_id = os.getenv('PROJECT_ID')
     secret_name = secret
     secretValue: str = None
     result: bool = False
     try:
         client = secretmanager.SecretManagerServiceClient()
-        name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+        name = f"projects/{PROJECT_ID}/secrets/{secret_name}/versions/latest"
         secretValue = client.access_secret_version(name=name)
         if compare and expected:
             if secret == expected:
@@ -29,7 +29,7 @@ def get_secret(secret, expected: str = None, compare: bool = False):
     return response
 
 def api_request(method, url, data, content: bool = False, bearer: str = None):
-    url = os.getenv('API_URL') + url
+    url = API_URL + url
     headers = {
         "accept": "application/json",
         "Content-Type": "application/json",

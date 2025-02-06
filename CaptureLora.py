@@ -6,7 +6,7 @@ import os
 import json
 from datetime import datetime
 import pandas as pd
-from config import TOPIC_PREFIX, API_URL, IDFACILITY, LORASERVICE_PATH
+from utils.config import TOPIC_PREFIX, API_URL, IDFACILITY, LORASERVICE_PATH
 import asyncio
 import aiohttp
 from google.cloud import secretmanager

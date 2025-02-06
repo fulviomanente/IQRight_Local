@@ -20,13 +20,13 @@ from flask_socketio import SocketIO
 from forms import ChangePasswordForm
 from flask_babel import Babel, gettext as _
 from dotenv import load_dotenv
-from config import TOPIC_PREFIX, TOPIC, API_URL, IDFACILITY, LORASERVICE_PATH
+from utils.config import TOPIC_PREFIX, TOPIC, API_URL, IDFACILITY, LORASERVICE_PATH, DEBUG
 from utils.offline_data import OfflineData
 from utils.api_client import api_request, get_secret
 
 app = Flask(__name__)
 app.secret_key = '1QrightS3cr3tKey'  # Secret key for session management
-app.config.from_pyfile('config.py')
+app.config.from_pyfile('utils/config.py')
 app.config['BABEL_DEFAULT_LOCALE'] = 'en'
 babel = Babel(app)
 socketio = SocketIO(app)
@@ -226,16 +226,16 @@ def playSoundList(listObj, currGrid, fillGrid: bool = False):
             time.sleep(2)
 
 # LOGGING Setup
-#log_filename = "IQRight_FE_WEB.debug"
-#max_log_size = 20 * 1024 * 1024  # 20Mb
-#backup_count = 10
-#log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-#debug = True
-#handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
+log_filename = "IQRight_FE_WEB.debug"
+max_log_size = 20 * 1024 * 1024  # 20Mb
+backup_count = 10
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+debug = DEBUG == 'TRUE'
+handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
 
-#handler.setFormatter(log_formatter)
-#logging.getLogger().addHandler(handler)
-#logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
+handler.setFormatter(log_formatter)
+logging.getLogger().addHandler(handler)
+logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
 lastCommand = None
 
@@ -261,7 +261,6 @@ currList = 1
 gridList = 1
 loadGrid = 1
 
-IDFACILITY = os.getenv("FACILITY", 0)
 AUTH_SERVICE_URL = get_secret('authServiceUrl')
 
 # Flask-Login setup
