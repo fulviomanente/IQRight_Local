@@ -1,0 +1,6 @@
+feat: add offline data processing and API client utilities in a separate file to share between service and web
+
+- Add utils/offline_data.py for offline data processing
+- Add utils/api_client.py for API interactions
+- Update core files (CaptureLora.py, mqtt_grid_web.py)
+- Update configuration and dependencies 
