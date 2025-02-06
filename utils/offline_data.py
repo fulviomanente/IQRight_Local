@@ -8,6 +8,7 @@ from cryptography.fernet import Fernet
 from pandas.core.interchange.dataframe_protocol import DataFrame
 from utils.config import LORASERVICE_PATH, IDFACILITY
 from utils.api_client import api_request
+import json
 
 # Set up logging configuration
 log_filename = "IQRight_FE_WEB.debug"
@@ -25,6 +26,7 @@ class OfflineData:
     _allUsersDF: DataFrame
     offlineUserAvailable: bool
     filepath: str
+    versions_dir: str
 
     def __init__(self):
         self._offlineAPIToken: str = ""
@@ -32,7 +34,65 @@ class OfflineData:
         self.offlineUserAvailable = False
         self.filepath = LORASERVICE_PATH + '/'
         self._allUsersDF = self.loadAppUsers()
+        self.versions_dir = os.path.join(self.filepath, 'versions')
 
+    def _get_version_file(self, filename: str) -> str:
+        """Gets the path to the version file for a specific filename."""
+        safe_filename = os.path.basename(filename).replace('.', '_')
+        return os.path.join(self.versions_dir, f'{safe_filename}_version.json')
+
+    def _load_file_versions(self, filename: str) -> dict:
+        """Loads the stored file versions from local JSON."""
+        try:
+            version_file = self._get_version_file(filename)
+            if os.path.exists(version_file):
+                with open(version_file, 'r') as f:
+                    return json.load(f)
+            return {'version': 0}
+        except Exception as e:
+            logging.error(f"Error loading file versions for {filename}: {str(e)}")
+            return {'version': 0}
+
+    def _save_file_versions(self, filename: str, version_data: dict):
+        """Saves the current file versions to local JSON."""
+        try:
+            version_file = self._get_version_file(filename)
+            with open(version_file, 'w') as f:
+                json.dump(version_data, f)
+        except Exception as e:
+            logging.error(f"Error saving file versions for {filename}: {str(e)}")
+
+    def check_file_version(self, filename: str):
+        """
+        Checks if a new version of the file is available.
+        Returns True if new version is available, False otherwise.
+        Returns the current version if no new version is available.
+        If there is an error, returns True and 0 as version so the process can continue.
+        """
+        try:
+            status_code, response = api_request(
+                method="POST",
+                url='GetFileVersion',
+                data={'filename': filename})
+
+            if status_code != 200:
+                logging.error(f"Error checking file version: {response.get('message')}")
+                return False, 0
+
+            version_data = self._load_file_versions(filename)
+            current_version = version_data.get('version', 0)
+            new_version = response.get('version', 0)
+
+            if new_version > current_version:
+                logging.info(f"New version available for {filename}: {new_version}")
+                return True, new_version
+            
+            logging.debug(f"File {filename} is up to date (version {current_version})")
+            return False, current_version   
+
+        except Exception as e:
+            logging.error(f"Error checking file version for {filename}: {str(e)}")
+            return False, 0
 
     def encrypt_file(self, datafile, filename, data):
         """Encrypts a Pandas DataFrame and saves it to a file."""
@@ -110,7 +170,17 @@ class OfflineData:
     def download_and_read_csv(self, url: str, filename: str):
         """Downloads and reads CSV file using the provided api_request function."""
         try:
-            filename = self.filepath + filename
+            full_path = self.filepath + filename
+            
+            # Check if we need to download a new version
+            needNewFile, fileVersion = self.check_file_version(filename)
+            if not needNewFile:
+                if fileVersion > 0:
+                    logging.info(f"Using cached version of {filename} (version {fileVersion})")
+                else:
+                    logging.info(f"Failed to access getFileVersion! Using cached version of {filename}")
+                return self.openFile(filename=f"{full_path}.iqr")
+
             token = self.getToken()
             if token:
                 status_code, response_content = api_request(
@@ -120,15 +190,18 @@ class OfflineData:
                     bearer=token
                 )
                 if status_code == 200:
-                    if os.path.exists(f"{filename}.iqr"):
+                    if os.path.exists(f"{full_path}.iqr"):
                         try:
-                            os.replace(f"{filename}.iqr", f"{filename}.bak")
+                            os.replace(f"{full_path}.iqr", f"{full_path}.bak")
                         except OSError as e:
                             logging.error(f"Error renaming existing file: {str(e)}")
-                            os.replace(f"{filename}.iqr", f"{filename}.bak.error")
+                            os.replace(f"{full_path}.iqr", f"{full_path}.bak.error")
 
-                    with open(f"{filename}.iqr", 'wb') as encrypted_file:
+                    with open(f"{full_path}.iqr", 'wb') as encrypted_file:
                         encrypted_file.write(response_content)
+
+                    #Once the file is downloaded, save the version
+                    self._save_file_versions(filename, {'version': fileVersion})
                 else:
                     logging.error(f"Error downloading CSV. Status: {status_code}")
                     if response_content.get('message'):
@@ -141,7 +214,7 @@ class OfflineData:
             logging.error(f"Error downloading and reading CSV: {str(e)}")
             return False, None
 
-        return self.openFile(filename=f"{filename}.iqr")
+        return self.openFile(filename=f"{full_path}.iqr")
 
     def getOfflineUsers(self):
         """Gets offline users data."""
@@ -176,10 +249,20 @@ class OfflineData:
     def loadAppUsers(self):
         """Try to loads all app users from local file."""
         try:
-            if os.path.exists(f"{self.filepath}full_load.iqr"):
-                status, df = self.openFile(filename=f"{self.filepath}full_load.iqr")
-            else:
+            needNewFile, fileVersion = self.check_file_version("full_load.iqr")
+            if needNewFile:
                 status, df = self.download_and_read_csv(url="apiGetLocalUserFile", filename="full_load")
+            else:
+                if fileVersion > 0:
+                    logging.info(f"Using cached version of full_load.iqr (version {fileVersion})")
+                else:
+                    logging.info(f"Failed to access getFileVersion! Using cached version of full_load.iqr")
+
+                if os.path.exists(f"{self.filepath}full_load.iqr"):
+                    status, df = self.openFile(filename=f"{self.filepath}full_load.iqr")
+                else:
+                    logging.error("UNABLE TO OPEN USER FILE, EXITING")
+                    exit(1)
                 
             if status == False:
                 logging.error("UNABLE TO OPEN USER FILE, EXITING")
