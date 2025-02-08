@@ -6,6 +6,9 @@ PROJECT_ID = 'iqright'
 SECRET_KEY = 'iqrightapp_secret'
 SECURITY_PASSWORD_SALT = 'iqrightapp_salt'
 DEBUG = True
+OFFLINE_USERS_FILENAME = 'offline_users.iqr'
+OFFLINE_FULL_LOAD_FILENAME = 'full_load.iqr'
+LOCAL_FILE_VERSIONS = 'local_file_versions.json'
 
 if os.getenv('LOCAL', None) == 'TRUE':
     API_URL = 'http://127.0.0.1:5001/api/'

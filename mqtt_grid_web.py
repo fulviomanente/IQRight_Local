@@ -109,8 +109,10 @@ def authenticate_user(username, password):
     if info['message']:
         #IF THERE IS NO CONNECTIVITY TRY TO LOGIN OFFLINE
         if returnCode != 200:
+            errorMsg = info['message']
             info = offlineData.findUser(userName=username)
         if info:
+            errorMsg = None
             # Validate if the Login matches the facility
             facilities = [x['idFacility'] for x in info['listFacilities']]
             if int(IDFACILITY) in facilities:
@@ -126,11 +128,12 @@ def authenticate_user(username, password):
             else:
                 errorMsg = 'User does not have enough permision to access this Facility Data'
         else:
-            errorMsg = info['message']
+            errorMsg = 'User not found!'
+
     else:
         errorMsg = 'Unexpected Service Return: ' + json.dumps(info)
     if errorMsg:
-        return {'authenticated': False, 'classCodes': [], 'errorMsg': info['message'], 'changePassword': False, 'newUser': False, 'fullName': info.get('fullName', ' ')}
+        return {'authenticated': False, 'classCodes': [], 'errorMsg': errorMsg, 'changePassword': False, 'newUser': False, 'fullName': ''}
     else:
         return {'authenticated': True, 'classCodes': info['listHierarchy'], 'errorMsg': None, 'changePassword': info.get('changePassword', False), 'newUser': info.get('newUser', False), 'fullName': info.get('fullName', ' ')}
 
