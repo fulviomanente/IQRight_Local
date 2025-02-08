@@ -6,7 +6,7 @@ import os
 import json
 from datetime import datetime
 import pandas as pd
-from utils.config import TOPIC_PREFIX, API_URL, IDFACILITY, LORASERVICE_PATH
+from utils.config import TOPIC_PREFIX, API_URL, IDFACILITY, LORASERVICE_PATH, OFFLINE_FULL_LOAD_FILENAME, TOPIC, TOPIC_PREFIX
 import asyncio
 import aiohttp
 from google.cloud import secretmanager
@@ -62,13 +62,13 @@ beacon_locations_dict = beacon_locations_dict = {beacon_info["beacon"]: beacon_i
 homeDir = os.environ['HOME']
 
 
-df = pd.read_csv(f'{LORASERVICE_PATH}/full_load.iqr',
+df = pd.read_csv(f'{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}',
                  dtype={'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int \
                      , 'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str \
                      , 'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str \
                      , 'HierarchyLevel2': str, 'HierarchyLevel2Type': str, 'HierarchyLevel2Desc': str \
                      , 'StartDate': str, 'ExpireDate': str, 'IDApprovalStatus': int, 'ApprovalStatus': str
-                     , 'MainContact': int, 'Relationship': str})
+                     , 'MainContact': int, 'Relationship': str, 'IDHierarchy': int})
 
 
 try:
@@ -192,6 +192,7 @@ async def get_user_local(beacon, code, distance, df):
                 result = {
                     "name": row['ChildName'],
                     "hierarchyLevel2": row['HierarchyLevel2'],
+                    "hierarchyID": row['HierarchyID'],
                     "node": beacon,
                     "externalID": code,
                     "distance": abs(int(distance)),
@@ -293,7 +294,7 @@ def sendDataScanner(payload: dict):
 def publishMQTT(payload: str):
     count = 5
     while count > 0:
-        if sendMessageMQTT(payload):
+        if sendMessageMQTT(payload, str(payload.get("hierarchyID", '00'))):
             return True
         else:
             count = count -1

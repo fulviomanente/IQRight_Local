@@ -74,10 +74,10 @@ class OfflineData:
             if status_code != 200:
                 logging.error(f"Error checking file version: {response.get('message')}")
                 return False, 0
-
+    
             version_data = self._localFileVersions.get(filename, self._emptyVersions.get(filename))
             current_version = version_data.get('version', '0.0.0')
-            new_version = response.get('version', '0.0.0')
+            new_version = response.get('latest', '0.0.0')
 
             if new_version != current_version:
                 logging.info(f"New version available for {filename}: {new_version}")
