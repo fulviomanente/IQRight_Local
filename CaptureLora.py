@@ -6,49 +6,33 @@ import os
 import json
 from datetime import datetime
 import pandas as pd
-from utils.config import TOPIC_PREFIX, API_URL, IDFACILITY, LORASERVICE_PATH, OFFLINE_FULL_LOAD_FILENAME, TOPIC, TOPIC_PREFIX
 import asyncio
+from utils.api_client import get_secret
 import aiohttp
-from google.cloud import secretmanager
 
-# Import LORA Libraries
-import busio
-from digitalio import DigitalInOut, Direction, Pull
-import board
-# Import RFM9x
-import adafruit_rfm9x
+#Import Config
+from utils.config import API_URL, API_TIMEOUT, DEBUG, LORASERVICE_PATH, OFFLINE_FULL_LOAD_FILENAME, HOME_DIR, FILE_DTYPE, \
+    TOPIC, TOPIC_PREFIX, MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, MQTT_TRANSPORT, MQTT_VERSION, MQTT_KEEPALIVE,   \
+    LOG_FILENAME, MAX_LOG_SIZE, BACKUP_COUNT, RFM9X_FREQUENCE,   \
+    RFM9X_SEND_DELAY, RFM9X_TX_POWER, RFM9X_NODE, RFM9X_ACK_DELAY, RMF9X_POOLING,\
+    PROJECT_ID, BEACON_LOCATIONS, IDFACILITY
+    
 
 #Import MQ Libraries
 import paho.mqtt.client as mqtt
 from paho.mqtt.properties import Properties
 from paho.mqtt.packettypes import PacketTypes
 
-def get_secret(secret, expected: str = None, compare: bool = False):
-    # Replace with your actual Secret Manager project ID and secret name
-    project_id = os.getenv('PROJECT_ID')
-    secret_name = secret
-    secretValue: str = None
-    result: bool = False
-    try:
-        # Create the Secret Manager client.
-        client = secretmanager.SecretManagerServiceClient()
-        # Build the resource name of the secret version.
-        name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
-        # Access the secret version.
-        secretValue = client.access_secret_version(name=name)
-        if compare and expected:
-            if secret == expected:
-                result = True
-            else:
-                result = False
-            secretValue = None
-    except Exception as e:
-        logging.debug(f'Error getting secret {secret} from envinronment')
-        logging.debug(str(e))
-    finally:
-        response = {'value': secretValue.payload.data.decode('UTF-8'), 'result': result}
-    return response
+# Import LORA Libraries - THIS WILL FAIL IN A NON RASPBERRY PI ENVIRONMENT
+import busio
+from digitalio import DigitalInOut, Direction, Pull
+import board
+import adafruit_rfm9x
 
+
+
+
+#Setup MQTT Topics
 topicPrefix: bool = False
 if TOPIC != '':
     Topic = TOPIC
@@ -58,38 +42,21 @@ elif TOPIC_PREFIX != '':
 else:
     Topic = 'IQSend'
 
+#GET Beacon Locations
 beacon_locations_dict = beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
-homeDir = os.environ['HOME']
 
-
+#Load Offline Full Load File
 df = pd.read_csv(f'{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}',
-                 dtype={'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int \
-                     , 'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str \
-                     , 'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str \
-                     , 'HierarchyLevel2': str, 'HierarchyLevel2Type': str, 'HierarchyLevel2Desc': str \
-                     , 'StartDate': str, 'ExpireDate': str, 'IDApprovalStatus': int, 'ApprovalStatus': str
-                     , 'MainContact': int, 'Relationship': str, 'IDHierarchy': int})
-
+                 dtype=FILE_DTYPE)
 
 try:
     #LOGGING Setup ####################################################
-    log_filename = "IQRight_Daemon.debug"
-    max_log_size = 20 * 1024 * 1024 #20Mb
-    backup_count = 10
+    handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=MAX_LOG_SIZE, backupCount=BACKUP_COUNT)
+    logging.basicConfig(filename=f'{HOME_DIR}/log/{LOG_FILENAME}')
     log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-    #if os.environ.get("DEBUG"):
-    debug = True
-    handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
-    logging.basicConfig(filename=f'{homeDir}/log/{log_filename}')
-
-    #else:
-    #    debug = False
-    #    logging.basicConfig(filename="IQRight_Daemon.log"), level=logging.INFO)
-
     handler.setFormatter(log_formatter)
     logging.getLogger().addHandler(handler)
-    logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
+    logging.getLogger().setLevel(logging.DEBUG if DEBUG else logging.INFO)
     ######################################################################
 except Exception as e:
     print(f'Error creating log object')
@@ -103,32 +70,26 @@ reset_pin = DigitalInOut(board.D4)
 CS = DigitalInOut(board.CE1)
 RESET = DigitalInOut(board.D25)
 spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
-rfm9x = adafruit_rfm9x.RFM9x(spi, CS, RESET, 915.23)
-rfm9x.tx_power = 23
-rfm9x.node = 1
-rfm9x.ack_delay = 0.1
+rfm9x = adafruit_rfm9x.RFM9x(spi, CS, RESET, RFM9X_FREQUENCE)
+rfm9x.tx_power = RFM9X_TX_POWER
+rfm9x.node = RFM9X_NODE
+rfm9x.ack_delay = RFM9X_ACK_DELAY
 prev_packet = None
 logging.info('Connected to Lora Module')
-version = '5' # or '3' 
-mytransport = 'tcp' #'websockets' # or 'tcp
 
-client = mqtt.Client(client_id="IQRight_Daemon", transport=mytransport, protocol=mqtt.MQTTv5)
+client = mqtt.Client(client_id="IQRight_Daemon", transport=MQTT_TRANSPORT, protocol=mqtt.MQTTv5)
 client.username_pw_set("IQRight", "123456")
  
-broker = '127.0.0.1' # eg. choosen-name-xxxx.cedalo.cloud
-myport = 1883
 properties=Properties(PacketTypes.CONNECT)
 properties.SessionExpiryInterval=30*60 # in seconds
-client.connect(broker,
-               port=myport,
+client.connect(MQTT_BROKER,
+               port=MQTT_PORT,
                clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
                properties=properties,
-               keepalive=60);
+               keepalive=MQTT_KEEPALIVE);
 logging.info('Connected to MQTT Server')
 
 lastCommand = None
-
-
 
 def getGrade(strGrade: str):
     if strGrade == 'First Grade':
@@ -142,11 +103,10 @@ def getGrade(strGrade: str):
     else:
         return 'Kind'
 
-
 async def get_user_from_api(code):
     try:
         async with aiohttp.ClientSession() as session:
-            api_url = f"{API_URL}/UserAccess"  # Replace with your actual API endpoint
+            api_url = f"{API_URL}/apiGetUserInfo"  # Replace with your actual API endpoint
             payload = {"searchCode": code}
             headers = {
                 "Content-Type": "application/json",
@@ -158,14 +118,19 @@ async def get_user_from_api(code):
             apiUsername = get_secret('apiUsername')
             apiPassword = get_secret('apiPassword')
 
-            auth = (apiUsername["value"], apiPassword["value"])
+            if apiUsername and apiPassword:
+                auth = (apiUsername["value"], apiPassword["value"])
 
-            async with session.post(api_url, json=payload, timeout=1.0, headers=headers, auth=auth) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    logging.error(f"API getUserAccess request failed with status: {response.status}")
-                    return None
+                async with session.post(api_url, json=payload, timeout=API_TIMEOUT, headers=headers, auth=auth) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        logging.error(f"API getUserAccess request failed with status: {response.status}")
+                        return None
+            else:
+                logging.error("API getUserAccess request failed on getting secrets")
+                return None
+                
     except asyncio.TimeoutError:
         logging.warning("API getUserAccess request timed out")
         return None
@@ -191,8 +156,8 @@ async def get_user_local(beacon, code, distance, df):
             for _, row in matches.iterrows():
                 result = {
                     "name": row['ChildName'],
-                    "hierarchyLevel2": row['HierarchyLevel2'],
-                    "hierarchyID": row['HierarchyID'],
+                    "hierarchyLevel2": row['HierarchyLevel2'], 
+                    "hierarchyID": f"{int(row['HierarchyID']):02d}",
                     "node": beacon,
                     "externalID": code,
                     "distance": abs(int(distance)),
@@ -250,7 +215,7 @@ async def handleInfo(strInfo: str):
             # Handle list of results
             if isinstance(payload, list):
                 for item in payload:
-                    time.sleep(0.3)
+                    time.sleep(RFM9X_SEND_DELAY)
                     if sendDataScanner(item) == False:
                         logging.error(f'FAILED to sent to Scanner: {json.dumps(item)}')
                     else:
@@ -262,7 +227,7 @@ async def handleInfo(strInfo: str):
                             logging.error('MQTT ERROR')
             else:
                 # Handle single command payload
-                time.sleep(0.3)
+                time.sleep(RFM9X_SEND_DELAY)
                 if sendDataScanner(payload) == False:
                     logging.error(f'FAILED to sent to Scanner: {json.dumps(payload)}')
                 else:
@@ -301,11 +266,11 @@ def publishMQTT(payload: str):
             #IF failed, reconnect to MQTT Server
             client.disconnect()
             logging.info(f"Disconnected from MQTT")
-            client.connect(broker,
-                   port=myport,
+            client.connect(MQTT_BROKER,
+                   port=MQTT_PORT,
                    clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
                    properties=properties,
-                   keepalive=60);
+                   keepalive=MQTT_KEEPALIVE);
             logging.info('Connected to MQTT Server')
     return False
 
@@ -347,7 +312,7 @@ while True:
             packet_text = None
         finally:
             if packet_text:
-                if debug:
+                if DEBUG:
                     logging.debug(f'{packet} Received')
                     logging.debug(f'{packet_text} Converted to String')
                     logging.debug('RX: ')
@@ -358,9 +323,9 @@ while True:
                 else:
                     logging.error('No response received from MQ Topic: IQSend or Empty Message received from Lora')
             else:
-                if debug:
+                if DEBUG:
                     logging.debug('Empty Package Received')
-            time.sleep(0.9)
+            time.sleep(RMF9X_POOLING)
 
 
 client.loop_forever();

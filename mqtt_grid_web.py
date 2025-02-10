@@ -84,11 +84,11 @@ def on_connect(client, userdata, flags, rc, properties):
     if rc == 0:
         logging.debug(f"MQTT CONNECTION: Connected to MQTT Broker")
         # Subscribe to class queues for the logged-in user
-        if userdata.get('userAuthenticated') and userdata.get('classCode'):
-            #for class_code in current_user.class_codes:
-            topic = f"Class{int(userdata.get('classCode')):02d}"
-            client.subscribe(topic)
-            logging.debug(f"MQTT CONNECTION: User: current_user.id Subscribed to topic: {topic}")
+        if userdata.get('userAuthenticated') and userdata.get('classCodes'):
+            for class_code in userdata.get('classCodes'):
+                topic = f"{TOPIC_PREFIX}{class_code}"
+                client.subscribe(topic)
+                logging.debug(f"MQTT CONNECTION: User {userdata.get('userName')} Subscribed to topic: {topic}")
     else:
         logging.debug(f"MQTT CONNECTION: Failed to connect, return code %d\n", rc)
         print()
@@ -213,7 +213,7 @@ def playSoundList(listObj, currGrid, fillGrid: bool = False):
         currGrid.insert_row([jsonObj['name'], jsonObj['level1'], jsonObj['level2']], redraw=True)
         # rate = engine.getProperty('rate')
         # engine.setProperty('rate', 130)
-        if exists(f'./Sound/{externalNumber}.mp3') == False:
+        if os.path.exists(f'./Sound/{externalNumber}.mp3') == False:
             logging.info(f'Missing Audio File - {externalNumber}.mp3')
             logging.info(f'Generating from Google')
             tts = gTTS(f"{jsonObj['level1']}, {jsonObj['name']}", lang='en')
