@@ -244,6 +244,7 @@ babel.init_app(app, locale_selector=get_locale)
 version = '5'  # or '3'
 mytransport = 'tcp'  # 'websockets' # or 'tcp'
 
+#Get credentials from Secret Manager
 client = mqtt.Client(client_id="IQRight_Main", transport=mytransport, protocol=mqtt.MQTTv5)
 mqttUsername = get_secret('mqttUsername').get('value', '')
 mqttpassword = get_secret('mqttpassword').get('value', '')
