@@ -7,7 +7,7 @@ PROJECT_ID = 'iqright'
 SECRET_KEY = 'iqrightapp_secret'
 SECURITY_PASSWORD_SALT = 'iqrightapp_salt'
 DEBUG = True
-HOME_DIR = os.environ['HOME']
+# HOME_DIR = os.environ['HOME']
 
 #LOGGING Configuration
 LOG_FILENAME = "IQRight_Daemon.debug"
@@ -28,9 +28,10 @@ FILE_DTYPE = {'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 
 #API Configuration
 API_TIMEOUT = 1.0
 if os.getenv('LOCAL', None) == 'TRUE':
-    API_URL = 'http://127.0.0.1:5001/api/'
+    #API_URL = 'http://127.0.0.1:5001/api/'
+    API_URL = 'https://integration.iqright.app/api/'
     LORASERVICE_PATH = '.'
-    LORASERVICE_LOG_PATH = './LoraService.log'
+    LORASERVICE_LOG_PATH = 'LoraService.log'
 else:
     API_URL = 'https://integration.iqright.app/api/'
     LORASERVICE_PATH = '/etc/iqright/LoraService'

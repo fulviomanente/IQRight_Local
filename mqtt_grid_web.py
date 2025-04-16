@@ -9,8 +9,8 @@ from paho.mqtt.properties import Properties
 from paho.mqtt.packettypes import PacketTypes
 # import pyttsx3
 from gtts import gTTS
-from pydub import AudioSegment
-from pydub.playback import play
+# from pydub import AudioSegment
+# from pydub.playback import play
 import json
 import logging
 import logging.handlers
@@ -222,8 +222,9 @@ def playSoundList(listObj, currGrid, fillGrid: bool = False):
             if os.environ.get("MAC", None) != None:
                 print(f'Calling {externalNumber}')
             else:
-                song = AudioSegment.from_file(f'./Sound/{externalNumber}.mp3', format="mp3")
-                play(song)
+                #song = AudioSegment.from_file(f'./Sound/{externalNumber}.mp3', format="mp3")
+                #play(song)
+                print ("oi")
             label_call.flash(0)
         if fillGrid:  # IF FILLING THE WHOLE GRID, SLEEP 2 SECONDS BEFORE PLAYING THE NEXT ONE
             time.sleep(2)
