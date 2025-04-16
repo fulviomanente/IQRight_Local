@@ -84,11 +84,15 @@ def on_connect(client, userdata, flags, rc, properties):
     if rc == 0:
         logging.debug(f"MQTT CONNECTION: Connected to MQTT Broker")
         # Subscribe to class queues for the logged-in user
-        if userdata.get('userAuthenticated') and userdata.get('classCodes'):
-            for class_code in userdata.get('classCodes'):
-                topic = f"{TOPIC_PREFIX}{class_code}"
-                client.subscribe(topic)
-                logging.debug(f"MQTT CONNECTION: User {userdata.get('userName')} Subscribed to topic: {topic}")
+        if userdata.get('userAuthenticated') and userdata.get('classCode'):
+            topic = f"{TOPIC_PREFIX}{userdata.get('classCode')}"
+            client.subscribe(topic)
+            logging.debug(f"MQTT CONNECTION: User {userdata.get('userName', 'unknown')} Subscribed to topic: {topic}")
+            
+            # Also subscribe to a test topic for debugging
+            test_topic = f"{TOPIC_PREFIX}test"
+            client.subscribe(test_topic)
+            logging.debug(f"MQTT CONNECTION: Subscribed to test topic: {test_topic}")
     else:
         logging.debug(f"MQTT CONNECTION: Failed to connect, return code %d\n", rc)
         print()
@@ -140,30 +144,40 @@ def authenticate_user(username, password):
 def on_messageScreen(client, userdata, message, tmp=None):
     global lastCommand
     global lastCommandTimestamp
-    if os.environ.get("DEBUG", "FALSE").upper() == "TRUE":
-        logging.debug('Message Received')
-        logging.debug(str(message.payload, 'UTF-8'))
-        jsonObj = loadJson(str(message.payload, 'UTF-8'))
-        if isinstance(jsonObj, dict):
-            if 'command' in jsonObj:
-                if lastCommand != jsonObj['command'] or (datetime.now() - lastCommandTimestamp).total_seconds() > 6:
-                     lastCommand = jsonObj['command']
-                     lastCommandTimestamp = datetime.now()
-                     # Publish to the sockeio service so the JS can read it and update the HTML
-                     userInfo = {"cmd": jsonObj['command']}
-                     socketio.emit('new_data', userInfo)
-            else:
-                # Publish to the sockeio service so the JS can read it and update the HTML
-                userInfo = {"fullName": jsonObj["name"], "location": jsonObj["location"]}
-                socketio.emit('new_data', userInfo)
-            return True
+    
+    # Always log incoming messages regardless of DEBUG setting
+    logging.debug(f'Message Received on topic: {message.topic}')
+    payload_str = str(message.payload, 'UTF-8')
+    logging.debug(f'Payload: {payload_str}')
+    
+    # Try to parse the payload as JSON
+    jsonObj = loadJson(payload_str)
+    if isinstance(jsonObj, dict):
+        logging.debug(f'Valid JSON received: {jsonObj}')
+        if 'command' in jsonObj:
+            if lastCommand != jsonObj['command'] or (datetime.now() - lastCommandTimestamp).total_seconds() > 6:
+                 lastCommand = jsonObj['command']
+                 lastCommandTimestamp = datetime.now()
+                 # Publish to the sockeio service so the JS can read it and update the HTML
+                 userInfo = {"cmd": jsonObj['command']}
+                 socketio.emit('new_data', userInfo)
+                 logging.debug(f'Emitted command to socketio: {jsonObj["command"]}')
         else:
-            logging.debug('NOT A VALID JSON OBJECT RECEIVED FROM QUEUE')
-            return False
-         #externalNumber = f"{jsonObj['externalNumber']}"
-#         memoryData[f"list{currList}"].append(jsonObj)
-#         if currList < (loadGrid + 2):
-#             playSoundList([jsonObj], currGrid=currGrid)
+            # Publish to the sockeio service so the JS can read it and update the HTML
+            try:
+                userInfo = {"fullName": jsonObj.get("name", "Unknown"), "location": jsonObj.get("location", "Unknown")}
+                socketio.emit('new_data', userInfo)
+                logging.debug(f'Emitted data to socketio: {userInfo}')
+            except Exception as e:
+                logging.error(f'Error emitting user info to socketio: {e}')
+        return True
+    else:
+        logging.debug('NOT A VALID JSON OBJECT RECEIVED FROM QUEUE')
+        return False
+     #externalNumber = f"{jsonObj['externalNumber']}"
+#     memoryData[f"list{currList}"].append(jsonObj)
+#     if currList < (loadGrid + 2):
+#         playSoundList([jsonObj], currGrid=currGrid)
 
 
 def getInfo(beacon, distance, code: str = None, deviceID: str = None):
@@ -349,13 +363,37 @@ def login():
 @login_required
 def home():
     try:
-        client.user_data_set({"userAuthenticated": current_user.is_authenticated, 'classCode': session.get('_classCode', 0)})
+        # Make sure client is not already connected
+        if client.is_connected():
+            try:
+                client.disconnect()
+                logging.debug("Disconnected existing MQTT client before reconnecting")
+            except Exception as disconnect_err:
+                logging.error(f"Error disconnecting MQTT client: {disconnect_err}")
+        
+        # Set user data with complete information
+        user_data = {
+            "userAuthenticated": current_user.is_authenticated, 
+            'classCode': session.get('_classCode', 0),
+            'userName': current_user.id
+        }
+        client.user_data_set(user_data)
+        
+        # Log connection attempt
+        logging.debug(f"Connecting to MQTT broker at {broker}:{myport} with user data: {user_data}")
+        
+        # Connect to broker
         client.connect(broker,
                        port=myport,
                        clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
                        properties=properties,
                        keepalive=60)
+        
+        # Start loop in a background thread
         client.loop_start()
+        
+        logging.debug(f"MQTT client connected and loop started for user {current_user.id}")
+        
         return render_template('index.html', class_codes=current_user.class_codes, newUser=session['_newUser'], fullName=session['fullName'])
 
     except Exception as e: #Catch MQTT connection errors
@@ -369,7 +407,14 @@ def home():
 def logout():
     logout_user()
     try:
-        client.unsubscribe()
+        # Need to specify topic when unsubscribing
+        if client.is_connected():
+            class_code = session.get('_classCode', 0)
+            topic = f"{TOPIC_PREFIX}{class_code}"
+            client.unsubscribe(topic)
+            client.unsubscribe(f"{TOPIC_PREFIX}test")  # Also unsubscribe from test topic
+            client.disconnect()
+            logging.debug(f"MQTT: Unsubscribed from topic {topic} and disconnected")
     except Exception as e: #Catch MQTT connection errors
         logging.error(f"MQTT Connection Error in /logout (unsubscribe): {e}")
     finally:

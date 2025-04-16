@@ -27,15 +27,17 @@ FILE_DTYPE = {'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 
 
 #API Configuration
 API_TIMEOUT = 1.0
-if os.getenv('LOCAL', None) == 'TRUE':
-    #API_URL = 'http://127.0.0.1:5001/api/'
-    API_URL = 'https://integration.iqright.app/api/'
-    LORASERVICE_PATH = '.'
-    LORASERVICE_LOG_PATH = 'LoraService.log'
+if os.getenv('DEBUGSERVICE', 'FALSE') == 'TRUE':
+    API_URL = 'http://127.0.0.1:5001/api/'
 else:
     API_URL = 'https://integration.iqright.app/api/'
+if os.getenv('LOCAL', None) == 'TRUE':
+    LORASERVICE_PATH = '.'
+    LORASERVICE_LOG_PATH = './LoraService.log'
+else:
     LORASERVICE_PATH = '/etc/iqright/LoraService'
     LORASERVICE_LOG_PATH = '/etc/iqright/LoraService/LoraService.log'
+
 
 #MQTT Configuration
 TOPIC_PREFIX = 'Class'
