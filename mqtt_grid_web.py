@@ -20,6 +20,7 @@ from flask_socketio import SocketIO
 from forms import ChangePasswordForm
 from flask_babel import Babel, gettext as _
 from dotenv import load_dotenv
+
 from utils.config import TOPIC_PREFIX, TOPIC, API_URL, IDFACILITY, LORASERVICE_PATH, DEBUG
 from utils.offline_data import OfflineData
 from utils.api_client import api_request, get_secret
@@ -33,14 +34,42 @@ socketio = SocketIO(app)
 
 load_dotenv()
 
-lastCommand = ''
-lastCommandTimestamp = datetime.now()
-
 # User class (for Flask-Login)
 class User(UserMixin):
     def __init__(self, id, class_codes):
         self.id = id
         self.class_codes = class_codes
+
+class Virtual_List():
+    def __init__(self):
+        self.virtualList = {"list1": []}
+        self.currList = 1
+        self.lastCommand = ''
+        self.lastCommandTimestamp = datetime.now()
+        self.screenFull = False
+
+    def publish_command(self, jsonObj):
+        try:
+            userInfo = {"cmd": jsonObj['command']}
+            socketio.emit('new_data', userInfo)
+            logging.debug(f'Emitted command to socketio: {jsonObj["command"]}')
+        except Exception as e:
+            logging.error(f'Error emitting user info to socketio: {e}')
+
+    def publish_data(self, jsonObj):
+        #Check if it should send it to the screen
+        userInfo = {"fullName": jsonObj.get("name", "Unknown"), "location": jsonObj.get("location", "Unknown")}
+        if self.screenFull == False:
+            # Publish to the sockeio service so the JS can read it and update the HTML
+            try:
+                socketio.emit('new_data', userInfo)
+                logging.debug(f'Emitted data to socketio: {userInfo}')
+                # Once it's published, update the list in Memory
+            except Exception as e:
+                logging.error(f'Error emitting user info to socketio: {e}')
+        #Always load in the Virtual List
+        self.virtualList[f"list{self.currList}"].append(userInfo)
+
 
 #######################################################################################
 ##################### GENERAL UTILITY METHODS #########################################
@@ -146,9 +175,7 @@ def authenticate_user(username, password):
         return {'authenticated': True, 'classCodes': info['listHierarchy'], 'errorMsg': None, 'changePassword': info.get('changePassword', False), 'newUser': info.get('newUser', False), 'fullName': info.get('fullName', ' ')}
 
 def on_messageScreen(client, userdata, message, tmp=None):
-    global lastCommand
-    global lastCommandTimestamp
-    
+
     # Always log incoming messages regardless of DEBUG setting
     logging.debug(f'Message Received on topic: {message.topic}')
     payload_str = str(message.payload, 'UTF-8')
@@ -159,29 +186,36 @@ def on_messageScreen(client, userdata, message, tmp=None):
     if isinstance(jsonObj, dict):
         logging.debug(f'Valid JSON received: {jsonObj}')
         if 'command' in jsonObj:
-            if lastCommand != jsonObj['command'] or (datetime.now() - lastCommandTimestamp).total_seconds() > 6:
-                 lastCommand = jsonObj['command']
-                 lastCommandTimestamp = datetime.now()
-                 # Publish to the sockeio service so the JS can read it and update the HTML
-                 userInfo = {"cmd": jsonObj['command']}
-                 socketio.emit('new_data', userInfo)
-                 logging.debug(f'Emitted command to socketio: {jsonObj["command"]}')
+            if memoryData.lastCommand != jsonObj['command'] or (datetime.now() - memoryData.lastCommandTimestamp).total_seconds() > 6:
+                memoryData.lastCommand = jsonObj['command']
+                memoryData.lastCommandTimestamp = datetime.now()
+                # Start Controling the virtual Lists
+                #If it received a break, generate a new list
+                if jsonObj['command'] == 'break':
+                    memoryData.currList += 1
+                    memoryData.virtualList[f"list{memoryData.currList}"] = []
+                    memoryData.publish_command(jsonObj)
+                    if len(memoryData.virtualList) > 2:
+                        memoryData.screenFull = True
+                #If it received a release, reposition the lists
+                elif jsonObj['command'] == 'release':
+                    ready2leave = memoryData.virtualList.pop(0)
+                    # Publish to the sockeio service so the JS can read it and update the HTML
+                    memoryData.publish_command(jsonObj)
+                    #Now check if there are more lists to load
+                    if len(memoryData.virtualList) > 1 and len(memoryData.virtualList[1]) > 0:
+                        #Send the whole second list to fill in the right column
+                        for userInfo in memoryData.virtualList[1]:
+                            socketio.emit('new_data', userInfo)
+                            logging.debug(f'Emitted data to socketio: {userInfo}')
+                    if len(memoryData.virtualList) < 2:
+                        memoryData.screenFull = False
         else:
-            # Publish to the sockeio service so the JS can read it and update the HTML
-            try:
-                userInfo = {"fullName": jsonObj.get("name", "Unknown"), "location": jsonObj.get("location", "Unknown")}
-                socketio.emit('new_data', userInfo)
-                logging.debug(f'Emitted data to socketio: {userInfo}')
-            except Exception as e:
-                logging.error(f'Error emitting user info to socketio: {e}')
+            memoryData.publish_data(jsonObj)
         return True
     else:
         logging.debug('NOT A VALID JSON OBJECT RECEIVED FROM QUEUE')
         return False
-     #externalNumber = f"{jsonObj['externalNumber']}"
-#     memoryData[f"list{currList}"].append(jsonObj)
-#     if currList < (loadGrid + 2):
-#         playSoundList([jsonObj], currGrid=currGrid)
 
 
 def getInfo(beacon, distance, code: str = None, deviceID: str = None):
@@ -279,10 +313,7 @@ myport = 1883
 properties = Properties(PacketTypes.CONNECT)
 properties.SessionExpiryInterval = 30 * 60  # in seconds
 
-memoryData = {"list1": []}
-currList = 1
-gridList = 1
-loadGrid = 1
+memoryData = Virtual_List()
 
 AUTH_SERVICE_URL = get_secret('authServiceUrl')
 
