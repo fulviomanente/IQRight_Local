@@ -14,12 +14,13 @@ from gtts import gTTS
 import json
 import logging
 import logging.handlers
-from flask import Flask, render_template, request, redirect, url_for, flash, g, abort, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, g, abort, session, jsonify, send_file
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_socketio import SocketIO
 from forms import ChangePasswordForm
 from flask_babel import Babel, gettext as _
 from dotenv import load_dotenv
+import io
 
 from utils.config import TOPIC_PREFIX, TOPIC, API_URL, IDFACILITY, LORASERVICE_PATH, DEBUG
 from utils.offline_data import OfflineData
@@ -31,8 +32,22 @@ app.config.from_pyfile('utils/config.py')
 app.config['BABEL_DEFAULT_LOCALE'] = 'en'
 babel = Babel(app)
 socketio = SocketIO(app)
+offlineData = OfflineData()
 
 load_dotenv()
+
+# LOGGING Setup
+log_filename = "IQRight_FE_WEB.debug"
+max_log_size = 20 * 1024 * 1024  # 20Mb
+backup_count = 10
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+debug = DEBUG == 'TRUE'
+handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
+
+handler.setFormatter(log_formatter)
+logging.getLogger().addHandler(handler)
+logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
+
 
 # User class (for Flask-Login)
 class User(UserMixin):
@@ -42,8 +57,8 @@ class User(UserMixin):
 
 class Virtual_List():
     def __init__(self):
-        self.virtualList = {"list1": []}
-        self.currList = 1
+        self.virtualList = [[]]
+        self.currList = 0
         self.lastCommand = ''
         self.lastCommandTimestamp = datetime.now()
         self.screenFull = False
@@ -58,8 +73,8 @@ class Virtual_List():
 
     def publish_data(self, jsonObj):
         #Check if it should send it to the screen
-        userInfo = {"fullName": jsonObj.get("name", "Unknown"), "location": jsonObj.get("location", "Unknown")}
-        if self.screenFull == False:
+        userInfo = {"fullName": jsonObj.get("name", "Unknown"), "location": jsonObj.get("location", "Unknown"), "externalNumber": jsonObj.get("externalNumber", "000000")}
+        if len(self.virtualList) < 3:
             # Publish to the sockeio service so the JS can read it and update the HTML
             try:
                 socketio.emit('new_data', userInfo)
@@ -68,8 +83,8 @@ class Virtual_List():
             except Exception as e:
                 logging.error(f'Error emitting user info to socketio: {e}')
         #Always load in the Virtual List
-        self.virtualList[f"list{self.currList}"].append(userInfo)
-
+        self.virtualList[self.currList].append(userInfo)
+        memoryData.lastCommand = ''
 
 #######################################################################################
 ##################### GENERAL UTILITY METHODS #########################################
@@ -137,8 +152,6 @@ def authenticate_user(username, password):
 
     returnCode, info = api_request(method="POST", url='apiGetSession', data=payload)
 
-    offlineData = OfflineData()
-
     if info['message']:
         #IF THERE IS NO CONNECTIVITY TRY TO LOGIN OFFLINE
         if returnCode > 400:
@@ -193,13 +206,15 @@ def on_messageScreen(client, userdata, message, tmp=None):
                 #If it received a break, generate a new list
                 if jsonObj['command'] == 'break':
                     memoryData.currList += 1
-                    memoryData.virtualList[f"list{memoryData.currList}"] = []
+                    memoryData.virtualList.append([])
                     memoryData.publish_command(jsonObj)
                     if len(memoryData.virtualList) > 2:
                         memoryData.screenFull = True
                 #If it received a release, reposition the lists
                 elif jsonObj['command'] == 'release':
                     ready2leave = memoryData.virtualList.pop(0)
+                    if memoryData.currList > 0:
+                        memoryData.currList -= 1
                     # Publish to the sockeio service so the JS can read it and update the HTML
                     memoryData.publish_command(jsonObj)
                     #Now check if there are more lists to load
@@ -219,8 +234,8 @@ def on_messageScreen(client, userdata, message, tmp=None):
 
 
 def getInfo(beacon, distance, code: str = None, deviceID: str = None):
+    df = offlineData.getAppUsers()
     if code:
-        df = OfflineData.getAppUsers()
         try:
             logging.debug(f'Student Lookup')
             name = df.loc[df['ExternalNumber'] == code]
@@ -258,42 +273,6 @@ def getInfo(beacon, distance, code: str = None, deviceID: str = None):
         logging.error(f'Empty string sent for conversion into MQTT Object')
         return None
 
-def playSoundList(listObj, currGrid, fillGrid: bool = False):
-    for jsonObj in listObj:
-        externalNumber = jsonObj['externalNumber']
-        label_call.config(text=f"{jsonObj['name']} - {jsonObj['level1']}")
-        currGrid.insert_row([jsonObj['name'], jsonObj['level1'], jsonObj['level2']], redraw=True)
-        # rate = engine.getProperty('rate')
-        # engine.setProperty('rate', 130)
-        if os.path.exists(f'./Sound/{externalNumber}.mp3') == False:
-            logging.info(f'Missing Audio File - {externalNumber}.mp3')
-            logging.info(f'Generating from Google')
-            tts = gTTS(f"{jsonObj['level1']}, {jsonObj['name']}", lang='en')
-            tts.save(f'./Sound/{externalNumber}.mp3')
-        else:
-            if os.environ.get("MAC", None) != None:
-                print(f'Calling {externalNumber}')
-            else:
-                #song = AudioSegment.from_file(f'./Sound/{externalNumber}.mp3', format="mp3")
-                #play(song)
-                print ("oi")
-            label_call.flash(0)
-        if fillGrid:  # IF FILLING THE WHOLE GRID, SLEEP 2 SECONDS BEFORE PLAYING THE NEXT ONE
-            time.sleep(2)
-
-# LOGGING Setup
-log_filename = "IQRight_FE_WEB.debug"
-max_log_size = 20 * 1024 * 1024  # 20Mb
-backup_count = 10
-log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-debug = DEBUG == 'TRUE'
-handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
-
-handler.setFormatter(log_formatter)
-logging.getLogger().addHandler(handler)
-logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
-
-lastCommand = None
 
 babel.init_app(app, locale_selector=get_locale)
 
@@ -435,6 +414,64 @@ def home():
     except Exception as e: #Catch MQTT connection errors
         logging.error(f"MQTT Connection Error in /home: {e}")
         return render_template('mqtt_error.html')  # Render error page
+
+#Route to retrieve and play the sound
+@app.route('/getAudio/<external_number>')
+def get_audio(external_number):
+    try:
+        # 1. First try to get the existing local file
+        local_file_path = f'./static/sounds/{external_number}.mp3'
+        if os.path.exists(local_file_path):
+            logging.debug(f"Serving existing local audio file for {external_number}")
+            return send_file(local_file_path, mimetype='audio/mpeg')
+
+        # 2. If local file doesn't exist, try to get from integration layer
+        logging.debug(f"Local file not found, requesting from integration layer for {external_number}")
+        status_code, response = api_request(method="POST", url='apiGetAudio', data='{"key": ' + external_number + '}', is_file=True)
+
+        if status_code == 200 and response:
+            # Save the received file locally
+            try:
+                with open(local_file_path, 'wb') as f:
+                    f.write(response)
+                logging.debug(f"Saved audio file from integration layer for {external_number}")
+                return send_file(local_file_path, mimetype='audio/mpeg')
+            except Exception as save_error:
+                logging.error(f"Error saving audio file from integration: {save_error}")
+                # Continue to gTTS fallback
+
+        # 3. If integration layer fails, generate using gTTS
+        logging.debug(f"Integration layer failed, generating audio with gTTS for {external_number}")
+        df = offlineData.getAppUsers()
+        student = df.loc[df['ExternalNumber'] == external_number]
+
+        if student.empty:
+            text_to_speak = f"Student {external_number}"
+        else:
+            text_to_speak = f"{student['level1'].item()}, {student['ChildName'].item()}"
+
+        # Generate audio using gTTS
+        tts = gTTS(text_to_speak, lang='en')
+
+        # Save to BytesIO object and file system
+        audio_bytes = io.BytesIO()
+        tts.write_to_fp(audio_bytes)
+        audio_bytes.seek(0)
+
+        # Save to file system for future use
+        tts.save(local_file_path)
+        logging.debug(f"Generated and saved gTTS audio for {external_number}")
+
+        return send_file(
+            audio_bytes,
+            mimetype='audio/mpeg',
+            as_attachment=True,
+            download_name=f'{external_number}.mp3'
+        )
+
+    except Exception as e:
+        logging.error(f"Error in audio generation pipeline for {external_number}: {str(e)}")
+        return jsonify({'error': 'Failed to generate audio'}), 500
 
 
 # Route for logging out

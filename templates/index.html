@@ -136,6 +136,9 @@
     <script>
         var socket = io.connect('http://' + document.domain + ':' + location.port);
         var populateRight = false;  // Flag to switch from left to right table
+        let hasUserInteracted = false;
+        let audioQueue = [];
+        let isAutoplayMessageShown = false;
 
         // Function to trigger the blinking animation
         function triggerBlinkingMessage(message) {
@@ -166,6 +169,9 @@
                 }
             } else {
                 populateTable(data);
+                if (!populateRight) {
+                    playSound(data.externalNumber + ".mp3");
+                }
             }
         });
 
@@ -175,12 +181,13 @@
             // Access the data attributes
             var fullName = data.fullName;
             var location = data.location;
-            // Trigger the blinking message label with the new message
-            triggerBlinkingMessage(fullName);
-            playSound(data.fullName + ".mp3");
+            var externalNumber = data.externalNumber;
+
             // Choose the table based on whether we are populating the right or left grid
             if (!populateRight) {
                 table = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
+                // Trigger the blinking message label with the new message
+                triggerBlinkingMessage(fullName);
             } else {
                 table = document.getElementById('rightTable').getElementsByTagName('tbody')[0];
             }
@@ -190,11 +197,12 @@
             var newRow = table.insertRow();
             var fullNameCell = newRow.insertCell(0);
             var locationCell = newRow.insertCell(1);
+            newRow.setAttribute('data-external-number', externalNumber);
             fullNameCell.textContent = fullName;
             locationCell.textContent = location;
         }
 
-        function release() {
+        async function release() {
             var leftTableBody = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
             var rightTableBody = document.getElementById('rightTable').getElementsByTagName('tbody')[0];
 
@@ -203,13 +211,18 @@
 
             // Copy rows from the right grid to the left grid
             var rows = Array.from(rightTableBody.rows);
-            rows.forEach(function (row) {
+            for (const row of rows) {
                 var newRow = leftTableBody.insertRow();
                 var newCell1 = newRow.insertCell(0); // Create the first cell
                 var newCell2 = newRow.insertCell(1); // Create the second cell
                 newCell1.textContent = row.cells[0].textContent; // Copy content for the first cell
                 newCell2.textContent = row.cells[1].textContent; // Copy content for the second cell
-            });
+                newRow.setAttribute('data-external-number', row.getAttribute('data-external-number'));
+                triggerBlinkingMessage(newCell1.textContent);
+                playSound(row.getAttribute('data-external-number') + ".mp3");
+                // Wait 1 second before processing next row
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            };
 
             // Clear the left grid
             rightTableBody.innerHTML = '';
@@ -223,39 +236,99 @@
             document.getElementById('date-time').textContent = now.toLocaleDateString('en-US', options);
         }
 
+        // Function to show autoplay message
+        function showAutoplayMessage() {
+            if (!isAutoplayMessageShown) {
+                const messageDiv = document.createElement('div');
+                messageDiv.innerHTML = `
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 1050;">
+                        <strong>Audio Notifications:</strong> Click anywhere on the page to enable audio notifications.
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(messageDiv);
+                isAutoplayMessageShown = true;
+            }
+        }
+
+              // Modified playSound function
         function playSound(filename) {
             const audioPath = '/static/sounds/' + filename;
 
-            // Check if the audio file exists in the browser's cache (using Local Storage)
+            console.log('Playing sound:', filename)
+            console.log('hasUserInteracted:', hasUserInteracted)
+
+            // If user hasn't interacted, show message and queue the audio
+            if (!hasUserInteracted) {
+                showAutoplayMessage();
+                audioQueue.push(filename);
+                return;
+            }
+
+            // Rest of your existing playSound function...
             const cachedAudioUrl = localStorage.getItem(filename);
 
-            if (cachedAudioUrl) { // File exists in cache, play it
+            if (cachedAudioUrl) {
                 const audio = new Audio(cachedAudioUrl);
+                console.log('Playing from Cache:', filename)
                 audio.play().catch(error => {
                     console.error("Error playing cached sound:", error, filename);
-                    // If cached audio fails, remove it and try downloading again
                     localStorage.removeItem(filename);
-                    playSound(filename); }); //Retry playing
-            }
-            else {
-                // File not in cache, download, cache, and then play
-                console.warn("Sound file not found locally, downloading...", filename);
-                fetch(audioPath)
-                    .then(response => response.blob())
+                    playSound(filename);
+                });
+            } else {
+                // Extract external number from filename (remove .mp3)
+                const externalNumber = filename.replace('.mp3', '');
+                console.log('Playing sound:', filename)
+                fetch(`/getAudio/${externalNumber}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.blob();
+                    })
                     .then(blob => {
                         const audioUrl = URL.createObjectURL(blob);
                         const audio = new Audio(audioUrl);
+
                         audio.play().catch(error => {
                             console.error("Error playing downloaded sound:", error, filename);
+                            if (error.name === 'NotAllowedError') {
+                                showAutoplayMessage();
+                            }
                         });
 
-                        // Cache the audio URL in Local Storage
                         localStorage.setItem(filename, audioUrl);
                     })
                     .catch(error => {
-                        console.error("Error downloading sound:", error, filename);});
+                        console.error("Error getting audio from server:", error, filename);
+                    });
             }
         }
+
+        // Function to play queued sounds
+        function playQueuedSounds() {
+            while (audioQueue.length > 0) {
+                const filename = audioQueue.shift();
+                console.log('Playing queued sound:', filename)
+                playSound(filename);
+            }
+        }
+
+        // Add click event listener to document
+        document.addEventListener('click', function() {
+            if (!hasUserInteracted) {
+                hasUserInteracted = true;
+                playQueuedSounds();
+                // Remove the autoplay message if it exists
+                const alertMessage = document.querySelector('.alert');
+                if (alertMessage) {
+                    alertMessage.remove();
+                }
+            }
+        });
 
         // Update the date and time immediately
         updateDateTime();

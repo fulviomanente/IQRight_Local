@@ -28,13 +28,16 @@ def get_secret(secret, expected: str = None, compare: bool = False):
         response = {'value': secretValue.payload.data.decode('UTF-8'), 'result': result}
     return response
 
-def api_request(method, url, data, content: bool = False, bearer: str = None):
-    url = API_URL + url
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json",
-        "caller": "LocalApp"
-    }
+def api_request(method, url, data, content: bool = False, bearer: str = None, is_file: bool = False):
+    url = f"{API_URL}{url}"
+    if is_file:
+        headers = {}
+    else:
+        headers = {
+            "accept": "application/json",
+            "Content-Type": "application/json",
+            "caller": "LocalApp"
+        }
 
     if bearer:
         headers['Authorization'] = f'Bearer {bearer}'
@@ -49,13 +52,21 @@ def api_request(method, url, data, content: bool = False, bearer: str = None):
             response = requests.post(url=url, auth=auth, headers=headers, data=json.dumps(data))
         else:
             response = requests.get(url=url, headers=headers, params=data, stream=True)
-        if response.status_code == 200:
-            if 'application/octet-stream' in response.headers.get('Content-Type', ''):
-                return 200, response.content
+
+        if is_file:
+            if response.status_code == 200:
+                return response.status_code, response.content
             else:
-                return 200, response.json()
+                return response.status_code, None
         else:
-            return response.status_code, {"message": response.text}
+            if response.status_code == 200:
+                if 'application/octet-stream' in response.headers.get('Content-Type', ''):
+                    return 200, response.content
+                else:
+                    return 200, response.json()
+            else:
+                return response.status_code, {"message": response.text}
     except requests.exceptions.RequestException as e:
         logging.debug(f"Error connecting to the backend service: {e}")
-        return 500, {"message": str(e)} 
+        return 500, {"message": str(e)}
+
