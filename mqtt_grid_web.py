@@ -112,28 +112,32 @@ def authenticate_user(username, password):
 
     if info['message']:
         #IF THERE IS NO CONNECTIVITY TRY TO LOGIN OFFLINE
-        if returnCode != 200:
+        if returnCode > 400:
             errorMsg = info['message']
             info = offlineData.findUser(userName=username)
-        if info:
-            errorMsg = None
-            # Validate if the Login matches the facility
-            facilities = [x['idFacility'] for x in info['listFacilities']]
-            if int(IDFACILITY) in facilities:
-                # Validate if the user can see the Students Grid
-                if 'StudentGrid' not in info.get('roles'):
-                    errorMsg = 'User does not have enough permision to access the Student Grid'
-                    # TODO: "changePassword": true,
-                    # "homeSetup": [
-                    #    {
-                    #        "card": 0,
-                    #        "metric": "string"
-                    #    }
-            else:
-                errorMsg = 'User does not have enough permision to access this Facility Data'
         else:
-            errorMsg = 'User not found!'
-
+            if info:
+                if returnCode == 200:
+                    errorMsg = None
+                    # Validate if the Login matches the facility
+                    facilities = [x['idFacility'] for x in info['listFacilities']]
+                    if int(IDFACILITY) in facilities:
+                        # Validate if the user can see the Students Grid
+                        if 'StudentGrid' not in info.get('roles'):
+                            errorMsg = 'User does not have enough permision to access the Student Grid'
+                            # TODO: "changePassword": true,
+                            # "homeSetup": [
+                            #    {
+                            #        "card": 0,
+                            #        "metric": "string"
+                            #    }
+                    else:
+                        errorMsg = 'User does not have enough permision to access this Facility Data'
+                else:
+                    jsonErrorMsg = json.loads(info['message'])
+                    errorMsg = f"{jsonErrorMsg.get('message', '')}, {jsonErrorMsg.get('result', '')}"
+            else:
+                errorMsg = 'User not found!'
     else:
         errorMsg = 'Unexpected Service Return: ' + json.dumps(info)
     if errorMsg:
@@ -290,7 +294,7 @@ login_manager.login_view = 'login'
 # User loader function for Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
-    return User(user_id, class_codes=[]) #current_user.class_codes)
+    return User(user_id, class_codes=session.get('_classCodeList', [0])) #current_user.class_codes)
 
 #######################################################################################
 ##################### FLASK URL ROUTE METHODS #########################################
@@ -327,11 +331,12 @@ def login():
         if response['authenticated']:
             classCodes = [int(x['IDHierarchy']) for x in response['classCodes']]
             mainClassCode = int(classCodes[0]) if classCodes else 0
-            user = User(username, classCodes[0] if classCodes else 0)
+            user = User(username, classCodes if classCodes else [0])
             login_user(user, duration = 600)
             session['_newUser'] = response.get('newUser')
             session['fullName'] = response.get('fullName')
             session['_classCode'] = mainClassCode
+            session['_classCodeList'] = classCodes
             if session['_newUser']:
                 'Call the reset service to create a temporary password and send it to the user'
                 payload = {'userName': username}
@@ -394,7 +399,7 @@ def home():
         
         logging.debug(f"MQTT client connected and loop started for user {current_user.id}")
         
-        return render_template('index.html', class_codes=current_user.class_codes, newUser=session['_newUser'], fullName=session['fullName'])
+        return render_template('index.html', class_codes=[str(x) for x in current_user.class_codes], newUser=session['_newUser'], fullName=session['fullName'])
 
     except Exception as e: #Catch MQTT connection errors
         logging.error(f"MQTT Connection Error in /home: {e}")

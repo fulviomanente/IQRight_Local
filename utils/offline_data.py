@@ -11,7 +11,7 @@ from utils.api_client import api_request
 import json
 
 # Set up logging configuration
-log_filename = "IQRight_FE_WEB.debug"
+log_filename = "IQRight_FE_WEB_Offline.debug"
 max_log_size = 20 * 1024 * 1024  # 20Mb
 backup_count = 10
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
