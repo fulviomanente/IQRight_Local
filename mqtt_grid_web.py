@@ -14,12 +14,14 @@ from gtts import gTTS
 import json
 import logging
 import logging.handlers
-from flask import Flask, render_template, request, redirect, url_for, flash, g, abort, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, g, abort, session, jsonify, send_file
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_socketio import SocketIO
 from forms import ChangePasswordForm
 from flask_babel import Babel, gettext as _
 from dotenv import load_dotenv
+import io
+
 from utils.config import TOPIC_PREFIX, TOPIC, API_URL, IDFACILITY, LORASERVICE_PATH, DEBUG
 from utils.offline_data import OfflineData
 from utils.api_client import api_request, get_secret
@@ -30,17 +32,59 @@ app.config.from_pyfile('utils/config.py')
 app.config['BABEL_DEFAULT_LOCALE'] = 'en'
 babel = Babel(app)
 socketio = SocketIO(app)
+offlineData = OfflineData()
 
 load_dotenv()
 
-lastCommand = ''
-lastCommandTimestamp = datetime.now()
+# LOGGING Setup
+log_filename = "IQRight_FE_WEB.debug"
+max_log_size = 20 * 1024 * 1024  # 20Mb
+backup_count = 10
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+debug = DEBUG == 'TRUE'
+handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
+
+handler.setFormatter(log_formatter)
+logging.getLogger().addHandler(handler)
+logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
+
 
 # User class (for Flask-Login)
 class User(UserMixin):
     def __init__(self, id, class_codes):
         self.id = id
         self.class_codes = class_codes
+
+class Virtual_List():
+    def __init__(self):
+        self.virtualList = [[]]
+        self.currList = 0
+        self.lastCommand = ''
+        self.lastCommandTimestamp = datetime.now()
+        self.screenFull = False
+
+    def publish_command(self, jsonObj):
+        try:
+            userInfo = {"cmd": jsonObj['command']}
+            socketio.emit('new_data', userInfo)
+            logging.debug(f'Emitted command to socketio: {jsonObj["command"]}')
+        except Exception as e:
+            logging.error(f'Error emitting user info to socketio: {e}')
+
+    def publish_data(self, jsonObj):
+        #Check if it should send it to the screen
+        userInfo = {"fullName": jsonObj.get("name", "Unknown"), "location": jsonObj.get("location", "Unknown"), "externalNumber": jsonObj.get("externalNumber", "000000")}
+        if len(self.virtualList) < 3:
+            # Publish to the sockeio service so the JS can read it and update the HTML
+            try:
+                socketio.emit('new_data', userInfo)
+                logging.debug(f'Emitted data to socketio: {userInfo}')
+                # Once it's published, update the list in Memory
+            except Exception as e:
+                logging.error(f'Error emitting user info to socketio: {e}')
+        #Always load in the Virtual List
+        self.virtualList[self.currList].append(userInfo)
+        memoryData.lastCommand = ''
 
 #######################################################################################
 ##################### GENERAL UTILITY METHODS #########################################
@@ -108,32 +152,34 @@ def authenticate_user(username, password):
 
     returnCode, info = api_request(method="POST", url='apiGetSession', data=payload)
 
-    offlineData = OfflineData()
-
     if info['message']:
         #IF THERE IS NO CONNECTIVITY TRY TO LOGIN OFFLINE
-        if returnCode != 200:
+        if returnCode > 400:
             errorMsg = info['message']
             info = offlineData.findUser(userName=username)
-        if info:
-            errorMsg = None
-            # Validate if the Login matches the facility
-            facilities = [x['idFacility'] for x in info['listFacilities']]
-            if int(IDFACILITY) in facilities:
-                # Validate if the user can see the Students Grid
-                if 'StudentGrid' not in info.get('roles'):
-                    errorMsg = 'User does not have enough permision to access the Student Grid'
-                    # TODO: "changePassword": true,
-                    # "homeSetup": [
-                    #    {
-                    #        "card": 0,
-                    #        "metric": "string"
-                    #    }
-            else:
-                errorMsg = 'User does not have enough permision to access this Facility Data'
         else:
-            errorMsg = 'User not found!'
-
+            if info:
+                if returnCode == 200:
+                    errorMsg = None
+                    # Validate if the Login matches the facility
+                    facilities = [x['idFacility'] for x in info['listFacilities']]
+                    if int(IDFACILITY) in facilities:
+                        # Validate if the user can see the Students Grid
+                        if 'StudentGrid' not in info.get('roles'):
+                            errorMsg = 'User does not have enough permision to access the Student Grid'
+                            # TODO: "changePassword": true,
+                            # "homeSetup": [
+                            #    {
+                            #        "card": 0,
+                            #        "metric": "string"
+                            #    }
+                    else:
+                        errorMsg = 'User does not have enough permision to access this Facility Data'
+                else:
+                    jsonErrorMsg = json.loads(info['message'])
+                    errorMsg = f"{jsonErrorMsg.get('message', '')}, {jsonErrorMsg.get('result', '')}"
+            else:
+                errorMsg = 'User not found!'
     else:
         errorMsg = 'Unexpected Service Return: ' + json.dumps(info)
     if errorMsg:
@@ -142,9 +188,7 @@ def authenticate_user(username, password):
         return {'authenticated': True, 'classCodes': info['listHierarchy'], 'errorMsg': None, 'changePassword': info.get('changePassword', False), 'newUser': info.get('newUser', False), 'fullName': info.get('fullName', ' ')}
 
 def on_messageScreen(client, userdata, message, tmp=None):
-    global lastCommand
-    global lastCommandTimestamp
-    
+
     # Always log incoming messages regardless of DEBUG setting
     logging.debug(f'Message Received on topic: {message.topic}')
     payload_str = str(message.payload, 'UTF-8')
@@ -155,34 +199,43 @@ def on_messageScreen(client, userdata, message, tmp=None):
     if isinstance(jsonObj, dict):
         logging.debug(f'Valid JSON received: {jsonObj}')
         if 'command' in jsonObj:
-            if lastCommand != jsonObj['command'] or (datetime.now() - lastCommandTimestamp).total_seconds() > 6:
-                 lastCommand = jsonObj['command']
-                 lastCommandTimestamp = datetime.now()
-                 # Publish to the sockeio service so the JS can read it and update the HTML
-                 userInfo = {"cmd": jsonObj['command']}
-                 socketio.emit('new_data', userInfo)
-                 logging.debug(f'Emitted command to socketio: {jsonObj["command"]}')
+            if memoryData.lastCommand != jsonObj['command'] or (datetime.now() - memoryData.lastCommandTimestamp).total_seconds() > 6:
+                memoryData.lastCommand = jsonObj['command']
+                memoryData.lastCommandTimestamp = datetime.now()
+                # Start Controling the virtual Lists
+                #If it received a break, generate a new list
+                if jsonObj['command'] == 'break':
+                    memoryData.currList += 1
+                    memoryData.virtualList.append([])
+                    memoryData.publish_command(jsonObj)
+                    if len(memoryData.virtualList) > 2:
+                        memoryData.screenFull = True
+                #If it received a release, reposition the lists
+                elif jsonObj['command'] == 'release':
+                    ready2leave = memoryData.virtualList.pop(0)
+                    if memoryData.currList > 0:
+                        memoryData.currList -= 1
+                    # Publish to the sockeio service so the JS can read it and update the HTML
+                    memoryData.publish_command(jsonObj)
+                    #Now check if there are more lists to load
+                    if len(memoryData.virtualList) > 1 and len(memoryData.virtualList[1]) > 0:
+                        #Send the whole second list to fill in the right column
+                        for userInfo in memoryData.virtualList[1]:
+                            socketio.emit('new_data', userInfo)
+                            logging.debug(f'Emitted data to socketio: {userInfo}')
+                    if len(memoryData.virtualList) < 2:
+                        memoryData.screenFull = False
         else:
-            # Publish to the sockeio service so the JS can read it and update the HTML
-            try:
-                userInfo = {"fullName": jsonObj.get("name", "Unknown"), "location": jsonObj.get("location", "Unknown")}
-                socketio.emit('new_data', userInfo)
-                logging.debug(f'Emitted data to socketio: {userInfo}')
-            except Exception as e:
-                logging.error(f'Error emitting user info to socketio: {e}')
+            memoryData.publish_data(jsonObj)
         return True
     else:
         logging.debug('NOT A VALID JSON OBJECT RECEIVED FROM QUEUE')
         return False
-     #externalNumber = f"{jsonObj['externalNumber']}"
-#     memoryData[f"list{currList}"].append(jsonObj)
-#     if currList < (loadGrid + 2):
-#         playSoundList([jsonObj], currGrid=currGrid)
 
 
 def getInfo(beacon, distance, code: str = None, deviceID: str = None):
+    df = offlineData.getAppUsers()
     if code:
-        df = OfflineData.getAppUsers()
         try:
             logging.debug(f'Student Lookup')
             name = df.loc[df['ExternalNumber'] == code]
@@ -220,42 +273,6 @@ def getInfo(beacon, distance, code: str = None, deviceID: str = None):
         logging.error(f'Empty string sent for conversion into MQTT Object')
         return None
 
-def playSoundList(listObj, currGrid, fillGrid: bool = False):
-    for jsonObj in listObj:
-        externalNumber = jsonObj['externalNumber']
-        label_call.config(text=f"{jsonObj['name']} - {jsonObj['level1']}")
-        currGrid.insert_row([jsonObj['name'], jsonObj['level1'], jsonObj['level2']], redraw=True)
-        # rate = engine.getProperty('rate')
-        # engine.setProperty('rate', 130)
-        if os.path.exists(f'./Sound/{externalNumber}.mp3') == False:
-            logging.info(f'Missing Audio File - {externalNumber}.mp3')
-            logging.info(f'Generating from Google')
-            tts = gTTS(f"{jsonObj['level1']}, {jsonObj['name']}", lang='en')
-            tts.save(f'./Sound/{externalNumber}.mp3')
-        else:
-            if os.environ.get("MAC", None) != None:
-                print(f'Calling {externalNumber}')
-            else:
-                #song = AudioSegment.from_file(f'./Sound/{externalNumber}.mp3', format="mp3")
-                #play(song)
-                print ("oi")
-            label_call.flash(0)
-        if fillGrid:  # IF FILLING THE WHOLE GRID, SLEEP 2 SECONDS BEFORE PLAYING THE NEXT ONE
-            time.sleep(2)
-
-# LOGGING Setup
-log_filename = "IQRight_FE_WEB.debug"
-max_log_size = 20 * 1024 * 1024  # 20Mb
-backup_count = 10
-log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-debug = DEBUG == 'TRUE'
-handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
-
-handler.setFormatter(log_formatter)
-logging.getLogger().addHandler(handler)
-logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
-
-lastCommand = None
 
 babel.init_app(app, locale_selector=get_locale)
 
@@ -275,10 +292,7 @@ myport = 1883
 properties = Properties(PacketTypes.CONNECT)
 properties.SessionExpiryInterval = 30 * 60  # in seconds
 
-memoryData = {"list1": []}
-currList = 1
-gridList = 1
-loadGrid = 1
+memoryData = Virtual_List()
 
 AUTH_SERVICE_URL = get_secret('authServiceUrl')
 
@@ -290,7 +304,7 @@ login_manager.login_view = 'login'
 # User loader function for Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
-    return User(user_id, class_codes=[]) #current_user.class_codes)
+    return User(user_id, class_codes=session.get('_classCodeList', [0])) #current_user.class_codes)
 
 #######################################################################################
 ##################### FLASK URL ROUTE METHODS #########################################
@@ -327,11 +341,12 @@ def login():
         if response['authenticated']:
             classCodes = [int(x['IDHierarchy']) for x in response['classCodes']]
             mainClassCode = int(classCodes[0]) if classCodes else 0
-            user = User(username, classCodes[0] if classCodes else 0)
+            user = User(username, classCodes if classCodes else [0])
             login_user(user, duration = 600)
             session['_newUser'] = response.get('newUser')
             session['fullName'] = response.get('fullName')
             session['_classCode'] = mainClassCode
+            session['_classCodeList'] = classCodes
             if session['_newUser']:
                 'Call the reset service to create a temporary password and send it to the user'
                 payload = {'userName': username}
@@ -394,11 +409,69 @@ def home():
         
         logging.debug(f"MQTT client connected and loop started for user {current_user.id}")
         
-        return render_template('index.html', class_codes=current_user.class_codes, newUser=session['_newUser'], fullName=session['fullName'], classCode=session['_classCode'])
+        return render_template('index.html', class_codes=[str(x) for x in current_user.class_codes], newUser=session['_newUser'], fullName=session['fullName'])
 
     except Exception as e: #Catch MQTT connection errors
         logging.error(f"MQTT Connection Error in /home: {e}")
         return render_template('mqtt_error.html')  # Render error page
+
+#Route to retrieve and play the sound
+@app.route('/getAudio/<external_number>')
+def get_audio(external_number):
+    try:
+        # 1. First try to get the existing local file
+        local_file_path = f'./static/sounds/{external_number}.mp3'
+        if os.path.exists(local_file_path):
+            logging.debug(f"Serving existing local audio file for {external_number}")
+            return send_file(local_file_path, mimetype='audio/mpeg')
+
+        # 2. If local file doesn't exist, try to get from integration layer
+        logging.debug(f"Local file not found, requesting from integration layer for {external_number}")
+        status_code, response = api_request(method="POST", url='apiGetAudio', data='{"key": ' + external_number + '}', is_file=True)
+
+        if status_code == 200 and response:
+            # Save the received file locally
+            try:
+                with open(local_file_path, 'wb') as f:
+                    f.write(response)
+                logging.debug(f"Saved audio file from integration layer for {external_number}")
+                return send_file(local_file_path, mimetype='audio/mpeg')
+            except Exception as save_error:
+                logging.error(f"Error saving audio file from integration: {save_error}")
+                # Continue to gTTS fallback
+
+        # 3. If integration layer fails, generate using gTTS
+        logging.debug(f"Integration layer failed, generating audio with gTTS for {external_number}")
+        df = offlineData.getAppUsers()
+        student = df.loc[df['ExternalNumber'] == external_number]
+
+        if student.empty:
+            text_to_speak = f"Student {external_number}"
+        else:
+            text_to_speak = f"{student['level1'].item()}, {student['ChildName'].item()}"
+
+        # Generate audio using gTTS
+        tts = gTTS(text_to_speak, lang='en')
+
+        # Save to BytesIO object and file system
+        audio_bytes = io.BytesIO()
+        tts.write_to_fp(audio_bytes)
+        audio_bytes.seek(0)
+
+        # Save to file system for future use
+        tts.save(local_file_path)
+        logging.debug(f"Generated and saved gTTS audio for {external_number}")
+
+        return send_file(
+            audio_bytes,
+            mimetype='audio/mpeg',
+            as_attachment=True,
+            download_name=f'{external_number}.mp3'
+        )
+
+    except Exception as e:
+        logging.error(f"Error in audio generation pipeline for {external_number}: {str(e)}")
+        return jsonify({'error': 'Failed to generate audio'}), 500
 
 
 # Route for logging out
