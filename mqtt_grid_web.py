@@ -394,7 +394,7 @@ def home():
         
         logging.debug(f"MQTT client connected and loop started for user {current_user.id}")
         
-        return render_template('index.html', class_codes=current_user.class_codes, newUser=session['_newUser'], fullName=session['fullName'])
+        return render_template('index.html', class_codes=current_user.class_codes, newUser=session['_newUser'], fullName=session['fullName'], classCode=session['_classCode'])
 
     except Exception as e: #Catch MQTT connection errors
         logging.error(f"MQTT Connection Error in /home: {e}")

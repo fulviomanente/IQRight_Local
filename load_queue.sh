@@ -20,3 +20,4 @@ mosquitto_pub -d -t Class30 -u IQRight -P 123456 -m "{\"name\":\"After break3 1\
 mosquitto_pub -d -t Class30 -u IQRight -P 123456 -m "{\"name\":\"After break3 2\", \"level1\":\"lalala\",\"level2\":\"lelele\",\"externalNumber\":\"12318\"}"
 mosquitto_pub -d -t Class30 -u IQRight -P 123456 -m "{\"name\":\"After break3 3\", \"level1\":\"lalala\",\"level2\":\"lelele\",\"externalNumber\":\"12319\"}"
 mosquitto_pub -d -t Class30 -u IQRight -P 123456 -m "{\"name\":\"After break3 4\", \"level1\":\"lalala\",\"level2\":\"lelele\",\"externalNumber\":\"12320\"}"
+#mosquitto_pub -d -t Class30 -u IQRight -P 123456 -m "{\"command\":\"release\"}"
