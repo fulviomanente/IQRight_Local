@@ -139,6 +139,57 @@
         let hasUserInteracted = false;
         let audioQueue = [];
         let isAutoplayMessageShown = false;
+        
+        // Initialize data queue for handling messages during release processing
+        window.dataQueue = [];
+        window.isProcessingRelease = false;
+        
+        // Join user-specific room when connecting
+        socket.on('connect', function() {
+            // Get user ID from page data
+            var userId = "{{ current_user.id }}";
+            // Join the room with the user's ID
+            socket.emit('join', {user_id: userId});
+            console.log('Connected to socket.io and joined room for user:', userId);
+        });
+        
+        // Function to process queued data items
+        function processQueuedData() {
+            if (!window.dataQueue || window.dataQueue.length === 0) return;
+            
+            console.log(`Processing ${window.dataQueue.length} queued items`);
+            
+            // Process all queued items
+            while (window.dataQueue.length > 0 && !window.isProcessingRelease) {
+                const data = window.dataQueue.shift();
+                console.log('Processing queued data:', data);
+                
+                // Handle the data based on its type
+                if (data.cmd) {
+                    // Handle command data
+                    handleCommandData(data);
+                } else {
+                    // Handle student data
+                    populateTable(data);
+                    if (!populateRight) {
+                        playSound(data.externalNumber + ".mp3");
+                    }
+                }
+            }
+        }
+        
+        // Function to handle command data
+        function handleCommandData(data) {
+            if (data.cmd === 'break') {
+                populateRight = true;
+            } else if (data.cmd === 'release') {
+                release();
+            } else if (data.cmd === 'clean') {
+                document.getElementById('leftTable').getElementsByTagName('tbody')[0].innerHTML = '';
+                document.getElementById('rightTable').getElementsByTagName('tbody')[0].innerHTML = '';
+                document.getElementById('messageLabel').textContent = 'Waiting for Car Line Information...';
+            }
+        }
 
         // Function to trigger the blinking animation
         function triggerBlinkingMessage(message) {
@@ -154,19 +205,18 @@
 
         // Listen for new data from the server
         socket.on('new_data', function (data) {
+            console.log('Received data:', data, 'isProcessingRelease:', window.isProcessingRelease);
+            
+            // If we're processing a release, queue the data for later
+            if (window.isProcessingRelease) {
+                console.log('Queuing data during release processing:', data);
+                window.dataQueue.push(data);
+                return;
+            }
+            
+            // Handle data normally if not in release processing
             if (data.cmd) {
-                if (data.cmd === 'break') {
-                    // Existing code for 'break' command
-                    populateRight = true;
-                } else if (data.cmd === 'release') {
-                    // Call the release function
-                    release();
-                } else if (data.cmd === 'clean') {
-                    // Clean up tables and messageLabel
-                    document.getElementById('leftTable').getElementsByTagName('tbody')[0].innerHTML = '';
-                    document.getElementById('rightTable').getElementsByTagName('tbody')[0].innerHTML = '';
-                    document.getElementById('messageLabel').textContent = 'Waiting for Car Line Information...';
-                }
+                handleCommandData(data);
             } else {
                 populateTable(data);
                 if (!populateRight) {
@@ -206,27 +256,51 @@
             var leftTableBody = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
             var rightTableBody = document.getElementById('rightTable').getElementsByTagName('tbody')[0];
 
-            // Clear the right table
+            // Set a processing flag to prevent new data from being handled
+            window.isProcessingRelease = true;
+            
+            // Clear the left table to prepare for new entries
             leftTableBody.innerHTML = '';
 
-            // Copy rows from the right grid to the left grid
-            var rows = Array.from(rightTableBody.rows);
-            for (const row of rows) {
+            // Process rows from the right grid to the left grid one by one
+            while (rightTableBody.rows.length > 0) {
+                // Always get the first row (index 0) since we're removing them as we go
+                const row = rightTableBody.rows[0];
+                
+                // Create new row in left table
                 var newRow = leftTableBody.insertRow();
-                var newCell1 = newRow.insertCell(0); // Create the first cell
-                var newCell2 = newRow.insertCell(1); // Create the second cell
-                newCell1.textContent = row.cells[0].textContent; // Copy content for the first cell
-                newCell2.textContent = row.cells[1].textContent; // Copy content for the second cell
+                var newCell1 = newRow.insertCell(0);
+                var newCell2 = newRow.insertCell(1);
+                newCell1.textContent = row.cells[0].textContent;
+                newCell2.textContent = row.cells[1].textContent;
                 newRow.setAttribute('data-external-number', row.getAttribute('data-external-number'));
+                
+                // Show visual feedback
                 triggerBlinkingMessage(newCell1.textContent);
                 playSound(row.getAttribute('data-external-number') + ".mp3");
+                
+                // Remove the row from the right table
+                rightTableBody.deleteRow(0);
+                
                 // Wait 1 second before processing next row
                 await new Promise(resolve => setTimeout(resolve, 1000));
-            };
+            }
 
-            // Clear the left grid
-            rightTableBody.innerHTML = '';
+            // Set flag to populate right table with future data
             populateRight = true;
+            
+            // Release the processing flag
+            window.isProcessingRelease = false;
+            
+            // Notify server that release is complete
+            socket.emit('release_complete', { user_id: "{{ current_user.id }}" });
+            console.log('Release complete, notifying server');
+            
+            // Process any queued data
+            if (window.dataQueue && window.dataQueue.length > 0) {
+                console.log(`Processing ${window.dataQueue.length} queued items`);
+                processQueuedData();
+            }
         }
 
         // Function to update the date and time
