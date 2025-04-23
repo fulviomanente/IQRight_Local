@@ -40,3 +40,7 @@ sleep 1
 mosquitto_pub -d -t Class30 -u IQRight -P 123456 -m "{\"name\":\"After break3 3\", \"level1\":\"lalala\",\"level2\":\"lelele\",\"externalNumber\":\"12319\"}"
 sleep 1
 mosquitto_pub -d -t Class30 -u IQRight -P 123456 -m "{\"name\":\"After break3 4\", \"level1\":\"lalala\",\"level2\":\"lelele\",\"externalNumber\":\"12320\"}"
+sleep 1
+mosquitto_pub -d -t Class30 -u IQRight -P 123456 -m "{\"command\":\"release\"}"
+sleep 1
+mosquitto_pub -d -t Class30 -u IQRight -P 123456 -m "{\"name\":\"After break3 4\", \"level1\":\"lalala\",\"level2\":\"lelele\",\"externalNumber\":\"12320\"}"
