@@ -30,3 +30,9 @@ full_load*
 *.debug
 # Encryption keys
 *.key
+static/sounds/123.mp3
+static/sounds/1234.mp3
+static/sounds/12345.mp3
+static/sounds/123456.mp3
+static/sounds/1234567.mp3
+static/sounds/12345678.mp3
