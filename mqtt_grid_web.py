@@ -70,6 +70,9 @@ def handle_release_complete(data):
         
         # Send any pending data from the second list to fill the right column
         if len(memory_data.virtualList) > 1 and len(memory_data.virtualList[1]) > 0:
+            logging.debug(f'Sending break signal')
+            command = {"cmd": "break"}
+            socketio.emit('new_data', command, room=user_id)
             logging.debug(f'Sending {len(memory_data.virtualList[1])} pending items to user {user_id}')
             for userInfo in memory_data.virtualList[1]:
                 # Emit to specific user's room
@@ -134,7 +137,7 @@ class Virtual_List():
             logging.debug(f'Not emitting data for user {self.user_id} - release pending')
             return
             
-        if len(self.virtualList) < 3:
+        if (len(self.virtualList) < 3) or (len(self.virtualList) == 3 and len(self.virtualList[2]) == 0) :
             # Publish to the socketio service so the JS can read it and update the HTML
             try:
                 if self.user_id:

@@ -155,7 +155,8 @@
         
         // Function to process queued data items
         function processQueuedData() {
-            if (!window.dataQueue || window.dataQueue.length === 0) return;
+            if (!window.dataQueue || window.dataQueue.length === 0)
+                return;
             
             console.log(`Processing ${window.dataQueue.length} queued items`);
             
@@ -262,33 +263,36 @@
             // Clear the left table to prepare for new entries
             leftTableBody.innerHTML = '';
 
-            // Process rows from the right grid to the left grid one by one
-            while (rightTableBody.rows.length > 0) {
-                // Always get the first row (index 0) since we're removing them as we go
-                const row = rightTableBody.rows[0];
-                
-                // Create new row in left table
-                var newRow = leftTableBody.insertRow();
-                var newCell1 = newRow.insertCell(0);
-                var newCell2 = newRow.insertCell(1);
-                newCell1.textContent = row.cells[0].textContent;
-                newCell2.textContent = row.cells[1].textContent;
-                newRow.setAttribute('data-external-number', row.getAttribute('data-external-number'));
-                
-                // Show visual feedback
-                triggerBlinkingMessage(newCell1.textContent);
-                playSound(row.getAttribute('data-external-number') + ".mp3");
-                
-                // Remove the row from the right table
-                rightTableBody.deleteRow(0);
-                
-                // Wait 1 second before processing next row
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
+            if (rightTableBody.rows.length > 0) {
+                // Process rows from the right grid to the left grid one by one
+                while (rightTableBody.rows.length > 0) {
+                    // Always get the first row (index 0) since we're removing them as we go
+                    const row = rightTableBody.rows[0];
 
-            // Set flag to populate right table with future data
-            populateRight = true;
-            
+                    // Create new row in left table
+                    var newRow = leftTableBody.insertRow();
+                    var newCell1 = newRow.insertCell(0);
+                    var newCell2 = newRow.insertCell(1);
+                    newCell1.textContent = row.cells[0].textContent;
+                    newCell2.textContent = row.cells[1].textContent;
+                    newRow.setAttribute('data-external-number', row.getAttribute('data-external-number'));
+
+                    // Show visual feedback
+                    triggerBlinkingMessage(newCell1.textContent);
+                    playSound(row.getAttribute('data-external-number') + ".mp3");
+
+                    // Remove the row from the right table
+                    rightTableBody.deleteRow(0);
+
+
+                    // Wait 1 second before processing next row
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    // Set flag to populate right table with future data
+                }
+            }
+            populateRight = false;
+
             // Release the processing flag
             window.isProcessingRelease = false;
             
