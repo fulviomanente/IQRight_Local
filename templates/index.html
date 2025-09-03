@@ -140,7 +140,12 @@
         let hasUserInteracted = false;
         let audioQueue = [];
         let isAutoplayMessageShown = false;
-        
+
+        // Initialize data queue for handling messages during release processing
+        window.dataQueue = [];
+        window.isProcessingRelease = false;
+
+
         // Join the user's room when socket connects
         socket.on('connect', function() {
             // Get user ID from hidden input
@@ -150,6 +155,45 @@
                 socket.emit('join', {user_id: userId});
             }
         });
+
+        // Function to process queued data items
+        function processQueuedData() {
+            if (!window.dataQueue || window.dataQueue.length === 0)
+                return;
+
+            console.log(`Processing ${window.dataQueue.length} queued items`);
+
+            // Process all queued items
+            while (window.dataQueue.length > 0 && !window.isProcessingRelease) {
+                const data = window.dataQueue.shift();
+                console.log('Processing queued data:', data);
+
+                // Handle the data based on its type
+                if (data.cmd) {
+                    // Handle command data
+                    handleCommandData(data);
+                } else {
+                    // Handle student data
+                    populateTable(data);
+                    if (!populateRight) {
+                        playSound(data.externalNumber + ".mp3");
+                    }
+                }
+            }
+        }
+
+        // Function to handle command data
+        function handleCommandData(data) {
+            if (data.cmd === 'break') {
+                populateRight = true;
+            } else if (data.cmd === 'release') {
+                release();
+            } else if (data.cmd === 'clean') {
+                document.getElementById('leftTable').getElementsByTagName('tbody')[0].innerHTML = '';
+                document.getElementById('rightTable').getElementsByTagName('tbody')[0].innerHTML = '';
+                document.getElementById('messageLabel').textContent = 'Waiting for Car Line Information...';
+            }
+        }
 
         // Function to trigger the blinking animation
         function triggerBlinkingMessage(message) {
@@ -163,31 +207,27 @@
             }, 3000);
         }
 
-        // Function to show autoplay message
-        function showAutoplayMessage() {
-            if (!isAutoplayMessageShown) {
-                const messageDiv = document.createElement('div');
-                messageDiv.innerHTML = `
-                    <div class="alert alert-warning alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 1050;">
-                        <strong>Audio Notifications:</strong> Click anywhere on the page to enable audio notifications.
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                `;
-                document.body.appendChild(messageDiv);
-                isAutoplayMessageShown = true;
-            }
-        }
-
         // Listen for new data from the server
         socket.on('new_data', function (data) {
+            console.log('Received data:', data, 'isProcessingRelease:', window.isProcessingRelease);
+
+            // If we're processing a release, queue the data for later
+            if (window.isProcessingRelease) {
+                console.log('Queuing data during release processing:', data);
+                window.dataQueue.push(data);
+                return;
+            }
+
+            // Handle data normally if not in release processing
             if (data.cmd) {
                 if (data.cmd === 'break') {
+                    // Existing code for 'break' command
                     populateRight = true;
                 } else if (data.cmd === 'release') {
+                    // Call the release function
                     release().catch(error => console.error('Error in release:', error));
                 } else if (data.cmd === 'clean') {
+                    // Clean up tables and messageLabel
                     document.getElementById('leftTable').getElementsByTagName('tbody')[0].innerHTML = '';
                     document.getElementById('rightTable').getElementsByTagName('tbody')[0].innerHTML = '';
                     document.getElementById('messageLabel').textContent = 'Waiting for Car Line Information...';
@@ -207,7 +247,7 @@
             var fullName = data.fullName;
             var location = data.location;
             var externalNumber = data.externalNumber;  // Get the external number
-            
+
             // Choose the table based on whether we are populating the right or left grid
             if (!populateRight) {
                 table = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
@@ -218,24 +258,31 @@
                 table = document.getElementById('rightTable').getElementsByTagName('tbody')[0];
                 // Don't trigger blinking or sound for right table - wait for release
             }
+            //var table = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
 
             // Insert a new row into the chosen table
             var newRow = table.insertRow();
             // Store the externalNumber as a data attribute
             newRow.setAttribute('data-external-number', externalNumber);
-            
+
             var fullNameCell = newRow.insertCell(0);
             var locationCell = newRow.insertCell(1);
+            newRow.setAttribute('data-external-number', externalNumber);
             fullNameCell.textContent = fullName;
             locationCell.textContent = location;
         }
 
         // Update the release function to use the stored externalNumber
         async function release() {
+        async function release() {
             var leftTableBody = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
             var rightTableBody = document.getElementById('rightTable').getElementsByTagName('tbody')[0];
 
             // Clear the left table
+            // Set a processing flag to prevent new data from being handled
+            window.isProcessingRelease = true;
+
+            // Clear the left table to prepare for new entries
             leftTableBody.innerHTML = '';
 
             // Copy rows from the right grid to the left grid with delay
@@ -245,23 +292,62 @@
                 var newRow = leftTableBody.insertRow();
                 var newCell1 = newRow.insertCell(0);
                 var newCell2 = newRow.insertCell(1);
-                
+
                 // Copy the content and the data attribute
                 newCell1.textContent = row.cells[0].textContent;
                 newCell2.textContent = row.cells[1].textContent;
                 newRow.setAttribute('data-external-number', row.getAttribute('data-external-number'));
-                
+
                 // Trigger blinking and sound for each row using the stored externalNumber
                 triggerBlinkingMessage(row.cells[0].textContent);
                 playSound(row.getAttribute('data-external-number') + ".mp3");
-                
+
                 // Wait 1 second before processing next row
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
+            if (rightTableBody.rows.length > 0) {
+                // Process rows from the right grid to the left grid one by one
+                while (rightTableBody.rows.length > 0) {
+                    // Always get the first row (index 0) since we're removing them as we go
+                    const row = rightTableBody.rows[0];
 
-            // Clear the right grid
-            rightTableBody.innerHTML = '';
+                    // Create new row in left table
+                    var newRow = leftTableBody.insertRow();
+                    var newCell1 = newRow.insertCell(0);
+                    var newCell2 = newRow.insertCell(1);
+                    newCell1.textContent = row.cells[0].textContent;
+                    newCell2.textContent = row.cells[1].textContent;
+                    newRow.setAttribute('data-external-number', row.getAttribute('data-external-number'));
+
+                    // Show visual feedback
+                    triggerBlinkingMessage(newCell1.textContent);
+                    playSound(row.getAttribute('data-external-number') + ".mp3");
+
+                    // Remove the row from the right table
+                    rightTableBody.deleteRow(0);
+
+
+                    // Wait 1 second before processing next row
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    // Set flag to populate right table with future data
+                }
+            }
+            //rightTableBody.innerHTML = '';
             populateRight = false;
+
+            // Release the processing flag
+            window.isProcessingRelease = false;
+
+            // Notify server that release is complete
+            socket.emit('release_complete', { user_id: "{{ current_user.id }}" });
+            console.log('Release complete, notifying server');
+
+            // Process any queued data
+            if (window.dataQueue && window.dataQueue.length > 0) {
+                console.log(`Processing ${window.dataQueue.length} queued items`);
+                processQueuedData();
+            }
         }
 
         // Function to update the date and time
@@ -271,10 +357,30 @@
             document.getElementById('date-time').textContent = now.toLocaleDateString('en-US', options);
         }
 
-        // Modified playSound function
+        // Function to show autoplay message
+        function showAutoplayMessage() {
+            if (!isAutoplayMessageShown) {
+                const messageDiv = document.createElement('div');
+                messageDiv.innerHTML = `
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 1050;">
+                        <strong>Audio Notifications:</strong> Click anywhere on the page to enable audio notifications.
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(messageDiv);
+                isAutoplayMessageShown = true;
+            }
+        }
+
+              // Modified playSound function
         function playSound(filename) {
             const audioPath = '/static/sounds/' + filename;
-            
+
+            console.log('Playing sound:', filename)
+            console.log('hasUserInteracted:', hasUserInteracted)
+
             // If user hasn't interacted, show message and queue the audio
             if (!hasUserInteracted) {
                 showAutoplayMessage();
@@ -287,6 +393,7 @@
 
             if (cachedAudioUrl) {
                 const audio = new Audio(cachedAudioUrl);
+                console.log('Playing from Cache:', filename)
                 audio.play().catch(error => {
                     console.error("Error playing cached sound:", error, filename);
                     localStorage.removeItem(filename);
@@ -295,7 +402,7 @@
             } else {
                 // Extract external number from filename (remove .mp3)
                 const externalNumber = filename.replace('.mp3', '');
-                
+                console.log('Playing sound:', filename)
                 fetch(`/getAudio/${externalNumber}`)
                     .then(response => {
                         if (!response.ok) {
@@ -306,7 +413,7 @@
                     .then(blob => {
                         const audioUrl = URL.createObjectURL(blob);
                         const audio = new Audio(audioUrl);
-                        
+
                         audio.play().catch(error => {
                             console.error("Error playing downloaded sound:", error, filename);
                             if (error.name === 'NotAllowedError') {
@@ -314,11 +421,11 @@
                             }
                         });
 
+                        // Cache the audio URL in Local Storage
                         localStorage.setItem(filename, audioUrl);
                     })
                     .catch(error => {
-                        console.error("Error getting audio from server:", error, filename);
-                    });
+                        console.error("Error downloading sound:", error, filename);});
             }
         }
 
@@ -326,6 +433,7 @@
         function playQueuedSounds() {
             while (audioQueue.length > 0) {
                 const filename = audioQueue.shift();
+                console.log('Playing queued sound:', filename)
                 playSound(filename);
             }
         }

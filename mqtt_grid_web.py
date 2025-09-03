@@ -40,11 +40,11 @@ load_dotenv()
 @socketio.on('connect')
 def handle_connect():
     logging.debug(f'Client connected: {request.sid}')
-    
+
 @socketio.on('disconnect')
 def handle_disconnect():
     logging.debug(f'Client disconnected: {request.sid}')
-    
+
 @socketio.on('join')
 def on_join(data):
     user_id = data.get('user_id')
@@ -58,16 +58,16 @@ def handle_release_complete(data):
     user_id = data.get('user_id')
     if not user_id:
         return
-        
+
     logging.debug(f'Release processing complete for user {user_id}')
-    
+
     # If there's any pending data to send to this user, we can send it now
     if user_id in memory_data_store:
         memory_data = memory_data_store[user_id]
         # Mark that this user has completed release processing
         memory_data.release_pending = False
         logging.debug(f'User {user_id} is ready to receive new data')
-        
+
         # Send any pending data from the second list to fill the right column
         if len(memory_data.virtualList) > 1 and len(memory_data.virtualList[1]) > 0:
             logging.debug(f'Sending break signal')
@@ -123,7 +123,7 @@ class Virtual_List():
     def publish_data(self, jsonObj):
         #Check if it should send it to the screen
         userInfo = {"fullName": jsonObj.get("name", "Unknown"), "location": jsonObj.get("location", "Unknown"), "externalNumber": jsonObj.get("externalNumber", "000000")}
-        
+
         # Store in memory regardless of whether we display it now
         if self.currList < len(self.virtualList):
             self.virtualList[self.currList].append(userInfo)
@@ -131,12 +131,12 @@ class Virtual_List():
             # Ensure we have a valid index
             self.virtualList.append([])
             self.virtualList[self.currList].append(userInfo)
-            
+
         # Don't emit if a release is pending - client will request the data when ready
         if self.release_pending:
             logging.debug(f'Not emitting data for user {self.user_id} - release pending')
             return
-            
+
         if (len(self.virtualList) < 3) or (len(self.virtualList) == 3 and len(self.virtualList[2]) == 0) :
             # Publish to the socketio service so the JS can read it and update the HTML
             try:
@@ -148,7 +148,7 @@ class Virtual_List():
                     logging.debug(f'Emitted data to socketio (no user ID): {userInfo}')
             except Exception as e:
                 logging.error(f'Error emitting user info to socketio: {e}')
-                
+
         self.lastCommand = ''
 
 #######################################################################################
@@ -192,12 +192,12 @@ def loadJson(inputStr: str) -> dict:
 def on_connect(client, userdata, flags, rc, properties):
     if rc == 0:
         logging.debug(f"MQTT CONNECTION: Connected to MQTT Broker")
-        
+
         # Subscribe to the central command queue for all users
         command_topic = f"IQRSend"
         client.subscribe(command_topic)
         logging.debug(f"MQTT CONNECTION: User {userdata.get('userName', 'unknown')} Subscribed to command topic: {command_topic}")
-        
+
         # Subscribe to class-specific queues for the logged-in user (for student data)
         if userdata.get('userAuthenticated') and userdata.get('classCode'):
             topic = f"{TOPIC_PREFIX}{userdata.get('classCode')}"
@@ -269,19 +269,19 @@ def on_messageScreen(client, userdata, message, tmp=None):
     if not user_id:
         logging.error("Message received but no user_id in userdata")
         return False
-    
+
     # Check if this is a command message from the central command queue
     command_topic = f"IQRSend"
     if message.topic == command_topic:
         # Process command message and broadcast to all clients
         return process_command_message(payload_str)
-        
+
     # Get the memory data for this user, or create if not exists
     if user_id not in memory_data_store:
         memory_data_store[user_id] = Virtual_List(user_id=user_id)
-    
+
     memory_data = memory_data_store[user_id]
-    
+
     # Try to parse the payload as JSON for student data
     jsonObj = loadJson(payload_str)
     if isinstance(jsonObj, dict):
@@ -304,17 +304,17 @@ def process_command_message(payload_str):
     if not isinstance(jsonObj, dict) or 'command' not in jsonObj:
         logging.error(f'Invalid command message format: {payload_str}')
         return False
-        
+
     command = jsonObj['command']
     logging.debug(f'Broadcasting command to all users: {command}')
-    
+
     # Update all memory_data objects
     for user_id, memory_data in memory_data_store.items():
         # Only process if this is a new command or enough time has passed
         if memory_data.lastCommand != command or (datetime.now() - memory_data.lastCommandTimestamp).total_seconds() > 6:
             memory_data.lastCommand = command
             memory_data.lastCommandTimestamp = datetime.now()
-            
+
             # Handle break command
             if command == 'break':
                 memory_data.currList += 1
@@ -322,31 +322,31 @@ def process_command_message(payload_str):
                 memory_data.publish_command(jsonObj)
                 if len(memory_data.virtualList) > 2:
                     memory_data.screenFull = True
-                    
+
             # Handle release command
             elif command == 'release':
                 ready2leave = memory_data.virtualList.pop(0) if memory_data.virtualList else []
                 if memory_data.currList > 0:
                     memory_data.currList -= 1
-                    
+
                 # Mark that a release is in progress
                 memory_data.release_pending = True
                 logging.debug(f'Setting release_pending to True for user {user_id}')
-                
+
                 # Publish to the socketio service
                 memory_data.publish_command(jsonObj)
-                
+
                 # Initialize the second list if it doesn't exist yet
                 if len(memory_data.virtualList) < 2:
                     memory_data.virtualList.append([])
-                    
+
                 if len(memory_data.virtualList) < 2:
                     memory_data.screenFull = False
-            
+
             # Handle clean command or any other commands
             elif command == 'clean':
                 memory_data.publish_command(jsonObj)
-    
+
     return True
 
 
@@ -496,7 +496,7 @@ def login():
 def home():
     try:
         user_id = current_user.id
-        
+
         # Handle existing client for this user if it exists
         if user_id in mqtt_clients and mqtt_clients[user_id].is_connected():
             try:
@@ -504,14 +504,14 @@ def home():
                 logging.debug(f"Disconnected existing MQTT client for user {user_id} before reconnecting")
             except Exception as disconnect_err:
                 logging.error(f"Error disconnecting MQTT client for user {user_id}: {disconnect_err}")
-        
+
         # Create a unique client ID for this user
         client_id = f"IQRight_{user_id}_{int(time.time())}"
-        
+
         # Create a new MQTT client for this user
         mqtt_clients[user_id] = mqtt.Client(client_id=client_id, transport=mytransport, protocol=mqtt.MQTTv5)
         client = mqtt_clients[user_id]
-        
+
         # Set authentication
         client.username_pw_set(mqttUsername, mqttpassword)
         client.on_connect = on_connect
@@ -528,7 +528,7 @@ def home():
         # Create user-specific memory data if it doesn't exist
         if user_id not in memory_data_store:
             memory_data_store[user_id] = Virtual_List(user_id=user_id)
-        
+
         # Log connection attempt
         logging.debug(f"Connecting to MQTT broker at {broker}:{myport} with user data: {user_data}")
         
@@ -544,10 +544,10 @@ def home():
         
         logging.debug(f"MQTT client connected and loop started for user {user_id}")
         
-        return render_template('index.html', 
+        return render_template('index.html',
                               user_id=user_id,
-                              class_codes=[str(x) for x in current_user.class_codes], 
-                              newUser=session['_newUser'], 
+                              class_codes=[str(x) for x in current_user.class_codes],
+                              newUser=session['_newUser'],
                               fullName=session['fullName'],
                               current_user=current_user)
 
@@ -626,22 +626,22 @@ def logout():
             class_code = session.get('_classCode', 0)
             topic = f"{TOPIC_PREFIX}{class_code}"
             command_topic = f"IQRSend"
-            
+
             # Unsubscribe from all topics
             mqtt_clients[user_id].unsubscribe(topic)
             mqtt_clients[user_id].unsubscribe(command_topic)
             mqtt_clients[user_id].unsubscribe(f"{TOPIC_PREFIX}test")  # Also unsubscribe from test topic
-            
+
             mqtt_clients[user_id].disconnect()
             logging.debug(f"MQTT: Unsubscribed user {user_id} from topic {topic}, {command_topic} and disconnected")
-            
+
             # Remove client from dictionary
             del mqtt_clients[user_id]
-            
+
             # Clean up memory data
             if user_id in memory_data_store:
                 del memory_data_store[user_id]
-                
+
             logging.debug(f"Cleaned up MQTT resources for user {user_id}")
     except Exception as e: # Catch MQTT connection errors
         logging.error(f"MQTT Connection Error in /logout (unsubscribe) for user {user_id}: {e}")
