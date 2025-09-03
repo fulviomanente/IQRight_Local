@@ -14,12 +14,14 @@ from gtts import gTTS
 import json
 import logging
 import logging.handlers
-from flask import Flask, render_template, request, redirect, url_for, flash, g, abort, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, g, abort, session, jsonify, send_file
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_socketio import SocketIO
 from forms import ChangePasswordForm
 from flask_babel import Babel, gettext as _
 from dotenv import load_dotenv
+import io
+
 from utils.config import TOPIC_PREFIX, TOPIC, API_URL, IDFACILITY, LORASERVICE_PATH, DEBUG
 from utils.offline_data import OfflineData
 from utils.api_client import api_request, get_secret
@@ -29,18 +31,125 @@ app.secret_key = '1QrightS3cr3tKey'  # Secret key for session management
 app.config.from_pyfile('utils/config.py')
 app.config['BABEL_DEFAULT_LOCALE'] = 'en'
 babel = Babel(app)
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins="*")  # Allow cross-origin for all domains
+offlineData = OfflineData()
 
 load_dotenv()
 
-lastCommand = ''
-lastCommandTimestamp = datetime.now()
+# SocketIO event handlers
+@socketio.on('connect')
+def handle_connect():
+    logging.debug(f'Client connected: {request.sid}')
+    
+@socketio.on('disconnect')
+def handle_disconnect():
+    logging.debug(f'Client disconnected: {request.sid}')
+    
+@socketio.on('join')
+def on_join(data):
+    user_id = data.get('user_id')
+    if user_id:
+        socketio.server.enter_room(request.sid, user_id)
+        logging.debug(f'User {user_id} joined their room: {user_id}')
+
+@socketio.on('release_complete')
+def handle_release_complete(data):
+    """Handle client notification that release processing is complete"""
+    user_id = data.get('user_id')
+    if not user_id:
+        return
+        
+    logging.debug(f'Release processing complete for user {user_id}')
+    
+    # If there's any pending data to send to this user, we can send it now
+    if user_id in memory_data_store:
+        memory_data = memory_data_store[user_id]
+        # Mark that this user has completed release processing
+        memory_data.release_pending = False
+        logging.debug(f'User {user_id} is ready to receive new data')
+        
+        # Send any pending data from the second list to fill the right column
+        if len(memory_data.virtualList) > 1 and len(memory_data.virtualList[1]) > 0:
+            logging.debug(f'Sending break signal')
+            command = {"cmd": "break"}
+            socketio.emit('new_data', command, room=user_id)
+            logging.debug(f'Sending {len(memory_data.virtualList[1])} pending items to user: {user_id}')
+            for userInfo in memory_data.virtualList[1]:
+                # Emit to specific user's room
+                socketio.emit('new_data', userInfo, room=user_id)
+                logging.debug(f'Emitted pending data to socketio for user {user_id}: {userInfo}')
+
+# LOGGING Setup
+log_filename = "IQRight_FE_WEB.debug"
+max_log_size = 20 * 1024 * 1024  # 20Mb
+backup_count = 10
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+debug = DEBUG
+handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
+
+handler.setFormatter(log_formatter)
+logging.getLogger().addHandler(handler)
+logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
+
 
 # User class (for Flask-Login)
 class User(UserMixin):
     def __init__(self, id, class_codes):
         self.id = id
         self.class_codes = class_codes
+
+class Virtual_List():
+    def __init__(self, user_id=None):
+        self.virtualList = [[]]
+        self.currList = 0
+        self.lastCommand = ''
+        self.lastCommandTimestamp = datetime.now()
+        self.screenFull = False
+        self.user_id = user_id
+        self.release_pending = False  # Track if a release is in progress
+
+    def publish_command(self, jsonObj):
+        try:
+            userInfo = {"cmd": jsonObj['command']}
+            if self.user_id:
+                socketio.emit('new_data', userInfo, room=self.user_id)
+                logging.debug(f'Emitted command to socketio for user {self.user_id}: {jsonObj["command"]}')
+            else:
+                socketio.emit('new_data', userInfo)
+                logging.debug(f'Emitted command to socketio (no user ID): {jsonObj["command"]}')
+        except Exception as e:
+            logging.error(f'Error emitting user info to socketio: {e}')
+
+    def publish_data(self, jsonObj):
+        #Check if it should send it to the screen
+        userInfo = {"fullName": jsonObj.get("name", "Unknown"), "location": jsonObj.get("location", "Unknown"), "externalNumber": jsonObj.get("externalNumber", "000000")}
+        
+        # Store in memory regardless of whether we display it now
+        if self.currList < len(self.virtualList):
+            self.virtualList[self.currList].append(userInfo)
+        else:
+            # Ensure we have a valid index
+            self.virtualList.append([])
+            self.virtualList[self.currList].append(userInfo)
+            
+        # Don't emit if a release is pending - client will request the data when ready
+        if self.release_pending:
+            logging.debug(f'Not emitting data for user {self.user_id} - release pending')
+            return
+            
+        if (len(self.virtualList) < 3) or (len(self.virtualList) == 3 and len(self.virtualList[2]) == 0) :
+            # Publish to the socketio service so the JS can read it and update the HTML
+            try:
+                if self.user_id:
+                    socketio.emit('new_data', userInfo, room=self.user_id)
+                    logging.debug(f'Emitted data to socketio for user {self.user_id}: {userInfo}')
+                else:
+                    socketio.emit('new_data', userInfo)
+                    logging.debug(f'Emitted data to socketio (no user ID): {userInfo}')
+            except Exception as e:
+                logging.error(f'Error emitting user info to socketio: {e}')
+                
+        self.lastCommand = ''
 
 #######################################################################################
 ##################### GENERAL UTILITY METHODS #########################################
@@ -83,7 +192,13 @@ def loadJson(inputStr: str) -> dict:
 def on_connect(client, userdata, flags, rc, properties):
     if rc == 0:
         logging.debug(f"MQTT CONNECTION: Connected to MQTT Broker")
-        # Subscribe to class queues for the logged-in user
+        
+        # Subscribe to the central command queue for all users
+        command_topic = f"IQRSend"
+        client.subscribe(command_topic)
+        logging.debug(f"MQTT CONNECTION: User {userdata.get('userName', 'unknown')} Subscribed to command topic: {command_topic}")
+        
+        # Subscribe to class-specific queues for the logged-in user (for student data)
         if userdata.get('userAuthenticated') and userdata.get('classCode'):
             topic = f"{TOPIC_PREFIX}{userdata.get('classCode')}"
             client.subscribe(topic)
@@ -107,8 +222,6 @@ def authenticate_user(username, password):
     errorMsg = None
 
     returnCode, info = api_request(method="POST", url='apiGetSession', data=payload)
-
-    offlineData = OfflineData()
 
     if info['message']:
         #IF THERE IS NO CONNECTIVITY TRY TO LOGIN OFFLINE
@@ -146,47 +259,100 @@ def authenticate_user(username, password):
         return {'authenticated': True, 'classCodes': info['listHierarchy'], 'errorMsg': None, 'changePassword': info.get('changePassword', False), 'newUser': info.get('newUser', False), 'fullName': info.get('fullName', ' ')}
 
 def on_messageScreen(client, userdata, message, tmp=None):
-    global lastCommand
-    global lastCommandTimestamp
-    
     # Always log incoming messages regardless of DEBUG setting
     logging.debug(f'Message Received on topic: {message.topic}')
     payload_str = str(message.payload, 'UTF-8')
     logging.debug(f'Payload: {payload_str}')
     
-    # Try to parse the payload as JSON
+    # Ensure userdata contains the user_id to identify the session
+    user_id = userdata.get('userName')
+    if not user_id:
+        logging.error("Message received but no user_id in userdata")
+        return False
+    
+    # Check if this is a command message from the central command queue
+    command_topic = f"IQRSend"
+    if message.topic == command_topic:
+        # Process command message and broadcast to all clients
+        return process_command_message(payload_str)
+        
+    # Get the memory data for this user, or create if not exists
+    if user_id not in memory_data_store:
+        memory_data_store[user_id] = Virtual_List(user_id=user_id)
+    
+    memory_data = memory_data_store[user_id]
+    
+    # Try to parse the payload as JSON for student data
     jsonObj = loadJson(payload_str)
     if isinstance(jsonObj, dict):
-        logging.debug(f'Valid JSON received: {jsonObj}')
-        if 'command' in jsonObj:
-            if lastCommand != jsonObj['command'] or (datetime.now() - lastCommandTimestamp).total_seconds() > 6:
-                 lastCommand = jsonObj['command']
-                 lastCommandTimestamp = datetime.now()
-                 # Publish to the sockeio service so the JS can read it and update the HTML
-                 userInfo = {"cmd": jsonObj['command']}
-                 socketio.emit('new_data', userInfo)
-                 logging.debug(f'Emitted command to socketio: {jsonObj["command"]}')
+        logging.debug(f'Valid JSON received for user {user_id}: {jsonObj}')
+        # For student queue messages, just process the data (not commands)
+        if 'command' not in jsonObj:
+            memory_data.publish_data(jsonObj)
+            return True
         else:
-            # Publish to the sockeio service so the JS can read it and update the HTML
-            try:
-                userInfo = {"fullName": jsonObj.get("name", "Unknown"), "location": jsonObj.get("location", "Unknown")}
-                socketio.emit('new_data', userInfo)
-                logging.debug(f'Emitted data to socketio: {userInfo}')
-            except Exception as e:
-                logging.error(f'Error emitting user info to socketio: {e}')
-        return True
+            # Handle commands that might come from non-central queues (for backward compatibility)
+            logging.debug(f'Command received on non-command queue: {jsonObj["command"]}. Will be ignored.')
+            return True
     else:
         logging.debug('NOT A VALID JSON OBJECT RECEIVED FROM QUEUE')
         return False
-     #externalNumber = f"{jsonObj['externalNumber']}"
-#     memoryData[f"list{currList}"].append(jsonObj)
-#     if currList < (loadGrid + 2):
-#         playSoundList([jsonObj], currGrid=currGrid)
+
+def process_command_message(payload_str):
+    """Process a command message from the central command queue and broadcast to all clients"""
+    jsonObj = loadJson(payload_str)
+    if not isinstance(jsonObj, dict) or 'command' not in jsonObj:
+        logging.error(f'Invalid command message format: {payload_str}')
+        return False
+        
+    command = jsonObj['command']
+    logging.debug(f'Broadcasting command to all users: {command}')
+    
+    # Update all memory_data objects
+    for user_id, memory_data in memory_data_store.items():
+        # Only process if this is a new command or enough time has passed
+        if memory_data.lastCommand != command or (datetime.now() - memory_data.lastCommandTimestamp).total_seconds() > 6:
+            memory_data.lastCommand = command
+            memory_data.lastCommandTimestamp = datetime.now()
+            
+            # Handle break command
+            if command == 'break':
+                memory_data.currList += 1
+                memory_data.virtualList.append([])
+                memory_data.publish_command(jsonObj)
+                if len(memory_data.virtualList) > 2:
+                    memory_data.screenFull = True
+                    
+            # Handle release command
+            elif command == 'release':
+                ready2leave = memory_data.virtualList.pop(0) if memory_data.virtualList else []
+                if memory_data.currList > 0:
+                    memory_data.currList -= 1
+                    
+                # Mark that a release is in progress
+                memory_data.release_pending = True
+                logging.debug(f'Setting release_pending to True for user {user_id}')
+                
+                # Publish to the socketio service
+                memory_data.publish_command(jsonObj)
+                
+                # Initialize the second list if it doesn't exist yet
+                if len(memory_data.virtualList) < 2:
+                    memory_data.virtualList.append([])
+                    
+                if len(memory_data.virtualList) < 2:
+                    memory_data.screenFull = False
+            
+            # Handle clean command or any other commands
+            elif command == 'clean':
+                memory_data.publish_command(jsonObj)
+    
+    return True
 
 
 def getInfo(beacon, distance, code: str = None, deviceID: str = None):
+    df = offlineData.getAppUsers()
     if code:
-        df = OfflineData.getAppUsers()
         try:
             logging.debug(f'Student Lookup')
             name = df.loc[df['ExternalNumber'] == code]
@@ -224,65 +390,26 @@ def getInfo(beacon, distance, code: str = None, deviceID: str = None):
         logging.error(f'Empty string sent for conversion into MQTT Object')
         return None
 
-def playSoundList(listObj, currGrid, fillGrid: bool = False):
-    for jsonObj in listObj:
-        externalNumber = jsonObj['externalNumber']
-        label_call.config(text=f"{jsonObj['name']} - {jsonObj['level1']}")
-        currGrid.insert_row([jsonObj['name'], jsonObj['level1'], jsonObj['level2']], redraw=True)
-        # rate = engine.getProperty('rate')
-        # engine.setProperty('rate', 130)
-        if os.path.exists(f'./Sound/{externalNumber}.mp3') == False:
-            logging.info(f'Missing Audio File - {externalNumber}.mp3')
-            logging.info(f'Generating from Google')
-            tts = gTTS(f"{jsonObj['level1']}, {jsonObj['name']}", lang='en')
-            tts.save(f'./Sound/{externalNumber}.mp3')
-        else:
-            if os.environ.get("MAC", None) != None:
-                print(f'Calling {externalNumber}')
-            else:
-                #song = AudioSegment.from_file(f'./Sound/{externalNumber}.mp3', format="mp3")
-                #play(song)
-                print ("oi")
-            label_call.flash(0)
-        if fillGrid:  # IF FILLING THE WHOLE GRID, SLEEP 2 SECONDS BEFORE PLAYING THE NEXT ONE
-            time.sleep(2)
-
-# LOGGING Setup
-log_filename = "IQRight_FE_WEB.debug"
-max_log_size = 20 * 1024 * 1024  # 20Mb
-backup_count = 10
-log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-debug = DEBUG == 'TRUE'
-handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
-
-handler.setFormatter(log_formatter)
-logging.getLogger().addHandler(handler)
-logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
-
-lastCommand = None
 
 babel.init_app(app, locale_selector=get_locale)
 
 version = '5'  # or '3'
 mytransport = 'tcp'  # 'websockets' # or 'tcp'
 
-#Get credentials from Secret Manager
-client = mqtt.Client(client_id="IQRight_Main", transport=mytransport, protocol=mqtt.MQTTv5)
-mqttUsername = get_secret('mqttUsername').get('value', '')
-mqttpassword = get_secret('mqttpassword').get('value', '')
-client.username_pw_set(mqttUsername, mqttpassword)
-client.on_connect = on_connect
-client.on_message = on_messageScreen
-
+# Configure MQTT properties
 broker = 'localhost'  # eg. choosen-name-xxxx.cedalo.cloud
 myport = 1883
 properties = Properties(PacketTypes.CONNECT)
 properties.SessionExpiryInterval = 30 * 60  # in seconds
 
-memoryData = {"list1": []}
-currList = 1
-gridList = 1
-loadGrid = 1
+# Get credentials from Secret Manager
+mqttUsername = get_secret('mqttUsername').get('value', '')
+mqttpassword = get_secret('mqttpassword').get('value', '')
+
+# Dictionary to store per-user MQTT clients
+mqtt_clients = {}
+# Dictionary to store per-user memory data
+memory_data_store = {}
 
 AUTH_SERVICE_URL = get_secret('authServiceUrl')
 
@@ -368,21 +495,39 @@ def login():
 @login_required
 def home():
     try:
-        # Make sure client is not already connected
-        if client.is_connected():
+        user_id = current_user.id
+        
+        # Handle existing client for this user if it exists
+        if user_id in mqtt_clients and mqtt_clients[user_id].is_connected():
             try:
-                client.disconnect()
-                logging.debug("Disconnected existing MQTT client before reconnecting")
+                mqtt_clients[user_id].disconnect()
+                logging.debug(f"Disconnected existing MQTT client for user {user_id} before reconnecting")
             except Exception as disconnect_err:
-                logging.error(f"Error disconnecting MQTT client: {disconnect_err}")
+                logging.error(f"Error disconnecting MQTT client for user {user_id}: {disconnect_err}")
+        
+        # Create a unique client ID for this user
+        client_id = f"IQRight_{user_id}_{int(time.time())}"
+        
+        # Create a new MQTT client for this user
+        mqtt_clients[user_id] = mqtt.Client(client_id=client_id, transport=mytransport, protocol=mqtt.MQTTv5)
+        client = mqtt_clients[user_id]
+        
+        # Set authentication
+        client.username_pw_set(mqttUsername, mqttpassword)
+        client.on_connect = on_connect
+        client.on_message = on_messageScreen
         
         # Set user data with complete information
         user_data = {
             "userAuthenticated": current_user.is_authenticated, 
             'classCode': session.get('_classCode', 0),
-            'userName': current_user.id
+            'userName': user_id
         }
         client.user_data_set(user_data)
+        
+        # Create user-specific memory data if it doesn't exist
+        if user_id not in memory_data_store:
+            memory_data_store[user_id] = Virtual_List(user_id=user_id)
         
         # Log connection attempt
         logging.debug(f"Connecting to MQTT broker at {broker}:{myport} with user data: {user_data}")
@@ -397,33 +542,112 @@ def home():
         # Start loop in a background thread
         client.loop_start()
         
-        logging.debug(f"MQTT client connected and loop started for user {current_user.id}")
+        logging.debug(f"MQTT client connected and loop started for user {user_id}")
         
-        return render_template('index.html', class_codes=[str(x) for x in current_user.class_codes], newUser=session['_newUser'], fullName=session['fullName'])
+        return render_template('index.html', 
+                              user_id=user_id,
+                              class_codes=[str(x) for x in current_user.class_codes], 
+                              newUser=session['_newUser'], 
+                              fullName=session['fullName'],
+                              current_user=current_user)
 
     except Exception as e: #Catch MQTT connection errors
         logging.error(f"MQTT Connection Error in /home: {e}")
         return render_template('mqtt_error.html')  # Render error page
+
+#Route to retrieve and play the sound
+@app.route('/getAudio/<external_number>')
+def get_audio(external_number):
+    try:
+        # 1. First try to get the existing local file
+        local_file_path = f'./static/sounds/{external_number}.mp3'
+        if os.path.exists(local_file_path):
+            logging.debug(f"Serving existing local audio file for {external_number}")
+            return send_file(local_file_path, mimetype='audio/mpeg')
+
+        # 2. If local file doesn't exist, try to get from integration layer
+        logging.debug(f"Local file not found, requesting from integration layer for {external_number}")
+        status_code, response = api_request(method="POST", url='apiGetAudio', data='{"key": ' + external_number + '}', is_file=True)
+
+        if status_code == 200 and response:
+            # Save the received file locally
+            try:
+                with open(local_file_path, 'wb') as f:
+                    f.write(response)
+                logging.debug(f"Saved audio file from integration layer for {external_number}")
+                return send_file(local_file_path, mimetype='audio/mpeg')
+            except Exception as save_error:
+                logging.error(f"Error saving audio file from integration: {save_error}")
+                # Continue to gTTS fallback
+
+        # 3. If integration layer fails, generate using gTTS
+        logging.debug(f"Integration layer failed, generating audio with gTTS for {external_number}")
+        df = offlineData.getAppUsers()
+        student = df.loc[df['ExternalNumber'] == external_number]
+
+        if student.empty:
+            text_to_speak = f"Student {external_number}"
+        else:
+            text_to_speak = f"{student['level1'].item()}, {student['ChildName'].item()}"
+
+        # Generate audio using gTTS
+        tts = gTTS(text_to_speak, lang='en')
+
+        # Save to BytesIO object and file system
+        audio_bytes = io.BytesIO()
+        tts.write_to_fp(audio_bytes)
+        audio_bytes.seek(0)
+
+        # Save to file system for future use
+        tts.save(local_file_path)
+        logging.debug(f"Generated and saved gTTS audio for {external_number}")
+
+        return send_file(
+            audio_bytes,
+            mimetype='audio/mpeg',
+            as_attachment=True,
+            download_name=f'{external_number}.mp3'
+        )
+
+    except Exception as e:
+        logging.error(f"Error in audio generation pipeline for {external_number}: {str(e)}")
+        return jsonify({'error': 'Failed to generate audio'}), 500
 
 
 # Route for logging out
 @app.route('/logout')
 @login_required
 def logout():
-    logout_user()
+    user_id = current_user.id
     try:
-        # Need to specify topic when unsubscribing
-        if client.is_connected():
+        # Clean up user's MQTT client if it exists
+        if user_id in mqtt_clients and mqtt_clients[user_id].is_connected():
+            # Need to specify topic when unsubscribing
             class_code = session.get('_classCode', 0)
             topic = f"{TOPIC_PREFIX}{class_code}"
-            client.unsubscribe(topic)
-            client.unsubscribe(f"{TOPIC_PREFIX}test")  # Also unsubscribe from test topic
-            client.disconnect()
-            logging.debug(f"MQTT: Unsubscribed from topic {topic} and disconnected")
-    except Exception as e: #Catch MQTT connection errors
-        logging.error(f"MQTT Connection Error in /logout (unsubscribe): {e}")
+            command_topic = f"IQRSend"
+            
+            # Unsubscribe from all topics
+            mqtt_clients[user_id].unsubscribe(topic)
+            mqtt_clients[user_id].unsubscribe(command_topic)
+            mqtt_clients[user_id].unsubscribe(f"{TOPIC_PREFIX}test")  # Also unsubscribe from test topic
+            
+            mqtt_clients[user_id].disconnect()
+            logging.debug(f"MQTT: Unsubscribed user {user_id} from topic {topic}, {command_topic} and disconnected")
+            
+            # Remove client from dictionary
+            del mqtt_clients[user_id]
+            
+            # Clean up memory data
+            if user_id in memory_data_store:
+                del memory_data_store[user_id]
+                
+            logging.debug(f"Cleaned up MQTT resources for user {user_id}")
+    except Exception as e: # Catch MQTT connection errors
+        logging.error(f"MQTT Connection Error in /logout (unsubscribe) for user {user_id}: {e}")
     finally:
+        logout_user()
         return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
