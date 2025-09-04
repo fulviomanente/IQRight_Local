@@ -207,6 +207,23 @@
             }, 3000);
         }
 
+        // Function to show autoplay message
+        function showAutoplayMessage() {
+            if (!isAutoplayMessageShown) {
+                const messageDiv = document.createElement('div');
+                messageDiv.innerHTML = `
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 1050;">
+                        <strong>Audio Notifications:</strong> Click anywhere on the page to enable audio notifications.
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(messageDiv);
+                isAutoplayMessageShown = true;
+            }
+        }
+
         // Listen for new data from the server
         socket.on('new_data', function (data) {
             console.log('Received data:', data, 'isProcessingRelease:', window.isProcessingRelease);
@@ -221,8 +238,10 @@
             // Handle data normally if not in release processing
             if (data.cmd) {
                 if (data.cmd === 'break') {
-                    // Existing code for 'break' command
                     populateRight = true;
+                    console.log('Received break. populateRight:', populateRight);
+                    // Existing code for 'break' command
+
                 } else if (data.cmd === 'release') {
                     // Call the release function
                     release().catch(error => console.error('Error in release:', error));
@@ -233,10 +252,8 @@
                     document.getElementById('messageLabel').textContent = 'Waiting for Car Line Information...';
                 }
             } else {
+                // populateTable will handle the sound playing for left table
                 populateTable(data);
-                if (data.externalNumber) {
-                    playSound(data.externalNumber + ".mp3");
-                }
             }
         });
 
@@ -258,7 +275,6 @@
                 table = document.getElementById('rightTable').getElementsByTagName('tbody')[0];
                 // Don't trigger blinking or sound for right table - wait for release
             }
-            //var table = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
 
             // Insert a new row into the chosen table
             var newRow = table.insertRow();
@@ -267,48 +283,32 @@
 
             var fullNameCell = newRow.insertCell(0);
             var locationCell = newRow.insertCell(1);
-            newRow.setAttribute('data-external-number', externalNumber);
             fullNameCell.textContent = fullName;
             locationCell.textContent = location;
         }
 
         // Update the release function to use the stored externalNumber
         async function release() {
-        async function release() {
             var leftTableBody = document.getElementById('leftTable').getElementsByTagName('tbody')[0];
             var rightTableBody = document.getElementById('rightTable').getElementsByTagName('tbody')[0];
 
-            // Clear the left table
             // Set a processing flag to prevent new data from being handled
             window.isProcessingRelease = true;
 
-            // Clear the left table to prepare for new entries
-            leftTableBody.innerHTML = '';
+            // Check if both tables have data or only left table has data
+            var hasRightTableData = rightTableBody.rows.length > 0;
+            var hasLeftTableData = leftTableBody.rows.length > 0;
 
-            // Copy rows from the right grid to the left grid with delay
-            var rows = Array.from(rightTableBody.rows);
-            for (const row of rows) {
-                // Create new row
-                var newRow = leftTableBody.insertRow();
-                var newCell1 = newRow.insertCell(0);
-                var newCell2 = newRow.insertCell(1);
+            if (hasRightTableData) {
+                // Both tables have data: clear left, transfer right to left
+                console.log('Release: Both tables have data, transferring right to left');
+                
+                // Clear the left table first
+                leftTableBody.innerHTML = '';
 
-                // Copy the content and the data attribute
-                newCell1.textContent = row.cells[0].textContent;
-                newCell2.textContent = row.cells[1].textContent;
-                newRow.setAttribute('data-external-number', row.getAttribute('data-external-number'));
-
-                // Trigger blinking and sound for each row using the stored externalNumber
-                triggerBlinkingMessage(row.cells[0].textContent);
-                playSound(row.getAttribute('data-external-number') + ".mp3");
-
-                // Wait 1 second before processing next row
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            if (rightTableBody.rows.length > 0) {
-                // Process rows from the right grid to the left grid one by one
+                // Transfer rows from right to left one by one
                 while (rightTableBody.rows.length > 0) {
-                    // Always get the first row (index 0) since we're removing them as we go
+                    // Always get the first row since we're removing them as we go
                     const row = rightTableBody.rows[0];
 
                     // Create new row in left table
@@ -326,21 +326,24 @@
                     // Remove the row from the right table
                     rightTableBody.deleteRow(0);
 
-
                     // Wait 1 second before processing next row
                     await new Promise(resolve => setTimeout(resolve, 1000));
-
-                    // Set flag to populate right table with future data
                 }
+            } else if (hasLeftTableData && !hasRightTableData) {
+                // Only left table has data: just clear it
+                console.log('Release: Only left table has data, clearing it');
+                leftTableBody.innerHTML = '';
             }
-            //rightTableBody.innerHTML = '';
+
+            // Reset the populateRight flag so new data goes to left table
             populateRight = false;
 
             // Release the processing flag
             window.isProcessingRelease = false;
 
             // Notify server that release is complete
-            socket.emit('release_complete', { user_id: "{{ current_user.id }}" });
+            var userId = document.getElementById('user-id').value;
+            socket.emit('release_complete', { user_id: userId });
             console.log('Release complete, notifying server');
 
             // Process any queued data
@@ -357,24 +360,7 @@
             document.getElementById('date-time').textContent = now.toLocaleDateString('en-US', options);
         }
 
-        // Function to show autoplay message
-        function showAutoplayMessage() {
-            if (!isAutoplayMessageShown) {
-                const messageDiv = document.createElement('div');
-                messageDiv.innerHTML = `
-                    <div class="alert alert-warning alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 1050;">
-                        <strong>Audio Notifications:</strong> Click anywhere on the page to enable audio notifications.
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                `;
-                document.body.appendChild(messageDiv);
-                isAutoplayMessageShown = true;
-            }
-        }
-
-              // Modified playSound function
+        // Modified playSound function
         function playSound(filename) {
             const audioPath = '/static/sounds/' + filename;
 
