@@ -9,6 +9,12 @@ import pandas as pd
 import asyncio
 from utils.api_client import get_secret
 import aiohttp
+from dotenv import load_dotenv
+from aiohttp import BasicAuth
+from cryptography.fernet import Fernet
+from io import StringIO
+
+load_dotenv()
 
 #Import Config
 from utils.config import API_URL, API_TIMEOUT, DEBUG, LORASERVICE_PATH, OFFLINE_FULL_LOAD_FILENAME, HOME_DIR, FILE_DTYPE, \
@@ -22,15 +28,6 @@ from utils.config import API_URL, API_TIMEOUT, DEBUG, LORASERVICE_PATH, OFFLINE_
 import paho.mqtt.client as mqtt
 from paho.mqtt.properties import Properties
 from paho.mqtt.packettypes import PacketTypes
-
-# Import LORA Libraries - THIS WILL FAIL IN A NON RASPBERRY PI ENVIRONMENT
-import busio
-from digitalio import DigitalInOut, Direction, Pull
-import board
-import adafruit_rfm9x
-
-
-
 
 #Setup MQTT Topics
 topicPrefix: bool = False
@@ -46,8 +43,9 @@ else:
 beacon_locations_dict = beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
 
 #Load Offline Full Load File
-df = pd.read_csv(f'{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}',
-                 dtype=FILE_DTYPE)
+#df = pd.read_csv(f'{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}',
+#                 dtype=FILE_DTYPE)
+
 
 try:
     #LOGGING Setup ####################################################
@@ -64,18 +62,27 @@ except Exception as e:
 
 
 # Create the I2C interface.
-i2c = busio.I2C(board.SCL, board.SDA)
-reset_pin = DigitalInOut(board.D4)
-# Configure LoRa Radio
-CS = DigitalInOut(board.CE1)
-RESET = DigitalInOut(board.D25)
-spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
-rfm9x = adafruit_rfm9x.RFM9x(spi, CS, RESET, RFM9X_FREQUENCE)
-rfm9x.tx_power = RFM9X_TX_POWER
-rfm9x.node = RFM9X_NODE
-rfm9x.ack_delay = RFM9X_ACK_DELAY
-prev_packet = None
-logging.info('Connected to Lora Module')
+# Import LORA Libraries - THIS WILL FAIL IN A NON RASPBERRY PI ENVIRONMENT
+if os.environ.get("LOCAL") != 'TRUE':
+    import busio
+    from digitalio import DigitalInOut, Direction, Pull
+    import board
+    import adafruit_rfm9x
+    i2c = busio.I2C(board.SCL, board.SDA)
+    reset_pin = DigitalInOut(board.D4)
+    # Configure LoRa Radio
+    CS = DigitalInOut(board.CE1)
+    RESET = DigitalInOut(board.D25)
+    spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
+    rfm9x = adafruit_rfm9x.RFM9x(spi, CS, RESET, RFM9X_FREQUENCE)
+    rfm9x.tx_power = RFM9X_TX_POWER
+    rfm9x.node = RFM9X_NODE
+    rfm9x.ack_delay = RFM9X_ACK_DELAY
+    prev_packet = None
+    logging.info('Connected to Lora Module')
+else:
+    logging.info('Bypassing Lora Module')
+
 
 client = mqtt.Client(client_id="IQRight_Daemon", transport=MQTT_TRANSPORT, protocol=mqtt.MQTTv5)
 client.username_pw_set("IQRight", "123456")
@@ -92,51 +99,120 @@ logging.info('Connected to MQTT Server')
 lastCommand = None
 
 def getGrade(strGrade: str):
-    if strGrade == 'First Grade':
+    if strGrade == 'First Grade' or strGrade[0:2] == '01':
         return '1st'
-    elif strGrade == 'Second Grade':
+    elif strGrade == 'Second Grade' or strGrade[0:2] == '02':
         return '2nd'
-    elif strGrade == 'Third Grade':
+    elif strGrade == 'Third Grade' or strGrade[0:2] == '03':
         return '3rd'
-    elif strGrade == 'Fourth Grade':
+    elif strGrade == 'Fourth Grade' or strGrade[0:2] == '04':
         return '4th'
-    else:
+    elif strGrade[1] == 'K':
         return 'Kind'
+    else:
+        return 'N/A'
+
+
+def openFile(filename: str, keyfilename: str ='offline.key'):
+    """Opens and decrypts a file."""
+    try:
+        keyfilename = (LORASERVICE_PATH + '/' + keyfilename) if keyfilename else None
+        if os.path.exists(filename):
+            if keyfilename:
+                return True, decrypt_file(datafile=filename, filename=keyfilename)
+            else:
+                return True, decrypt_file(datafile=filename)
+        else:
+            logging.critical(f"No local CSV file found at {filename}. Terminating.")
+            return False, None
+    except Exception as e:
+        logging.error(f"Error opening file {filename}: {str(e)}")
+        return False, None
+
+def decrypt_file(datafile, filename: str ='offline.key'):
+    """Decrypts a file containing an encrypted Pandas DataFrame."""
+    try:
+        with open(filename, 'rb') as key_file:
+            key = key_file.read()
+        f = Fernet(key)
+        with open(datafile, 'rb') as encrypted_file:
+            encrypted_data = encrypted_file.read()
+        decrypted_data = f.decrypt(encrypted_data)
+        df = pd.read_csv(StringIO(decrypted_data.decode('utf-8')))
+        return df
+    except FileNotFoundError as e:
+        logging.error(f"File not found error: {str(e)}")
+        return None
+    except Exception as e:
+        logging.error(f"Error decrypting file {datafile}: {str(e)}")
+        return None
+
+
+if os.path.exists(f"{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}"):
+    status, df = openFile(filename=f"{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}")
+    logging.info(f"{status}")
+    logging.info(f"{df.size}")
+else:
+    logging.error("UNABLE TO OPEN USER FILE, EXITING")
+    exit(1)
 
 async def get_user_from_api(code):
-    try:
-        async with aiohttp.ClientSession() as session:
-            api_url = f"{API_URL}/apiGetUserInfo"  # Replace with your actual API endpoint
-            payload = {"searchCode": code}
-            headers = {
-                "Content-Type": "application/json",
-                "accept": "application/json",
-                "caller": "LocalApp",
-                "idFacility": IDFACILITY
-            }
+    #try:
+    async with aiohttp.ClientSession() as session:
+        api_url = f"{API_URL}apiGetUserInfo"  # Replace with your actual API endpoint
+        payload = {"searchCode": code}
+        headers = {
+            "Content-Type": "application/json",
+            "accept": "application/json",
+            "caller": "LocalApp",
+            "idFacility": str(IDFACILITY)
+        }
 
-            apiUsername = get_secret('apiUsername')
-            apiPassword = get_secret('apiPassword')
+        # Debug logging
+        logging.info(f"API URL: {api_url}")
+        logging.info(f"Payload: {payload}")
+        logging.info(f"Headers: {headers}")
+        logging.info(f"Timeout: {API_TIMEOUT} seconds")
+        
+        apiUsername = get_secret('apiUsername')
+        apiPassword = get_secret('apiPassword')
 
-            if apiUsername and apiPassword:
-                auth = (apiUsername["value"], apiPassword["value"])
-
+        if apiUsername and apiPassword:
+            auth = BasicAuth(apiUsername["value"], apiPassword["value"])
+            logging.info(f"Auth username: {apiUsername['value']}")
+            
+            try:
+                logging.info("Attempting API call...")
                 async with session.post(api_url, json=payload, timeout=API_TIMEOUT, headers=headers, auth=auth) as response:
+                    print(f"Status: {response.status}")
+                    print(await response.json())
                     if response.status == 200:
                         return await response.json()
                     else:
                         logging.error(f"API getUserAccess request failed with status: {response.status}")
                         return None
-            else:
-                logging.error("API getUserAccess request failed on getting secrets")
+            except asyncio.TimeoutError:
+                logging.error(f"API call timed out after {API_TIMEOUT} seconds")
+                logging.error(f"Failed URL: {api_url}")
                 return None
+            except aiohttp.ClientError as e:
+                logging.error(f"Client error during API call: {e}")
+                logging.error(f"Failed URL: {api_url}")
+                return None
+            except Exception as e:
+                logging.error(f"Unexpected error during API call: {e}")
+                logging.error(f"Failed URL: {api_url}")
+                return None
+        else:
+            logging.error("API getUserAccess request failed on getting secrets")
+            return None
                 
-    except asyncio.TimeoutError:
-        logging.warning("API getUserAccess request timed out")
-        return None
-    except aiohttp.ClientError as e:
-        logging.error(f"API getUserAccess request error: {e}")
-        return None
+    #except asyncio.TimeoutError:
+    #    logging.warning("API getUserAccess request timed out")
+    #    return None
+    #except aiohttp.ClientError as e:
+    #    logging.error(f"API getUserAccess request error: {e}")
+    #    return None
 
 
 async def get_user_local(beacon, code, distance, df):
@@ -156,8 +232,9 @@ async def get_user_local(beacon, code, distance, df):
             for _, row in matches.iterrows():
                 result = {
                     "name": row['ChildName'],
-                    "hierarchyLevel2": row['HierarchyLevel2'], 
-                    "hierarchyID": f"{int(row['HierarchyID']):02d}",
+                    "hierarchyLevel2": row['HierarchyLevel2'],
+                    "hierarchyLevel1": row['HierarchyLevel1'],
+                    "hierarchyID": f"{int(row['IDHierarchy']):02d}",
                     "node": beacon,
                     "externalID": code,
                     "distance": abs(int(distance)),
@@ -177,21 +254,21 @@ async def getInfo(beacon, code, distance, df):
     api_task = asyncio.create_task(get_user_from_api(code))
     local_task = asyncio.create_task(get_user_local(beacon, code, distance, df))
 
-    try:
-        api_result = await asyncio.wait_for(api_task, timeout=1.0)  # Wait for the API with a timeout
-        if api_result:
-            if not isinstance(api_result, list):
-                api_result = [api_result]  # Convert single result to list
-            for result in api_result:
-                result["source"] = "api"
-            logging.info("Using API results")
-            return api_result
-    except asyncio.TimeoutError:
-        logging.warning("API Timeout. Using local data if available.")
-        pass  # Handle timeout (use local result if available)
-    except Exception as ex:
-        logging.error(f'Error processing data: {ex}')
-        return None
+    #try:
+    api_result = await asyncio.wait_for(api_task, timeout=10.0)  # Wait for the API with a timeout
+    if api_result:
+        if not isinstance(api_result, list):
+            api_result = [api_result]  # Convert single result to list
+        for result in api_result:
+            result["source"] = "api"
+        logging.info("Using API results")
+        return api_result
+    #except asyncio.TimeoutError:
+    #    logging.warning("API Timeout. Using local data if available.")
+    #    pass  # Handle timeout (use local result if available)
+    #except Exception as ex:
+    #    logging.error(f'Error processing data: {ex}')
+    #    return None
 
     local_result = await local_task  # Get the local result
 
@@ -243,7 +320,7 @@ def sendDataScanner(payload: dict):
     startTime = time.time()
     while True:
         if 'name' in payload:
-            msg = f"{payload['name']}|{getGrade(payload['level1'])}|{payload['level2']}"
+            msg = f"{payload['name']}|{payload['hierarchyLevel1']}|{getGrade(payload['hierarchyLevel2'])}"
         else:
             msg = f"cmd|ack|{payload['command']}"
             print(msg)
@@ -297,35 +374,38 @@ def beaconLocator(idBeacon: int):
     else:
         return ''
 
-#Main Loop
-while True:
-    packet = None
-    packet = rfm9x.receive(with_ack = True, with_header = True)
-    if packet != None:
-        prev_packet = packet[4:]
-        print(prev_packet)
-        try:
-            packet_text = str(prev_packet, "utf-8")
-        except Exception as e:
-            logging.error(f'{prev_packet}: Invalid byte String')
-            logging.error(f'{e.__str__()}')
-            packet_text = None
-        finally:
-            if packet_text:
-                if DEBUG:
-                    logging.debug(f'{packet} Received')
-                    logging.debug(f'{packet_text} Converted to String')
-                    logging.debug('RX: ')
-                    logging.debug(packet_text)
-                    #result, payload = handleInfo(packet_text)
-                    asyncio.run(handleInfo(packet_text))
+# Main Loop
+if os.getenv("LOCAL") == 'TRUE':
+    asyncio.run(handleInfo('102|123456789|1'))
+else:
+    while True:
 
+        packet = None
+        packet = rfm9x.receive(with_ack = True, with_header = True)
+        if packet != None:
+            prev_packet = packet[4:]
+            print(prev_packet)
+            try:
+                packet_text = str(prev_packet, "utf-8")
+            except Exception as e:
+                logging.error(f'{prev_packet}: Invalid byte String')
+                logging.error(f'{e.__str__()}')
+                packet_text = None
+            finally:
+                if packet_text:
+                    if DEBUG:
+                        logging.debug(f'{packet} Received')
+                        logging.debug(f'{packet_text} Converted to String')
+                        logging.debug('RX: ')
+                        logging.debug(packet_text)
+                        #result, payload = handleInfo(packet_text)
+                        asyncio.run(handleInfo(packet_text))
+
+                    else:
+                        logging.error('No response received from MQ Topic: IQSend or Empty Message received from Lora')
                 else:
-                    logging.error('No response received from MQ Topic: IQSend or Empty Message received from Lora')
-            else:
-                if DEBUG:
-                    logging.debug('Empty Package Received')
-            time.sleep(RMF9X_POOLING)
-
+                    if DEBUG:
+                        logging.debug('Empty Package Received')
+                time.sleep(RMF9X_POOLING)
 
 client.loop_forever();

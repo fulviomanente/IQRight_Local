@@ -26,7 +26,7 @@ FILE_DTYPE = {'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 
                      , 'MainContact': int, 'Relationship': str, 'IDHierarchy': int}
 
 #API Configuration
-API_TIMEOUT = 1.0
+API_TIMEOUT = 10.0
 if os.getenv('DEBUGSERVICE', 'FALSE') == 'TRUE':
     API_URL = 'http://127.0.0.1:5001/api/'
 else:
@@ -34,9 +34,11 @@ else:
 if os.getenv('LOCAL', None) == 'TRUE':
     LORASERVICE_PATH = '.'
     LORASERVICE_LOG_PATH = './LoraService.log'
+    HOME_DIR = '.'
 else:
     LORASERVICE_PATH = '/etc/iqright/LoraService'
     LORASERVICE_LOG_PATH = '/etc/iqright/LoraService/LoraService.log'
+    HOME_DIR = '/etc/iqright/LoraService'
 
 
 #MQTT Configuration
