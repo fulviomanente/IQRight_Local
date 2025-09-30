@@ -40,7 +40,7 @@ handler.setFormatter(log_formatter)
 logging.getLogger().addHandler(handler)
 logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
-df = pd.read_csv("/home/iqright/Validation_DB.csv")
+df = pd.read_csv("/Users/fulviomanente/Documents/Code/IQRight/Local/IQRight_Local/Validation_DB.csv")
 # COnvert ExternalNUmber column to String
 df['DeviceID'] = df['DeviceID'].astype(str)
 
@@ -79,8 +79,7 @@ class SerialThread(Thread):
                     remaining = self.ser.inWaiting()
                     codeReaded = self.ser.read(remaining)
                     qrCode = str(codeReaded, encoding="UTF-8")
-                    logging.info(f"{qrCode}|SERIAL")
-                    self.queue.put(qrCode.strip())
+                    self.queue.put(qrCode[6:].strip())
                     pressed = 1
                 is_killed = self._kill.wait(1)
                 if is_killed:
@@ -225,7 +224,6 @@ class App(tk.Tk):
                 sending = False
             else:
                 sending = True
-            logging.info(f"{qrCode}|READ")
             if self.validation_received(sending=False, payload=qrCode):
                 self.lstCode.append(qrCode)
                 return True
@@ -246,7 +244,7 @@ class App(tk.Tk):
         logging.info(f"{self.lstCode[-1]}|PROBLEM FOUND")
 
     def releaseQueue(self):
-        self.processUpdate(qrCode='P12510365')  # 'P23210671')
+        self.processUpdate(qrCode='2910172')  # 'P23210671')
         return True
         self.pileCommands("release")
         if len(self.breakLineList) > 0 and self.validation_received(sending=True, payload='cmd:release', cmd=True):
@@ -278,27 +276,10 @@ class App(tk.Tk):
                 new = self.queue.get()
                 self.lbl_status.config(text=f"{new}")
                 if value:
-                    position = 2
-                    init = 0
-                    if len(qrCode) > 2:
-                        header = True
-                    while header == True:
-                        if len(qrCode) > position + 2:
-                            if qrCode[init:position] == "31":
-                                position = position + 2
-                                init = init + 2
-                            else:
-                                position = position - 2
-                                header = False
-                                qrCode = qrCode[position:]
-                        else:
-                            header = False
                     self.processUpdate(new)
                 value = False
             except queue.Empty:
                 pass
-            except Exception as e:
-                logging.error(e)
         self.after(100, self.process_serial)
 
     def pileCommands(self, command: str):

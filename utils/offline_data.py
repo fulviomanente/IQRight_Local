@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 from io import StringIO
 from cryptography.fernet import Fernet
+from numpy.f2py.cfuncs import needs
 from pandas.core.interchange.dataframe_protocol import DataFrame
 from utils.config import LORASERVICE_PATH, IDFACILITY, OFFLINE_USERS_FILENAME, OFFLINE_FULL_LOAD_FILENAME, LOCAL_FILE_VERSIONS
 from utils.api_client import api_request
@@ -154,13 +155,16 @@ class OfflineData:
             logging.error(f"Error getting token: {str(e)}")
             return None
 
-    def download_and_read_csv(self, url: str, filename: str):
+    def download_and_read_csv(self, url: str, filename: str, fileVersion: str = None):
         """Downloads and reads CSV file using the provided api_request function."""
         try:
             full_path = self.filepath + filename
-            
-            # Check if we need to download a new version
-            needNewFile, fileVersion = self.check_file_version(filename)
+
+            if fileVersion == None:
+                # Check if we need to download a new version
+                needNewFile, fileVersion = self.check_file_version(filename)
+            else:
+                needNewFile = True
             if not needNewFile:
                 if fileVersion != 'new':
                     logging.info(f"Using cached version of {filename} (version {fileVersion})")
@@ -238,7 +242,7 @@ class OfflineData:
         try:
             needNewFile, fileVersion = self.check_file_version(OFFLINE_FULL_LOAD_FILENAME)
             if needNewFile:
-                status, df = self.download_and_read_csv(url="apiGetLocalUserFile", filename=OFFLINE_FULL_LOAD_FILENAME)
+                status, df = self.download_and_read_csv(url="apiGetLocalUserFile", filename=OFFLINE_FULL_LOAD_FILENAME, fileVersion=fileVersion)
             else:
                 if fileVersion != 'new':
                     logging.info(f"Using cached version of {OFFLINE_FULL_LOAD_FILENAME} (version {fileVersion})")
