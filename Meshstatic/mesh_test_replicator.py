@@ -96,9 +96,9 @@ def main():
 
     node.on_message = on_msg
 
-    # hook to process messages
+    # hook to track forwarded packets
     def on_fwd(pkt, rssi):
-        print(f"[REPLICATOR] forwarding {pkt['type']} from {pkt['src']} seq={pkt['seq']} rssi={rssi} payload={pkt['payload']}")
+        print(f"[REPLICATOR] forwarding {pkt['type']} from {pkt['src']} to {pkt['dst']} seq={pkt['seq']}")
 
     node.on_forward = on_fwd
 
@@ -112,8 +112,8 @@ def main():
 
     try:
         while True:
-            # Wait for packet with ACK support
-            packet = rfm9x.receive(with_ack=True, with_header=True, timeout=RFM9X_TIMEOUT)
+            # Replicator should NOT send radio-level ACKs - it's just forwarding
+            packet = rfm9x.receive(with_ack=False, with_header=True, timeout=RFM9X_TIMEOUT)
             if packet is not None:
                 node.receive_and_replicate(packet)
             # Match CaptureLora.py polling delay

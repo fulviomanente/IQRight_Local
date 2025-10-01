@@ -114,18 +114,19 @@ class MeshNode:
             ack_received = False
             remaining = 0
             while time.time() - start < timeout:
-                rx = self.rfm.receive(with_header=True, with_ack=False, timeout=10)
-
+                rx = self.rfm.receive(with_header=True, with_ack=False, timeout=20)
                 if rx != None:
-                    logger.info(f"Something received")
                     pkt = parse_packet(rx)
                     if pkt != None:
-                        if pkt.get("type") == "ACK" and pkt.get("src") == dst and pkt.get("seq") == seq:
-                            ack_received = True
-                            remaining = pkt.get("remaining")
-                            logger.info(f"{remaining} Follow up packets")
-                            received = 0
-                            break
+                        if self._check_duplicate(pkt.get("src"), pkt.get("seq")):
+                            # only process if packet addressed to me
+                            if pkt.get("dst", BROADCAST_ID) == self.node_id and pkt.get("type") == "ACK":
+                            #if pkt.get("type") == "ACK" and pkt.get("src") == dst and pkt.get("seq") == seq:
+                                ack_received = True
+                                remaining = pkt.get("remaining")
+                                logger.info(f"{remaining} Follow up packets")
+                                received = 0
+                                break
             if ack_received:
                 logger.info("ACK received from %s for seq %d rssi=%s", dst, seq, getattr(self.rfm, "last_rssi", None))
             else:
@@ -134,7 +135,7 @@ class MeshNode:
             return_message = []
             logger.info(f"Recieving {remaining} additional packets")
             while (time.time() - start < timeout) and received < remaining:
-                rx = self.rfm.receive(with_header=True, with_ack=True, timeout=10)
+                rx = self.rfm.receive(with_header=True, with_ack=False, timeout=10)
                 if rx != None:
                     logger.info(f"Follow up packet {received} received")
                     pkt = parse_packet(rx)
@@ -171,21 +172,24 @@ class MeshNode:
             start = time.time()
             ack_received = False
             while time.time() - start < timeout:
-                rx = self.rfm.receive(with_header=True, with_ack=False, timeout=10)
+                # Use shorter timeout for receive to check more frequently
+                rx = self.rfm.receive(with_header=True, with_ack=False, timeout=0.5)
 
                 if rx != None:
-                    # Log detailed info
-                    logger.info(f"Ack received")
-                    logger.info(f"  Raw bytes: {rx.hex()}")
                     pkt = parse_packet(rx)
                     if pkt != None:
+                        logger.debug(f"While waiting for ACK, received packet type={pkt.get('type')} src={pkt.get('src')} seq={pkt.get('seq')}")
                         if pkt.get("type") == "ACK" and pkt.get("src") == dst and pkt.get("seq") == seq:
+                            logger.info(f"Got expected ACK from {dst} for seq {seq}")
                             ack_received = True
                             break
+                        else:
+                            # Received some other packet, ignore and keep waiting
+                            logger.debug(f"Ignoring packet while waiting for ACK from {dst} seq={seq}")
             if ack_received:
                 logger.info("ACK received from %s for seq %d rssi=%s", dst, seq, getattr(self.rfm, "last_rssi", None))
             else:
-                logger.warning("No ACK from %s for seq %d", dst, seq)
+                logger.warning("No ACK from %s for seq %d (timeout after %.1fs)", dst, seq, time.time() - start)
             return ack_received
         else:
             logger.info('bypass ACK')
@@ -209,8 +213,10 @@ class MeshNode:
             return True
 
     def _send_ack(self, src, seq, datapackets: int = 0):
-        ack = make_packet("ACK", self.node_id, src, seq, 1, "ok", datapackets)
-        logger.debug("Sending ACK to %s seq=%d", src, seq)
+        # Use higher TTL for ACKs to ensure they can be forwarded through mesh
+        ack_ttl = 3  # Allows at least 2 hops (replicator + 1 more)
+        ack = make_packet("ACK", self.node_id, src, seq, ack_ttl, "ok", datapackets)
+        logger.debug("Sending ACK to %s seq=%d ttl=%d", src, seq, ack_ttl)
         # Use sendDataScanner pattern - retry with timeout
         startTime = time.time()
         result = False
@@ -234,21 +240,42 @@ class MeshNode:
         # duplicate check (basic) - Returns True is packet is NEW
         with self.seen_lock:
             last = self.seen.get(src)
-            if last is None or seq > last:
+            if last is None:
+                self.seen[src] = seq
+                return True
+
+            # Check if this is the same sequence number (duplicate)
+            if seq == last:
+                logger.debug(f"Duplicate packet seq={seq} from {src} -> discarded")
+                return False
+
+            # Handle sequence number wraparound
+            # Consider packet new if:
+            # 1. seq > last and difference is less than 32768 (normal increment)
+            # 2. seq < last and difference is more than 32768 (wraparound)
+            diff = (seq - last) & 0xFFFF
+            if diff > 0 and diff < 32768:
                 self.seen[src] = seq
                 return True
             else:
-                logger.debug(f"Packets {seq} from {src} already received -> discarded")
+                logger.debug(f"Old packet seq={seq} from {src} (last seen={last}) -> discarded")
                 return False
 
     def _forward_packet(self, pkt):
+        # Add random delay to avoid collisions with other nodes transmitting
+        # This is especially important when server is sending ACKs at the same time
+        delay = random.uniform(0.05, 0.2)  # 50-200ms random delay
+        logger.debug(f"Waiting {delay:.3f}s before forwarding to avoid collision")
+        time.sleep(delay)
+
         # create modified packet with ttl-1 and forward (keeping original src/seq)
         fwd = make_packet(pkt["type"], pkt["src"], pkt["dst"], pkt["seq"], pkt["ttl"] - 1, pkt.get("payload"), pkt.get("remaining"))
         try:
             logger.info("Forwarding pkt src=%s seq=%s ttl->%s to %s", pkt["src"], pkt["seq"], pkt["ttl"] - 1, pkt["dst"])
             self.rfm.send(fwd)
             if callable(self.on_forward):
-                self.on_forward(fwd, getattr(self.rfm, "last_rssi", None))
+                # Pass the packet dict, not the raw bytes
+                self.on_forward(pkt, getattr(self.rfm, "last_rssi", None))
         except Exception as e:
             logger.exception("Forward failed: %s", e)
 
@@ -273,16 +300,30 @@ class MeshNode:
                                 logger.debug("ACK failed")
                         else:
                             try:
+                                logger.info(f"Processing REQ from {pkt['src']} seq={pkt['seq']}")
+                                # Add delay before responding to REQ to avoid collision with replicator forwarding
+                                # Longer delay needed when multiple packets will be sent
+                                time.sleep(0.5)  # 500ms delay to ensure replicator has finished forwarding
                                 if callable(self.on_request):
                                     datapackets = self.on_request(pkt)
+                                    logger.info(f"on_request returned {len(datapackets)} response packets")
+                                else:
+                                    datapackets = []
                                 full_package =  self._send_ack(pkt["src"], pkt["seq"],len(datapackets))
-                                for response in datapackets:
+                                for i, response in enumerate(datapackets):
+                                    logger.info(f"Sending response packet {i+1}/{len(datapackets)} to {pkt['src']}")
+                                    # Add small delay between packets to avoid collisions
+                                    if i > 0:
+                                        time.sleep(0.1)  # 100ms between follow-up packets
                                     if self.send_unicast(pkt["src"], response, await_ack=True) == False:
                                         full_package = False
+                                        logger.warning(f"Failed to deliver response packet {i+1}")
                                 if full_package:
-                                    logger.debug(f"ACK and {len(datapackets)} packets delivered successfully")
-                            except Exception:
-                                logger.debug("ACK failed")
+                                    logger.info(f"ACK and {len(datapackets)} packets delivered successfully")
+                                else:
+                                    logger.warning(f"Not all response packets were delivered")
+                            except Exception as e:
+                                logger.error(f"Error processing REQ: {e}")
 
                         # call application hook for message
                         if callable(self.on_message):
@@ -310,15 +351,28 @@ class MeshNode:
                     except Exception:
                         logger.exception("on_message handler error")
 
-                # don't forward if packet originated or addressed to me
-                if (pkt.get("src") != self.node_id) and (pkt.get("dst") != self.node_id):
-                    logger.info("Validating Duplicates")
+                # Replicator forwarding logic:
+                # Forward all packets except those addressed to us or from us
+                # The random delays will handle collision avoidance
+                should_forward = False
+
+                if pkt.get("src") == self.node_id:
+                    # Never forward my own packets
+                    should_forward = False
+                    logger.debug("Not forwarding - packet from self")
+                elif dst == self.node_id:
+                    # Don't forward packets addressed to me
+                    should_forward = False
+                    logger.debug("Not forwarding - packet for me")
+                else:
+                    # Forward everything else (broadcasts, unicasts to others, ACKs)
+                    should_forward = True
+                    logger.debug(f"Will forward packet type={pkt.get('type')} from {pkt.get('src')} to {dst}")
+
+                if should_forward:
+                    logger.info(f"Checking if should forward packet type={pkt.get('type')} src={pkt.get('src')} dst={dst}")
                     if self._should_forward(pkt):
-                        # only forward if not seen before (we already updated seen above)
-                        #try:
-                        logger.info("should forward")
+                        logger.info(f"Forwarding packet type={pkt.get('type')} src={pkt.get('src')} dst={dst} seq={pkt.get('seq')}")
                         self._forward_packet(pkt)
-                        #except Exception:
-                        #    logger.exception("forward exception")
                     else:
-                        logger.info("Should not forward")
+                        logger.info("Not forwarding due to TTL expiry")

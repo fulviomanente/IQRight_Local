@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LoRa Test Server - Receives packets and prints timestamp and RSSI
+LoRa Test Server - Using refactored single-receiver architecture
 Runs on the server side to test LoRa communication
 """
 
@@ -9,7 +9,7 @@ import busio
 import board
 import digitalio
 import adafruit_rfm9x
-from meshstatic import MeshNode
+from meshstatic_new import MeshNode
 import logging
 import logging.handlers
 import os
@@ -24,7 +24,7 @@ RFM9X_TIMEOUT = 5.0
 
 
 # Logging setup
-log_filename = "lora_test_server.log"
+log_filename = "lora_test_server_new.log"
 max_log_size = 10 * 1024 * 1024  # 10MB
 backup_count = 5
 debug = True
@@ -79,7 +79,7 @@ def main():
     """Main server loop"""
     setup_logging()
     logging.info("=" * 50)
-    logging.info("LoRa Test Server Starting")
+    logging.info("LoRa Test Server (NEW) Starting")
     logging.info("=" * 50)
 
     # Check if running on Raspberry Pi
@@ -88,47 +88,49 @@ def main():
         sys.exit(1)
 
     rfm9x = setup_lora()
-    node = MeshNode(rfm9x, node_id=RFM9X_NODE)
+    # Create node with auto_start=True to ensure receiver thread starts
+    node = MeshNode(rfm9x, node_id=RFM9X_NODE, auto_start=True)
 
     # hook to process messages
     def on_msg(pkt, rssi):
         print(f"[SERVER] got {pkt['type']} from {pkt['src']} seq={pkt['seq']} rssi={rssi} payload={pkt['payload']}")
-        # For tests, reply a command or ack is already sent automatically by MeshNode
+        logging.info(f"[SERVER] got {pkt['type']} from {pkt['src']} seq={pkt['seq']} rssi={rssi} payload={pkt['payload']}")
 
-    # hook to process messages
+    # hook to process requests
     def on_req(pkt):
+        logging.info(f"[SERVER] Processing request: {pkt['payload']}")
         return [f"{pkt['payload']} Answer 1", f"{pkt['payload']} Answer 2", f"{pkt['payload']} Answer 3"]
-        # For tests, reply a command or ack is already sent automatically by MeshNode
 
     node.on_message = on_msg
     node.on_request = on_req
+
+    # Ensure the receiver is running
+    if not node._running:
+        logging.error("Receiver thread failed to start!")
+    else:
+        logging.info("Receiver thread is running")
 
     packet_count = 0
     start_time = time.time()
 
     print("\n" + "=" * 60)
-    print("LoRa Test Server - Waiting for packets...")
+    print("LoRa Test Server (NEW) - Single Receiver Architecture")
+    print("Waiting for packets...")
     print("=" * 60)
     print(f"{'Timestamp':<23} {'RSSI':<6} {'SNR':<6} {'Payload'}")
     print("-" * 60)
 
     try:
+        # The node's receiver thread is already running and handling all packets
+        # We just need to keep the main thread alive
         while True:
-            # Wait for packet with ACK support
-            packet = rfm9x.receive(with_ack=False, with_header=True, timeout=RFM9X_TIMEOUT)
-            if packet is not None:
-
-                # Log detailed info
-                logging.info(f"Packet #{packet_count} received")
-                logging.info(f"  Raw bytes: {packet.hex()}")
-                node.received(packet)
-
-            # Match CaptureLora.py polling delay
-            time.sleep(0.1)
+            time.sleep(1)
+            # Could add periodic status updates here if desired
 
     except KeyboardInterrupt:
         print("\n\nServer stopped by user")
         elapsed = time.time() - start_time
+        node.stop_receiver()  # Clean shutdown of receiver thread
         if packet_count > 0:
             rate = packet_count / elapsed
             print(f"\nFinal Statistics:")
@@ -138,6 +140,7 @@ def main():
         logging.info("Server shutdown")
     except Exception as e:
         logging.error(f"Server error: {e}")
+        node.stop_receiver()
         raise
 
 if __name__ == "__main__":

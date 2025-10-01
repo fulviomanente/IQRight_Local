@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-LoRa Test Server - Receives packets and prints timestamp and RSSI
-Runs on the server side to test LoRa communication
+LoRa Test Replicator - Using refactored single-receiver architecture
+Runs on the replicator to forward packets between nodes
 """
 
 import time
@@ -9,7 +9,7 @@ import busio
 import board
 import digitalio
 import adafruit_rfm9x
-from meshstatic import MeshNode
+from meshstatic_new import ReplicatorNode
 import logging
 import logging.handlers
 import os
@@ -18,13 +18,13 @@ import sys
 # Configuration
 RFM9X_FREQUENCE = 915.23  # MHz
 RFM9X_TX_POWER = 23
-RFM9X_NODE = 1  # Server node ID
+RFM9X_NODE = 50  # Replicator node ID
 RFM9X_ACK_DELAY = 0.1
 RFM9X_TIMEOUT = 5.0
 
 
 # Logging setup
-log_filename = "lora_test_server.log"
+log_filename = "lora_test_replicator_new.log"
 max_log_size = 10 * 1024 * 1024  # 10MB
 backup_count = 5
 debug = True
@@ -76,10 +76,10 @@ def setup_lora():
         sys.exit(1)
 
 def main():
-    """Main server loop"""
+    """Main replicator loop"""
     setup_logging()
     logging.info("=" * 50)
-    logging.info("LoRa Test Server Starting")
+    logging.info("LoRa Replicator (NEW) Starting")
     logging.info("=" * 50)
 
     # Check if running on Raspberry Pi
@@ -88,56 +88,53 @@ def main():
         sys.exit(1)
 
     rfm9x = setup_lora()
-    node = MeshNode(rfm9x, node_id=RFM9X_NODE)
+    # Use ReplicatorNode which has forwarding enabled
+    node = ReplicatorNode(rfm9x, node_id=RFM9X_NODE, auto_start=True)
 
     # hook to process messages
     def on_msg(pkt, rssi):
-        print(f"[SERVER] got {pkt['type']} from {pkt['src']} seq={pkt['seq']} rssi={rssi} payload={pkt['payload']}")
-        # For tests, reply a command or ack is already sent automatically by MeshNode
-
-    # hook to process messages
-    def on_req(pkt):
-        return [f"{pkt['payload']} Answer 1", f"{pkt['payload']} Answer 2", f"{pkt['payload']} Answer 3"]
-        # For tests, reply a command or ack is already sent automatically by MeshNode
+        print(f"[REPLICATOR] got {pkt['type']} from {pkt['src']} seq={pkt['seq']} rssi={rssi} payload={pkt['payload']}")
+        logging.info(f"[REPLICATOR] got {pkt['type']} from {pkt['src']} seq={pkt['seq']} rssi={rssi} payload={pkt['payload']}")
 
     node.on_message = on_msg
-    node.on_request = on_req
 
-    packet_count = 0
+    # hook to track forwarded packets
+    def on_fwd(pkt, rssi):
+        print(f"[REPLICATOR] forwarding {pkt['type']} from {pkt['src']} to {pkt['dst']} seq={pkt['seq']}")
+        logging.info(f"[REPLICATOR] forwarding {pkt['type']} from {pkt['src']} to {pkt['dst']} seq={pkt['seq']}")
+
+    node.on_forward = on_fwd
+
+    # Ensure the receiver is running
+    if not node._running:
+        logging.error("Receiver thread failed to start!")
+    else:
+        logging.info("Receiver thread is running")
+
     start_time = time.time()
 
     print("\n" + "=" * 60)
-    print("LoRa Test Server - Waiting for packets...")
+    print("LoRa Test Replicator (NEW) - Single Receiver Architecture")
+    print("Waiting for packets to forward...")
     print("=" * 60)
     print(f"{'Timestamp':<23} {'RSSI':<6} {'SNR':<6} {'Payload'}")
     print("-" * 60)
 
     try:
+        # The node's receiver thread is already running and handling all packets
+        # including forwarding logic. We just need to keep the main thread alive
         while True:
-            # Wait for packet with ACK support
-            packet = rfm9x.receive(with_ack=False, with_header=True, timeout=RFM9X_TIMEOUT)
-            if packet is not None:
-
-                # Log detailed info
-                logging.info(f"Packet #{packet_count} received")
-                logging.info(f"  Raw bytes: {packet.hex()}")
-                node.received(packet)
-
-            # Match CaptureLora.py polling delay
-            time.sleep(0.1)
+            time.sleep(1)
+            # Could add periodic status updates here if desired
 
     except KeyboardInterrupt:
-        print("\n\nServer stopped by user")
+        print("\n\nReplicator stopped by user")
         elapsed = time.time() - start_time
-        if packet_count > 0:
-            rate = packet_count / elapsed
-            print(f"\nFinal Statistics:")
-            print(f"  Total packets: {packet_count}")
-            print(f"  Total time: {elapsed:.1f} seconds")
-            print(f"  Average rate: {rate:.2f} packets/second")
-        logging.info("Server shutdown")
+        node.stop_receiver()  # Clean shutdown of receiver thread
+        logging.info("Replicator shutdown")
     except Exception as e:
-        logging.error(f"Server error: {e}")
+        logging.error(f"Replicator error: {e}")
+        node.stop_receiver()
         raise
 
 if __name__ == "__main__":
