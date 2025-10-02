@@ -9,6 +9,8 @@ import busio
 import board
 import digitalio
 import adafruit_rfm9x
+
+from Meshstatic.meshstatic_new import ReplicatorNode
 from meshstatic import MeshNode
 import logging
 import logging.handlers
@@ -88,7 +90,7 @@ def main():
         sys.exit(1)
 
     rfm9x = setup_lora()
-    node = MeshNode(rfm9x, node_id=RFM9X_NODE)
+    node = ReplicatorNode(rfm9x, node_id=RFM9X_NODE)
 
     # hook to process messages
     def on_msg(pkt, rssi):

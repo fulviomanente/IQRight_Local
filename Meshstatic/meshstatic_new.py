@@ -33,14 +33,14 @@ logger = logging.getLogger("meshstatic_new")
 if not logger.handlers:
     # Centralized logging setup
     file_handler = logging.FileHandler("meshstatic_new.log")
-    console_handler = logging.StreamHandler(sys.stdout)
+    #console_handler = logging.StreamHandler(sys.stdout)
 
     formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
+    #console_handler.setFormatter(formatter)
 
     logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
+    #logger.addHandler(console_handler)
     logger.setLevel(logging.DEBUG)  # Set to DEBUG for better diagnostics
 
 
@@ -92,16 +92,22 @@ class MeshNode:
         # Sequence number management
         self.seq_lock = threading.Lock()
         self._seq = random.randint(0, 65535)
-        self.full_response = None
+        self.full_response = []
 
         # Pending ACKs and responses we're waiting for
         self.pending_acks = {}  # {(dst, seq): event}
-        self.pending_acks_lock = threading.Lock()
-        self.received_acks = {}  # {(dst, seq): (pkt, timestamp)}
+        #self.pending_acks_lock = threading.Lock()
+        #self.received_acks = {}  # {(dst, seq): (pkt, timestamp)}
 
         # Pending follow-up packets
-        self.pending_responses = {}  # {(src, key): queue}
-        self.pending_responses_lock = threading.Lock()
+        #self.pending_responses = {}  # {(src, key): queue}
+        self._is_expected_response = False
+        self.response_queue = {} #queue.Queue()
+        #self.pending_responses_lock = threading.Lock()
+
+        #Pending to send follow-up packets
+        self._pending_to_send = False
+        self.pending_fup = None
 
         # Start the single receiver thread if auto_start is True
         if auto_start:
@@ -144,7 +150,7 @@ class MeshNode:
 
                 # Log periodic status every 10 seconds
                 if time.time() - last_status > 10:
-                    logger.debug(f"[Node {self.node_id}] Receiver alive - {packet_count} packets received so far")
+                    logger.debug(f"[Node {self.node_id}] Receiver alive - {packet_count} packets received. Send queue {self._pending_to_send}. Receive queue {self.pending_fup}. Ack queue {self.pending_acks}")
                     last_status = time.time()
 
                 if rx is not None:
@@ -154,15 +160,16 @@ class MeshNode:
                     rssi = getattr(self.rfm, "last_rssi", None)
 
                     if pkt:
-                        logger.info(f"[Node {self.node_id}] RECEIVER Got {pkt['type']} from {pkt['src']} to {pkt['dst']} seq={pkt['seq']} rssi={rssi}")
-
-                        # Check for duplicates
-                        if not self._check_duplicate(pkt.get("src"), pkt.get("seq")):
-                            logger.debug(f"Duplicate packet from {pkt['src']} seq={pkt['seq']} - discarded")
-                            continue
-
-                        # Route packet to appropriate handler
-                        self._route_packet(pkt, rssi)
+                        logger.info(f"[Node {self.node_id}] RECEIVER Got {pkt['type']} from {pkt['src']} to {pkt['dst']} seq={pkt['seq']} ttl={pkt['ttl']} rssi={rssi}")
+                        if int(pkt.get("src")) == int(self.node_id):
+                            logger.debug("Packet from self -> discarded")
+                        else:
+                            # Check for duplicates
+                            if not self._check_duplicate(pkt.get("src"), pkt.get("seq")):
+                                logger.debug(f"Duplicate packet from {pkt['src']} seq={pkt['seq']} - discarded")
+                            else:
+                                # Route packet to appropriate handler
+                                self._route_packet(pkt, rssi)
                     else:
                         logger.warning(f"[Node {self.node_id}] Got unparsable packet (len={len(rx)}) rssi={rssi}")
 
@@ -188,8 +195,8 @@ class MeshNode:
 
         # Check if this is a follow-up MSG we're waiting for
         # If it is, handle it specially and DON'T auto-ACK (we'll ACK in the handler)
-        elif pkt_type == "MSG" and self._is_expected_response(pkt):
-            logger.debug(f"[Node {self.node_id}] Routing to expected response handler - will ACK there")
+        elif pkt_type == "FUP" and self._is_expected_response:
+            logger.debug(f"[Node {self.node_id}] Routing to FUP response handler - will ACK there")
             self._handle_expected_response(pkt, rssi)
             return  # Don't process further to avoid double ACK
 
@@ -205,46 +212,87 @@ class MeshNode:
     def _handle_ack(self, pkt, rssi):
         """Handle received ACK packets"""
         src = pkt.get("src")
-        seq = pkt.get("seq")
+        #The ACK message will have it's own sequecence number but will send the original sequence as payload
+        seq = int(pkt.get("payload"))
         dst = pkt.get("dst")
 
         logger.info(f"[Node {self.node_id}] Handling ACK from {src} to {dst} for seq {seq}")
 
-        with self.pending_acks_lock:
-            # The key should be (src, seq) where src is who we expect the ACK from
-            key = (src, seq)
-            if key in self.pending_acks:
-                # Store the ACK and signal the waiting thread
-                self.received_acks[key] = (pkt, time.time())
-                event = self.pending_acks[key]
-                event.set()
+        # The key should be (src, seq) where src is who we expect the ACK from
+        if src in self.pending_acks:
+            if seq in self.pending_acks[src]:
+                #If Ack was on the list, confirm received and remove from the pending list
+                self.pending_acks[src].remove(seq)
                 logger.info(f"[Node {self.node_id}] ACK matched and signaled for src={src} seq={seq} rssi={rssi}")
+
+                #Flow to Control receiving multiple packages after ACK
+                remaining = pkt.get("remaining", 0)
+                if remaining > 0:
+                    logger.info(f"ACK received from {src} for seq {seq} with {remaining} follow-up packets")
+                    # Wait for follow-up packets
+                    self._is_expected_response = True
+                    self.response_queue[src] = int(remaining)
+                    #return_messages = self._wait_for_responses(dst, remaining, timeout=10.0)
+                else:
+                    logger.info(f"ACK received from {dst} for seq {seq} with NO follow-up packets")
+                    self.full_response = []
+
+                #Flow to Control sending follow up messages as ACKs are being received async
+                if self._pending_to_send:
+                    if len(self.pending_fup) == 0:
+                        self._pending_to_send = False
+                        logger.info(f"Disabling pending queue, No additional Packets to deliver")
+                    else:
+                        if self.send_unicast(pkt["src"], self.pending_fup.pop(0), await_ack=True):
+                            logger.info(f"Packet delivered successfully. {len(self.pending_fup)} remaining")
+                else:
+                    logger.info(f"No additional Packets to deliver")
+
+
+                return True
+
             else:
-                # Log all pending ACKs to help debug
-                logger.warning(f"[Node {self.node_id}] Unexpected ACK from {src} seq={seq}")
-                logger.debug(f"[Node {self.node_id}] Pending ACKs: {list(self.pending_acks.keys())}")
+                logger.info(f"WARNING: {seq} not found in {self.pending_acks[src]}")
+                return False
 
-    def _is_expected_response(self, pkt):
-        """Check if this MSG is a follow-up response we're waiting for"""
-        src = pkt.get("src")
-
-        with self.pending_responses_lock:
-            for key in self.pending_responses:
-                if key[0] == src:  # Match source
-                    return True
-        return False
+        else:
+            # Log all pending ACKs to help debug
+            logger.warning(f"[Node {self.node_id}] Unexpected ACK from {src} seq={seq}")
+            logger.debug(f"[Node {self.node_id}] Pending ACKs: {list(self.pending_acks.keys())}")
+            return True
 
     def _handle_expected_response(self, pkt, rssi):
         """Handle expected follow-up response packets"""
-        src = pkt.get("src")
+        #src = pkt.get("src")
+        #self.response_queue.put((pkt, rssi))
+        #logger.info(f"Received expected response from {src}: {pkt['payload'][:40]}")
+        if self.response_queue.get(pkt['src'], 0) > 0:
+            self.full_response.append(pkt.get("payload"))
+            # Send ACK for this follow-up packet
+            msg_seq = pkt.get("seq")
+            remaining_to_receive = self.response_queue.get(pkt['src'])
+            logger.info(f"[Node {self.node_id}] Received follow-up packet {len(self.full_response)}/{remaining_to_receive}")
+            self._send_ack(pkt['src'], msg_seq, 0)
+            remaining_to_receive = remaining_to_receive - 1
+            if remaining_to_receive == 0:
+                self._is_expected_response = False
+                self.response_queue.pop(pkt['src'])
+                logger.info(f"[Node {self.node_id}] No more packets Remaining to receive")
+                self._handle_return_complete()
+            else:
+                self.response_queue[pkt['src']] = remaining_to_receive
+                logger.info(f"[Node {self.node_id}] Remaining to receive {remaining_to_receive}")
 
-        with self.pending_responses_lock:
-            for key in list(self.pending_responses.keys()):
-                if key[0] == src:
-                    queue_obj = self.pending_responses[key]
-                    queue_obj.put((pkt, rssi))
-                    logger.info(f"Received expected response from {src}: {pkt['payload'][:40]}")
-                    return
+            return True
+        else:
+            logger.info(f"[Node {self.node_id}] Got packet from {pkt['src']} but was expecting {self.response_queue}")
+        return
+
+    def _handle_return_complete(self):
+        for message in self.full_response:
+            logger.info(f"Response message: {message}")
+        self.full_response = []
+        return True
 
     def _handle_packet_for_me(self, pkt, rssi):
         """Handle packets addressed to this node or broadcast"""
@@ -275,21 +323,20 @@ class MeshNode:
 
                     full_package = self._send_ack(pkt["src"], pkt["seq"], len(datapackets))
 
-                    for i, response in enumerate(datapackets):
-                        logger.info(f"[Node {self.node_id}] Sending response packet {i+1}/{len(datapackets)} to {pkt['src']}")
-                        # Add small delay between packets to avoid collisions
-                        if i > 0:
-                            time.sleep(0.1)  # 100ms between follow-up packets
-
-                        # Send with await_ack - this will wait for client to ACK this specific MSG
-                        if not self.send_unicast(pkt["src"], response, await_ack=True):
-                            full_package = False
-                            logger.warning(f"[Node {self.node_id}] Failed to deliver response packet {i+1} to {pkt['src']}")
-
-                    if full_package:
-                        logger.info(f"ACK and {len(datapackets)} packets delivered successfully")
+                    if len(datapackets) > 0:
+                        logger.info(f"[Node {self.node_id}] Sending response packet 1/{len(datapackets)} to {pkt['src']}")
+                        # Send first packet with await_ack - this will triger async wait for client to ACK this specific MSG
+                        if self.send_unicast(pkt["src"], datapackets.pop(0), await_ack=True):
+                            logger.info(f"First Response packets delivered successfully")
+                            #Check for remaining packets and add to queue to be delivered as the ACKs come
+                            if len(datapackets) > 0:
+                                self._pending_to_send = True
+                                self.pending_fup = datapackets
+                        else:
+                            logger.warning(f"[Node {self.node_id}] Failed to deliver response packet 1 to {pkt['src']}")
                     else:
-                        logger.warning(f"Not all response packets were delivered")
+                        logger.info(f"ACK successfully delivered with NO additional packets")
+
                 except Exception as e:
                     logger.error(f"Error processing REQ: {e}")
 
@@ -307,16 +354,19 @@ class MeshNode:
 
     def _check_duplicate(self, src, seq):
         """Check if packet is duplicate - Returns True if packet is NEW"""
-        with self.seen_lock:
-            last = self.seen.get(src)
-            if last is None:
-                self.seen[src] = seq
-                return True
+        #with self.seen_lock:
+        last = self.seen.get(src)
+        if last is None:
+            self.seen[src] = seq
+            logger.debug(f"First Packet from {src} seq={seq}")
+            return True
 
-            # Check if this is the same sequence number (duplicate)
-            if seq == last:
-                logger.debug(f"Duplicate packet seq={seq} from {src} -> discarded")
-                return False
+        # Check if this is the same sequence number (duplicate)
+        if seq == last:
+            logger.debug(f"Duplicate packet seq={seq} from {src} -> discarded")
+            return False
+        else:
+            logger.debug(f"Valid seq={seq} from {src}, last seen={self.seen}")
 
             # Handle sequence number wraparound
             # Consider packet new if:
@@ -325,6 +375,7 @@ class MeshNode:
             diff = (seq - last) & 0xFFFF
             if diff > 0 and diff < 32768:
                 self.seen[src] = seq
+                logger.debug(f"New Packet from {src} seq={seq}, last seen={last} -> accepted ")
                 return True
             else:
                 logger.debug(f"Old packet seq={seq} from {src} (last seen={last}) -> discarded")
@@ -334,7 +385,9 @@ class MeshNode:
         # Use higher TTL for ACKs to ensure they can be forwarded through mesh
         ack_ttl = 3  # Allows at least 2 hops (replicator + 1 more)
         # ACK packet: src=me, dst=original_sender, seq=THEIR seq (the one we're ACKing)
-        ack = make_packet("ACK", self.node_id, src, seq, ack_ttl, "ok", datapackets)
+        #The original SEQ will be sent as payload to match the packet and a new SEQ is created to improve flow control
+        msg_seq = self._next_seq()
+        ack = make_packet("ACK", self.node_id, src, msg_seq, ack_ttl, seq, datapackets)
         logger.info(f"[Node {self.node_id}] Sending ACK to {src} for THEIR seq={seq} ttl={ack_ttl}")
 
         # Just send once, don't retry for long
@@ -359,125 +412,42 @@ class MeshNode:
         logger.info(f"Send result: {send_result}")
 
         if await_ack and dst != BROADCAST_ID:
-            # Register that we're waiting for an ACK
-            ack_event = threading.Event()
-            ack_key = (dst, seq)
-
-            with self.pending_acks_lock:
-                self.pending_acks[ack_key] = ack_event
-
-            # Wait for ACK
-            timeout = 5.0
-            ack_received = ack_event.wait(timeout)
-
-            # Clean up
-            with self.pending_acks_lock:
-                self.pending_acks.pop(ack_key, None)
-                ack_data = self.received_acks.pop(ack_key, None)
-
-            if ack_received and ack_data:
-                pkt, _ = ack_data
-                remaining = pkt.get("remaining", 0)
-                logger.info(f"ACK received from {dst} for seq {seq} with {remaining} follow-up packets")
-
-                if remaining > 0:
-                    # Wait for follow-up packets
-                    return_messages = self._wait_for_responses(dst, remaining, timeout=5.0)
-
-                    if len(return_messages) == remaining:
-                        self.full_response = return_messages if return_messages else None
-                        return True
-                    else:
-                        logger.warning(f"Only received {len(return_messages)}/{remaining} follow-up packets")
-                        self.full_response = None
-                        return False
-                else:
-                    self.full_response = None
-                    return True
+            logger.info("Register Pending ACK")
+            #Once the message is sent, add it to the list of pending ACKs
+            if dst in self.pending_acks:
+                self.pending_acks[dst].append(int(seq))
             else:
-                logger.warning("No ACK from %s for seq %d", dst, seq)
-                self.full_response = None
-                return False
+                self.pending_acks[dst] = [int(seq)]
+
+            logger.info(f"List of pending ACKs: {self.pending_acks}")
+
+            return True
+
         else:
             logger.info('bypass ACK')
             return True
 
-    def _wait_for_responses(self, src, count, timeout=10.0):
-        """Wait for multiple follow-up response packets"""
-        response_queue = queue.Queue()
-        response_key = (src, random.randint(0, 65535))  # Unique key for this response session
-
-        with self.pending_responses_lock:
-            self.pending_responses[response_key] = response_queue
-
-        responses = []
-        start = time.time()
-        per_packet_timeout = 6.0  # Allow 6 seconds per packet
-
-        try:
-            while len(responses) < count:
-                # Allow up to per_packet_timeout for EACH packet
-                try:
-                    pkt, rssi = response_queue.get(timeout=per_packet_timeout)
-                    responses.append(pkt.get("payload"))
-
-                    # Send ACK for this follow-up packet
-                    msg_seq = pkt.get("seq")
-                    logger.info(f"[Node {self.node_id}] Received follow-up packet {len(responses)}/{count} from {src} seq={msg_seq}")
-                    self._send_ack(src, msg_seq, 0)
-
-                except queue.Empty:
-                    logger.warning(f"[Node {self.node_id}] Timeout waiting for follow-up packet {len(responses)+1}/{count}")
-                    break  # Give up if we timeout on any packet
-
-        finally:
-            # Clean up
-            with self.pending_responses_lock:
-                self.pending_responses.pop(response_key, None)
-
-        return responses
-
     def send_unicast(self, dst, payload, await_ack=False, ttl=None):
-        """Send a unicast MSG packet and optionally wait for ACK"""
+        """Send a unicast FUP packet and optionally wait for ACK"""
         dst = int(dst)
         ttl = self.default_ttl if ttl is None else int(ttl)
         seq = self._next_seq()
-        pkt_bytes = make_packet("MSG", self.node_id, dst, seq, ttl, payload)
+        pkt_bytes = make_packet("FUP", self.node_id, dst, seq, ttl, payload)
         logger.info("TX -> dst=%s seq=%d ttl=%d payload=%s len=%d", dst, seq, ttl, str(payload)[:40], len(pkt_bytes))
 
         send_result = self.rfm.send(pkt_bytes)
         logger.debug(f"Send unicast result: {send_result}")
 
         if await_ack and dst != BROADCAST_ID:
-            # Register that we're waiting for an ACK with THIS sequence number
-            ack_event = threading.Event()
-            ack_key = (dst, seq)  # We expect ACK from dst with our seq number
-
             logger.debug(f"[Node {self.node_id}] Waiting for ACK from {dst} with seq {seq}")
-
-            with self.pending_acks_lock:
-                self.pending_acks[ack_key] = ack_event
-
-            # Wait for ACK
-            timeout = 5.0
-            ack_received = ack_event.wait(timeout)
-
-            # Clean up
-            with self.pending_acks_lock:
-                self.pending_acks.pop(ack_key, None)
-                ack_data = self.received_acks.pop(ack_key, None)
-
-            if ack_received:
-                logger.info(f"[Node {self.node_id}] ACK received from {dst} for MY seq {seq} rssi={getattr(self.rfm, 'last_rssi', None)}")
-                return True
+            #Once the message is sent, add it to the list of pending ACKs
+            if dst in self.pending_acks:
+                self.pending_acks[dst].append(int(seq))
             else:
-                logger.warning(f"[Node {self.node_id}] No ACK from {dst} for MY seq {seq} (timeout)")
-                with self.pending_acks_lock:
-                    logger.debug(f"[Node {self.node_id}] Pending ACKs at timeout: {list(self.pending_acks.keys())}")
-                return False
+                self.pending_acks[dst] = [int(seq)]
         else:
             logger.info('bypass ACK')
-            return True
+        return True
 
     def send_broadcast(self, payload, ttl=None):
         """Send a broadcast MSG packet"""
@@ -487,6 +457,15 @@ class MeshNode:
         logger.info("BCAST TX seq=%d ttl=%d payload=%s", seq, ttl, str(payload)[:40])
         self.rfm.send(pkt_bytes)
         return True
+
+class ReplicatorNode(MeshNode):
+    """
+    Specialized node for replicator mode with forwarding enabled.
+    Overrides the receiver to enable forwarding logic.
+    """
+    def __init__(self, rfm, node_id: int, default_ttl=DEFAULT_TTL, auto_start=True):
+        self.forwarding_enabled = True
+        super().__init__(rfm, node_id, default_ttl, auto_start)
 
     def _should_forward(self, pkt):
         """Check if packet should be forwarded based on TTL"""
@@ -516,71 +495,14 @@ class MeshNode:
         except Exception as e:
             logger.exception("Forward failed: %s", e)
 
-    def received(self, rx):
-        """Legacy method for compatibility - packets are now handled by receiver thread"""
-        logger.warning("received() called but packets are handled by receiver thread")
-        # This method is kept for compatibility but doesn't do anything
-        # since all reception is handled by the receiver thread
-
-    def receive_and_replicate(self, rx):
-        """
-        Replicator mode - process and potentially forward packets.
-        This is called from the main loop for replicator nodes.
-        """
-        # Since we have a single receiver thread, we need to handle this differently
-        # The replicator should use a modified version that enables forwarding
-        logger.warning("receive_and_replicate() needs to be refactored for single receiver")
-        # For now, just process the packet
-        pkt = parse_packet(rx)
-        rssi = getattr(self.rfm, "last_rssi", None)
-        if pkt and self._check_duplicate(pkt.get("src"), pkt.get("seq")):
-            self._route_packet(pkt, rssi)
-
-            # Replicator forwarding logic
-            dst = pkt.get("dst", BROADCAST_ID)
-            should_forward = False
-
-            if pkt.get("src") == self.node_id:
-                # Never forward my own packets
-                should_forward = False
-                logger.debug("Not forwarding - packet from self")
-            elif dst == self.node_id:
-                # Don't forward packets addressed to me
-                should_forward = False
-                logger.debug("Not forwarding - packet for me")
-            else:
-                # Forward everything else (broadcasts, unicasts to others, ACKs)
-                should_forward = True
-                logger.debug(f"Will forward packet type={pkt.get('type')} from {pkt.get('src')} to {dst}")
-
-            if should_forward and self._should_forward(pkt):
-                logger.info(f"Forwarding packet type={pkt.get('type')} src={pkt.get('src')} dst={dst} seq={pkt.get('seq')}")
-                self._forward_packet(pkt)
-
-
-class ReplicatorNode(MeshNode):
-    """
-    Specialized node for replicator mode with forwarding enabled.
-    Overrides the receiver to enable forwarding logic.
-    """
-    def __init__(self, rfm, node_id: int, default_ttl=DEFAULT_TTL, auto_start=True):
-        self.forwarding_enabled = True
-        super().__init__(rfm, node_id, default_ttl, auto_start)
-
     def _route_packet(self, pkt, rssi):
         """Extended routing for replicator - includes forwarding logic"""
-        # First do normal routing
-        super()._route_packet(pkt, rssi)
 
         # Then check if we should forward
         dst = pkt.get("dst", BROADCAST_ID)
         should_forward = False
 
-        if pkt.get("src") == self.node_id:
-            # Never forward my own packets
-            should_forward = False
-            logger.debug("Not forwarding - packet from self")
-        elif dst == self.node_id:
+        if dst == self.node_id:
             # Don't forward packets addressed to me
             should_forward = False
             logger.debug("Not forwarding - packet for me")
@@ -593,7 +515,4 @@ class ReplicatorNode(MeshNode):
             logger.info(f"Forwarding packet type={pkt.get('type')} src={pkt.get('src')} dst={dst} seq={pkt.get('seq')}")
             self._forward_packet(pkt)
 
-    def receive_and_replicate(self, rx):
-        """For compatibility with existing replicator code - no-op since receiver thread handles everything"""
-        # The receiver thread already handles forwarding
-        pass
+

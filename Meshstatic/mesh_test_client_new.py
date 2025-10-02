@@ -381,7 +381,7 @@ class LoRaTestClientGUI(tk.Tk):
 
             # Use the new send_request method that handles everything internally
             if self.node.send_request(RFM9X_DESTINATION, payload, await_ack=True):
-                self.log_message(f"Request sent to Server and ACK Received", 'SUCCESS')
+                self.log_message(f"Request sent to Server", 'SUCCESS')
 
                 # Check for follow-up responses
                 if self.node.full_response:
