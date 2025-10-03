@@ -99,7 +99,7 @@ class MeshNode:
             self._seq = (self._seq + 1) & 0xFFFF
             return self._seq
 
-    def send_request(self, dst, payload, await_ack=False, ttl=None):
+    def send_request(self, dst, payload, await_ack=False, ttl=None, timeout: int = 5.0):
         dst = int(dst)
         ttl = self.default_ttl if ttl is None else int(ttl)
         seq = self._next_seq()
@@ -109,7 +109,6 @@ class MeshNode:
 
         # await ack and loop for additional packages
         if await_ack and dst != BROADCAST_ID:
-            timeout = 5.0
             start = time.time()
             ack_received = False
             remaining = 0
@@ -158,7 +157,7 @@ class MeshNode:
             return True
 
 
-    def send_unicast(self, dst, payload, await_ack=False, ttl=None):
+    def send_unicast(self, dst, payload, await_ack=False, ttl=None, timeout: int = 5.0):
         dst = int(dst)
         ttl = self.default_ttl if ttl is None else int(ttl)
         seq = self._next_seq()
@@ -168,7 +167,6 @@ class MeshNode:
 
         # simple await ack loop (blocking for tests)
         if await_ack and dst != BROADCAST_ID:
-            timeout = 5.0
             start = time.time()
             ack_received = False
             while time.time() - start < timeout:
@@ -285,52 +283,65 @@ class MeshNode:
         if not pkt:
             logger.debug("Got non-json or unparsable packet (len=%d) rssi=%s", len(rx), rssi)
         else:
-            if self._check_duplicate(pkt.get("src"), pkt.get("seq")):
-                # if packet addressed to me or broadcast
-                dst = pkt.get("dst", BROADCAST_ID)
-                if dst == self.node_id or dst == BROADCAST_ID:
-                    logger.info("RX from=%s dst=%s seq=%s ttl=%s rssi=%s payload=%s",
-                                pkt.get("src"), dst, pkt.get("seq"), pkt.get("ttl"), rssi, str(pkt.get("payload"))[:60])
-                    # auto-ACK if unicast to me
-                    if dst == self.node_id and pkt.get("type") in ["MSG", "REQ"]:
-                        if pkt.get("type") == "MSG":
-                            try:
-                                self._send_ack(pkt["src"], pkt["seq"])
-                            except Exception:
-                                logger.debug("ACK failed")
-                        else:
-                            try:
-                                logger.info(f"Processing REQ from {pkt['src']} seq={pkt['seq']}")
-                                # Add delay before responding to REQ to avoid collision with replicator forwarding
-                                # Longer delay needed when multiple packets will be sent
-                                time.sleep(0.5)  # 500ms delay to ensure replicator has finished forwarding
-                                if callable(self.on_request):
-                                    datapackets = self.on_request(pkt)
-                                    logger.info(f"on_request returned {len(datapackets)} response packets")
-                                else:
-                                    datapackets = []
-                                full_package =  self._send_ack(pkt["src"], pkt["seq"],len(datapackets))
-                                for i, response in enumerate(datapackets):
-                                    logger.info(f"Sending response packet {i+1}/{len(datapackets)} to {pkt['src']}")
-                                    # Add small delay between packets to avoid collisions
-                                    if i > 0:
+            # Filter self-packets
+            if int(pkt.get("src")) == int(self.node_id):
+                logger.debug("Packet from self -> discarded")
+            else:
+                # Check for duplicates
+                if not self._check_duplicate(pkt.get("src"), pkt.get("seq")):
+                    logger.debug(f"Duplicate packet from {pkt['src']} seq={pkt['seq']} - discarded")
+                else:
+                    # if packet addressed to me or broadcast
+                    dst = pkt.get("dst", BROADCAST_ID)
+                    if dst == self.node_id or dst == BROADCAST_ID:
+                        logger.info("RX from=%s dst=%s seq=%s ttl=%s rssi=%s payload=%s",
+                                    pkt.get("src"), dst, pkt.get("seq"), pkt.get("ttl"), rssi, str(pkt.get("payload"))[:60])
+                        # auto-ACK if unicast to me
+                        if dst == self.node_id and pkt.get("type") in ["MSG", "REQ"]:
+                            if pkt.get("type") == "MSG":
+                                try:
+                                    self._send_ack(pkt["src"], pkt["seq"])
+                                except Exception:
+                                    logger.debug("ACK failed")
+                            else:
+                                try:
+                                    logger.info(f"Processing REQ from {pkt['src']} seq={pkt['seq']}")
+                                    # Add delay before responding to REQ to avoid collision with replicator forwarding
+                                    # Longer delay needed when multiple packets will be sent
+                                    time.sleep(0.5)  # 500ms delay to ensure replicator has finished forwarding
+                                    if callable(self.on_request):
+                                        datapackets = self.on_request(pkt)
+                                        logger.info(f"on_request returned {len(datapackets)} response packets")
+                                    else:
+                                        datapackets = []
+                                    full_package =  self._send_ack(pkt["src"], pkt["seq"],len(datapackets))
+                                    for i, response in enumerate(datapackets):
+                                        logger.info(f"Sending response packet {i+1}/{len(datapackets)} to {pkt['src']}")
+                                        # Add small delay between packets to avoid collisions
                                         time.sleep(0.1)  # 100ms between follow-up packets
-                                    if self.send_unicast(pkt["src"], response, await_ack=True) == False:
-                                        full_package = False
-                                        logger.warning(f"Failed to deliver response packet {i+1}")
-                                if full_package:
-                                    logger.info(f"ACK and {len(datapackets)} packets delivered successfully")
-                                else:
-                                    logger.warning(f"Not all response packets were delivered")
-                            except Exception as e:
-                                logger.error(f"Error processing REQ: {e}")
+                                        tries = 0
+                                        while tries < 3:
+                                            if self.send_unicast(pkt["src"], response, await_ack=True, timeout=1) == False:
+                                                full_package = False
+                                                logger.warning(f"Failed to deliver response packet {i+1} retrying {tries}")
+                                                tries += 1
+                                            else:
+                                                break
+                                    if full_package:
+                                        logger.info(f"ACK and {len(datapackets)} packets delivered successfully")
+                                    else:
+                                        logger.warning(f"Not all response packets were delivered")
+                                except Exception as e:
+                                    logger.error(f"Error processing REQ: {e}")
 
-                        # call application hook for message
-                        if callable(self.on_message):
-                            try:
-                                self.on_message(pkt, rssi)
-                            except Exception:
-                                logger.exception("on_message handler error")
+                            # call application hook for message
+                            if callable(self.on_message):
+                                try:
+                                    self.on_message(pkt, rssi)
+                                except Exception:
+                                    logger.exception("on_message handler error")
+                    else:
+                        logger.exception(f"UNKNOWN PACKET - {pkt}")
 
     def receive_and_replicate(self, rx):
         pkt = parse_packet(rx)

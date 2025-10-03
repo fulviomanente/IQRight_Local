@@ -34,7 +34,7 @@ GPIO_BUTTON_PIN = 21
 
 # Default parameters
 DEFAULT_TX_POWER = 23
-DEFAULT_SPREADING_FACTOR = 9
+DEFAULT_SPREADING_FACTOR = 7
 
 class LoRaTestClientGUI(tk.Tk):
     def __init__(self):
@@ -364,32 +364,32 @@ class LoRaTestClientGUI(tk.Tk):
         sending = True
 
         try:
-            while sending:
-                cont += 1
-                with self.lora_lock:
-                    # Send exactly like scanner_queue.py: bytes(f"{node}|{payload}|1", "UTF-8")
-                    # But our payload already includes the format
-                    self.log_message("Call Unicast...", 'INFO')
+            #while sending:
+            cont += 1
+            with self.lora_lock:
+                # Send exactly like scanner_queue.py: bytes(f"{node}|{payload}|1", "UTF-8")
+                # But our payload already includes the format
+                self.log_message("Call Unicast...", 'INFO')
 
-                    if self.node.send_request(1, f"{payload}", await_ack=True):
-                        self.log_message(f"Info sent to Server and ACK Received", 'INFO')
-                        count = 0
-                        for line in self.node.full_response:
-                            cont += 1
-                            self.log_message(f"{count}: {line}", 'INFO')
-                        self.button_status.set(f"Sent")
-                        self.button_status.set("Ready")
-                        sending = False
-                        return True
-                    else:
-                        self.log_message(f"Ack not received - {cont} attempts", 'ERROR')
-                        self.button_status.set(f"Error")
-                        self.fail_count += 1
+                if self.node.send_request(1, f"{payload}", await_ack=True, timeout=16.0):
+                    self.log_message(f"Info sent to Server and ACK Received", 'INFO')
+                    count = 0
+                    for line in self.node.full_response:
+                        cont += 1
+                        self.log_message(f"{count}: {line}", 'INFO')
+                    self.button_status.set(f"Sent")
+                    self.button_status.set("Ready")
+                    sending = False
+                    return True
+                else:
+                    self.log_message(f"Ack not received - {cont} attempts", 'ERROR')
+                    self.button_status.set(f"Error")
+                    self.fail_count += 1
 
-                    if self.fail_count > 3:
-                        sending = False
-                        self.button_status.set("Timeout")
-                        return False
+            #    if self.fail_count > 3:
+            #        sending = False
+            #        self.button_status.set("Timeout")
+            #        return False
 
         except Exception as e:
             self.fail_count += 1

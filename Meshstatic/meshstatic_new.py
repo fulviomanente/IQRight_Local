@@ -20,11 +20,15 @@ import random
 import queue
 import logging
 import sys
+from collections import namedtuple
 
 # constants
 BROADCAST_ID = 0
 MAX_PAYLOAD = 200  # keep below LoRa max for conservative safety
 DEFAULT_TTL = 5
+
+# Packet container for queue
+QueuedPacket = namedtuple('QueuedPacket', ['raw_bytes', 'parsed_packet', 'rssi', 'timestamp'])
 
 # Get logger for this module
 logger = logging.getLogger("meshstatic_new")
@@ -77,8 +81,14 @@ class MeshNode:
         self.rfm = rfm
         self.node_id = int(node_id)
         self.default_ttl = default_ttl
-        self._recv_thread = None
+
+        # Thread management
+        self._reader_thread = None
+        self._processor_thread = None
         self._running = False
+
+        # Packet queue between reader and processor threads
+        self._packet_queue = queue.Queue(maxsize=100)  # Buffer up to 100 packets
 
         # duplicate detection: keep last seen seq per src (small cache)
         self.seen = {}  # {src: last_seq}
@@ -109,75 +119,168 @@ class MeshNode:
         self._pending_to_send = False
         self.pending_fup = None
 
-        # Start the single receiver thread if auto_start is True
+        # Start both threads if auto_start is True
         if auto_start:
             self.start_receiver()
 
     def start_receiver(self):
-        """Start the single receiver thread"""
+        """Start both reader and processor threads"""
         if not self._running:
             self._running = True
-            self._recv_thread = threading.Thread(target=self._receiver_loop, daemon=True)
-            self._recv_thread.start()
-            logger.info(f"Started receiver thread for node {self.node_id}")
-            # Give thread time to start
+
+            # Start reader thread (packet reception only)
+            self._reader_thread = threading.Thread(target=self._reader_loop, daemon=True)
+            self._reader_thread.start()
+
+            # Start processor thread (packet handling)
+            self._processor_thread = threading.Thread(target=self._processor_loop, daemon=True)
+            self._processor_thread.start()
+
+            logger.info(f"Started reader and processor threads for node {self.node_id}")
+
+            # Give threads time to start
             time.sleep(0.1)
-            if self._recv_thread.is_alive():
-                logger.info(f"Receiver thread is alive and running for node {self.node_id}")
+
+            reader_alive = self._reader_thread.is_alive()
+            processor_alive = self._processor_thread.is_alive()
+
+            if reader_alive and processor_alive:
+                logger.info(f"Both threads are alive and running for node {self.node_id}")
             else:
-                logger.error(f"Receiver thread failed to start for node {self.node_id}")
+                logger.error(f"Thread startup failed - Reader: {reader_alive}, Processor: {processor_alive}")
         else:
-            logger.warning(f"Receiver thread already running for node {self.node_id}")
+            logger.warning(f"Threads already running for node {self.node_id}")
 
     def stop_receiver(self):
-        """Stop the receiver thread"""
+        """Stop both reader and processor threads"""
         self._running = False
-        if self._recv_thread:
-            self._recv_thread.join(timeout=2)
-            logger.info(f"Stopped receiver thread for node {self.node_id}")
 
-    def _receiver_loop(self):
-        """Single receiver loop that handles ALL incoming packets"""
-        logger.info(f"[Node {self.node_id}] Receiver loop started")
-        last_status = time.time()
+        # Signal processor thread to stop by putting a sentinel value
+        try:
+            self._packet_queue.put(None, timeout=1)
+        except queue.Full:
+            pass
+
+        # Join both threads
+        if self._reader_thread:
+            self._reader_thread.join(timeout=2)
+        if self._processor_thread:
+            self._processor_thread.join(timeout=2)
+
+        logger.info(f"Stopped reader and processor threads for node {self.node_id}")
+
+    def _reader_loop(self):
+        """Dedicated reader thread - ONLY receives packets and queues them"""
+        logger.info(f"[LISTENER] [Node {self.node_id}] Reader loop started")
         packet_count = 0
+        last_status = time.time()
 
         while self._running:
             try:
-                # Receive with moderate timeout to ensure we don't miss packets
-                # but still allow checking _running flag periodically
-                rx = self.rfm.receive(with_header=True, with_ack=False, timeout=2.0)
+
+                # Log periodic status every 10 seconds
+                #if time.time() - last_status > 10:
+                #    logger.debug(f"[LISTENER] [Node {self.node_id}] Receiver alive - {packet_count} packets received. Send queue {self._pending_to_send}. Receive queue {self.pending_fup}. Ack queue {self.pending_acks}")
+                #    last_status = time.time()
+                logger.debug(
+                    f"[LISTENER] [Node {self.node_id}] REOPENING")
+
+                # Receive with short timeout to keep responsive to _running flag
+                rx = self.rfm.receive(with_header=True, with_ack=False, timeout=10.0)
+
+                if rx is not None:
+
+                    packet_count += 1
+                    # Get RSSI immediately while it's fresh
+                    rssi = getattr(self.rfm, "last_rssi", None)
+
+                    # Parse packet ONLY to check if it's valid
+                    pkt = parse_packet(rx)
+
+                    logger.debug(f"[LISTENER]  Packet #{packet_count} parsed")
+
+                    if pkt:
+                        # Create queued packet with minimal processing
+                        queued_pkt = QueuedPacket(
+                            raw_bytes=rx,
+                            parsed_packet=pkt,
+                            rssi=rssi,
+                            timestamp=time.time()
+                        )
+
+                        #try:
+                        # Non-blocking put with short timeout
+                        logger.debug(
+                            f"[LISTENER]  [Node {self.node_id}] Queueing packet #{packet_count} >> {pkt}")
+
+                        self._packet_queue.put(queued_pkt, timeout=0.1)
+                        logger.debug(
+                            f"[LISTENER]  [Node {self.node_id}] Queued packet #{packet_count} from {pkt['src']}")
+
+                        #except queue.Full:
+                        #    logger.warning(f"[LISTENER]  [Node {self.node_id}] Packet queue full - dropping packet!")
+                    else:
+                        logger.debug(f"[LISTENER]  [Node {self.node_id}] Unparsable packet (len={len(rx)}) - dropped")
+
+            except Exception as e:
+                logger.error(f"[LISTENER] [Node {self.node_id}] Reader loop error: {e}", exc_info=True)
+                time.sleep(0.01)  # Very short sleep on error
+
+        logger.info(f"[LISTENER] [Node {self.node_id}] Reader loop stopped - {packet_count} packets received")
+
+    def _processor_loop(self):
+        """Dedicated processor thread - handles all packet routing and business logic"""
+        logger.info(f"[Node {self.node_id}] Processor loop started")
+        last_status = time.time()
+        processed_count = 0
+
+        while self._running:
+            try:
+                # Get packet from queue with timeout
+                queued_pkt = self._packet_queue.get(timeout=2.0)
+
+                # Check for sentinel value (shutdown signal)
+                if queued_pkt is None:
+                    logger.info(f"[Node {self.node_id}] Processor received shutdown signal")
+                    break
+
+                processed_count += 1
+                pkt = queued_pkt.parsed_packet
+                rssi = queued_pkt.rssi
 
                 # Log periodic status every 10 seconds
                 if time.time() - last_status > 10:
-                    logger.debug(f"[Node {self.node_id}] Receiver alive - {packet_count} packets received. Send queue {self._pending_to_send}. Receive queue {self.pending_fup}. Ack queue {self.pending_acks}")
+                    queue_size = self._packet_queue.qsize()
+                    logger.debug(f"[Node {self.node_id}] Processor alive - {processed_count} processed, queue size: {queue_size}")
+                    logger.debug(f"[Node {self.node_id}] Send queue: {self._pending_to_send}, Receive queue: {self.pending_fup}, ACK queue: {self.pending_acks}")
                     last_status = time.time()
 
-                if rx is not None:
-                    packet_count += 1
-                    logger.info(f"[Node {self.node_id}] Raw packet received #{packet_count}: {rx.hex()[:40]}...")
-                    pkt = parse_packet(rx)
-                    rssi = getattr(self.rfm, "last_rssi", None)
+                logger.info(f"[Node {self.node_id}] PROCESSOR Got {pkt['type']} from {pkt['src']} to {pkt['dst']} seq={pkt['seq']} ttl={pkt['ttl']} rssi={rssi}")
 
-                    if pkt:
-                        logger.info(f"[Node {self.node_id}] RECEIVER Got {pkt['type']} from {pkt['src']} to {pkt['dst']} seq={pkt['seq']} ttl={pkt['ttl']} rssi={rssi}")
-                        if int(pkt.get("src")) == int(self.node_id):
-                            logger.debug("Packet from self -> discarded")
-                        else:
-                            # Check for duplicates
-                            if not self._check_duplicate(pkt.get("src"), pkt.get("seq")):
-                                logger.debug(f"Duplicate packet from {pkt['src']} seq={pkt['seq']} - discarded")
-                            else:
-                                # Route packet to appropriate handler
-                                self._route_packet(pkt, rssi)
-                    else:
-                        logger.warning(f"[Node {self.node_id}] Got unparsable packet (len={len(rx)}) rssi={rssi}")
+                # Filter self-packets
+                if int(pkt.get("src")) == int(self.node_id):
+                    logger.debug("Packet from self -> discarded")
+                    continue
 
+                # Check for duplicates
+                if not self._check_duplicate(pkt.get("src"), pkt.get("seq")):
+                    logger.debug(f"Duplicate packet from {pkt['src']} seq={pkt['seq']} - discarded")
+                    continue
+
+                # Route packet to appropriate handler
+                self._route_packet(pkt, rssi)
+
+                # Mark task as done
+                self._packet_queue.task_done()
+
+            except queue.Empty:
+                # Timeout waiting for packet - this is normal, just continue
+                continue
             except Exception as e:
-                logger.error(f"[Node {self.node_id}] Receiver loop error: {e}", exc_info=True)
+                logger.error(f"[Node {self.node_id}] Processor loop error: {e}", exc_info=True)
                 time.sleep(0.1)
 
-        logger.info(f"[Node {self.node_id}] Receiver loop stopped")
+        logger.info(f"[Node {self.node_id}] Processor loop stopped - {processed_count} packets processed")
 
     def _route_packet(self, pkt, rssi):
         """Route received packet to appropriate handler"""
@@ -243,6 +346,7 @@ class MeshNode:
                         self._pending_to_send = False
                         logger.info(f"Disabling pending queue, No additional Packets to deliver")
                     else:
+                        time.sleep(0.3)
                         if self.send_unicast(pkt["src"], self.pending_fup.pop(0), await_ack=True):
                             logger.info(f"Packet delivered successfully. {len(self.pending_fup)} remaining")
                 else:
@@ -348,9 +452,9 @@ class MeshNode:
                 logger.exception("on_message handler error")
 
     def _next_seq(self):
-        with self.seq_lock:
-            self._seq = (self._seq + 1) & 0xFFFF
-            return self._seq
+        #with self.seq_lock:
+        self._seq = (self._seq + 1) & 0xFFFF
+        return self._seq
 
     def _check_duplicate(self, src, seq):
         """Check if packet is duplicate - Returns True if packet is NEW"""
