@@ -259,6 +259,8 @@ class OfflineData:
                 logging.error("UNABLE TO OPEN USER FILE, EXITING")
                 exit(1)
             else:
+                #Convert ExternalNumber to string for search
+                df['ExternalNumber'] = df['ExternalNumber'].astype(str)
                 return df
         except Exception as e:
             logging.error(f"Error loading app users: {str(e)}")

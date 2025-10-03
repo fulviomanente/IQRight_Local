@@ -62,7 +62,7 @@ RMF9X_POOLING = 0.9
 #IQRight Configuration
 IDFACILITY = 1
 BEACON_LOCATIONS = [
-    {"idBeacon": 1, "beacon": "QR Reader", "location": "Gym Side"},
+    {"idBeacon": 102, "beacon": "QR Reader", "location": "Gym Side"},
     {"idBeacon": 2, "beacon": "QR Reader", "location": "East Side"},
     {"idBeacon": 3, "beacon": "BLE Reader","location": "Main Entrance"}]
 

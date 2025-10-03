@@ -39,6 +39,8 @@ elif TOPIC_PREFIX != '':
 else:
     Topic = 'IQSend'
 
+CommandTopic = "IQRSend"
+
 #GET Beacon Locations
 beacon_locations_dict = beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
 
@@ -107,6 +109,14 @@ def getGrade(strGrade: str):
         return '3rd'
     elif strGrade == 'Fourth Grade' or strGrade[0:2] == '04':
         return '4th'
+    if strGrade == 'Fifth Grade' or strGrade[0:2] == '01':
+        return '5th'
+    elif strGrade == 'Sixth Grade' or strGrade[0:2] == '02':
+        return '6th'
+    elif strGrade == 'Seventh Grade' or strGrade[0:2] == '03':
+        return '7th'
+    elif strGrade == 'Eighth Grade' or strGrade[0:2] == '04':
+        return '8th'
     elif strGrade[1] == 'K':
         return 'Kind'
     else:
@@ -298,7 +308,8 @@ async def handleInfo(strInfo: str):
                     else:
                         sendObj = json.dumps(item)
                         logging.info(sendObj)
-                        if publishMQTT(sendObj):
+                        hierarchyID = str(item.get("hierarchyID", '00'))
+                        if publishMQTT(sendObj, hierarchyID):
                             logging.info(' Message Sent')
                         else:
                             logging.error('MQTT ERROR')
@@ -308,6 +319,7 @@ async def handleInfo(strInfo: str):
                 if sendDataScanner(payload) == False:
                     logging.error(f'FAILED to sent to Scanner: {json.dumps(payload)}')
                 else:
+                    hierarchyID = str(payload.get("hierarchyID", '00'))
                     sendObj = json.dumps(payload)
                     logging.info(sendObj)
                     if publishMQTT(sendObj):
@@ -333,10 +345,10 @@ def sendDataScanner(payload: dict):
             logging.error(f"Timeout trying to send Data to node: {msg}")
             return False
 
-def publishMQTT(payload: str):
+def publishMQTT(payload: str, hierarchyID: str = None):
     count = 5
     while count > 0:
-        if sendMessageMQTT(payload, str(payload.get("hierarchyID", '00'))):
+        if sendMessageMQTT(payload, hierarchyID):
             return True
         else:
             count = count -1
@@ -356,9 +368,9 @@ def sendMessageMQTT(payload: str, topicSufix: str = None):
     if topicPrefix and topicSufix:
         ret = client.publish(f'{Topic}{topicSufix}', payload)
     else:
-        ret = client.publish(Topic, payload)
+        ret = client.publish(CommandTopic, payload)
     if ret[0] == 0:
-        logging.debug('Message sent to Topic: {Topic}')
+        logging.debug(f'Message sent to Topic: {Topic}')
         logging.debug(f'Message ID {ret[1]}')
         return True
     else:

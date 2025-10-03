@@ -566,48 +566,49 @@ def get_audio(external_number):
             return send_file(local_file_path, mimetype='audio/mpeg')
 
         # 2. If local file doesn't exist, try to get from integration layer
-        logging.debug(f"Local file not found, requesting from integration layer for {external_number}")
-        status_code, response = api_request(method="POST", url='apiGetAudio', data='{"key": ' + external_number + '}', is_file=True)
+        #logging.debug(f"Local file not found, requesting from integration layer for {external_number}")
+        #status_code, response = api_request(method="POST", url='apiGetAudio', data='{"key": ' + external_number + '}', is_file=True)
 
-        if status_code == 200 and response:
-            # Save the received file locally
-            try:
-                with open(local_file_path, 'wb') as f:
-                    f.write(response)
-                logging.debug(f"Saved audio file from integration layer for {external_number}")
-                return send_file(local_file_path, mimetype='audio/mpeg')
-            except Exception as save_error:
-                logging.error(f"Error saving audio file from integration: {save_error}")
+        #if status_code == 200 and response:
+        #    # Save the received file locally
+        #    try:
+        #        with open(local_file_path, 'wb') as f:
+        #            f.write(response)
+        #        logging.debug(f"Saved audio file from integration layer for {external_number}")
+        #        return send_file(local_file_path, mimetype='audio/mpeg')
+        #    except Exception as save_error:
+        #        logging.error(f"Error saving audio file from integration: {save_error}")
                 # Continue to gTTS fallback
 
         # 3. If integration layer fails, generate using gTTS
-        logging.debug(f"Integration layer failed, generating audio with gTTS for {external_number}")
-        df = offlineData.getAppUsers()
-        student = df.loc[df['ExternalNumber'] == external_number]
-
-        if student.empty:
-            text_to_speak = f"Student {external_number}"
         else:
-            text_to_speak = f"{student['level1'].item()}, {student['ChildName'].item()}"
+            logging.debug(f"Integration layer failed, generating audio with gTTS for {external_number}")
+            df = offlineData.getAppUsers()
+            student = df[df['ExternalNumber'] == external_number].iloc[0]
 
-        # Generate audio using gTTS
-        tts = gTTS(text_to_speak, lang='en')
+            if student.empty:
+                text_to_speak = f"Atention!! Student called on, Gym side"
+            else:
+                text_to_speak = f"{student['ChildName']}, Gym Side"
 
-        # Save to BytesIO object and file system
-        audio_bytes = io.BytesIO()
-        tts.write_to_fp(audio_bytes)
-        audio_bytes.seek(0)
+            # Generate audio using gTTS
+            tts = gTTS(text_to_speak, lang='en')
 
-        # Save to file system for future use
-        tts.save(local_file_path)
-        logging.debug(f"Generated and saved gTTS audio for {external_number}")
+            # Save to BytesIO object and file system
+            audio_bytes = io.BytesIO()
+            tts.write_to_fp(audio_bytes)
+            audio_bytes.seek(0)
 
-        return send_file(
-            audio_bytes,
-            mimetype='audio/mpeg',
-            as_attachment=True,
-            download_name=f'{external_number}.mp3'
-        )
+            # Save to file system for future use
+            tts.save(local_file_path)
+            logging.debug(f"Generated and saved gTTS audio for {external_number}")
+
+            return send_file(
+                audio_bytes,
+                mimetype='audio/mpeg',
+                as_attachment=True,
+                download_name=f'{external_number}.mp3'
+            )
 
     except Exception as e:
         logging.error(f"Error in audio generation pipeline for {external_number}: {str(e)}")
