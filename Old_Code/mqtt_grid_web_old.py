@@ -249,7 +249,7 @@ def playSoundList(listObj, currGrid, fillGrid: bool = False):
             time.sleep(2)
 
 # LOGGING Setup
-log_filename = "IQRight_FE_WEB.debug"
+log_filename = "../logs/IQRight_FE_WEB.debug"
 max_log_size = 20 * 1024 * 1024  # 20Mb
 backup_count = 10
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')

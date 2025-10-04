@@ -4,8 +4,6 @@ import os
 
 #Project Configuration
 PROJECT_ID = 'iqright'
-SECRET_KEY = 'iqrightapp_secret'
-SECURITY_PASSWORD_SALT = 'iqrightapp_salt'
 DEBUG = True
 # HOME_DIR = os.environ['HOME']
 
@@ -15,9 +13,9 @@ MAX_LOG_SIZE = 20 * 1024 * 1024 #20Mb
 BACKUP_COUNT = 10
 
 #Offline Data Configuration
-OFFLINE_USERS_FILENAME = 'offline_users.iqr'
-OFFLINE_FULL_LOAD_FILENAME = 'full_load.iqr'
-LOCAL_FILE_VERSIONS = 'local_file_versions.json'
+OFFLINE_USERS_FILENAME = '/data/offline_users.iqr'
+OFFLINE_FULL_LOAD_FILENAME = '/data/full_load.iqr'
+LOCAL_FILE_VERSIONS = '/data/local_file_versions.json'
 FILE_DTYPE = {'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int \
                      , 'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str, 'ExternalNumber': str \
                      , 'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str \
@@ -51,14 +49,6 @@ MQTT_TRANSPORT = 'tcp' #'websockets' # or 'tcp
 MQTT_VERSION = '5' # or '3' 
 MQTT_KEEPALIVE = 60
 
-#LORA Configuration (Legacy - kept for backwards compatibility)
-RFM9X_FREQUENCE = 915.23
-RFM9X_TX_POWER = 23
-RFM9X_NODE = 1
-RFM9X_ACK_DELAY = 0.1
-RFM9X_SEND_DELAY = 0.3
-RMF9X_POOLING = 0.9
-
 #MESHTASTIC Configuration
 # Server configuration (main receiver - typically node ID 1)
 MESHTASTIC_SERVER_NODE_ID = 1
@@ -78,6 +68,6 @@ MESHTASTIC_MODEM_PRESET = 'LONG_FAST'  # Options: LONG_FAST, LONG_SLOW, MEDIUM_F
 IDFACILITY = 1
 BEACON_LOCATIONS = [
     {"idBeacon": 102, "beacon": "QR Reader", "location": "Gym Side"},
-    {"idBeacon": 2, "beacon": "QR Reader", "location": "East Side"},
-    {"idBeacon": 3, "beacon": "BLE Reader","location": "Main Entrance"}]
+    {"idBeacon": 103, "beacon": "QR Reader", "location": "Church Side"},
+    {"idBeacon": 104, "beacon": "BLE Reader","location": "Church Side"}]
 

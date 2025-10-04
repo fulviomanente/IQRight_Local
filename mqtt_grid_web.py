@@ -22,7 +22,7 @@ from flask_babel import Babel, gettext as _
 from dotenv import load_dotenv
 import io
 
-from utils.config import TOPIC_PREFIX, TOPIC, API_URL, IDFACILITY, LORASERVICE_PATH, DEBUG
+from utils.config import TOPIC_PREFIX, TOPIC, API_URL, IDFACILITY, DEBUG
 from utils.offline_data import OfflineData
 from utils.api_client import api_request, get_secret
 
@@ -80,7 +80,7 @@ def handle_release_complete(data):
                 logging.debug(f'Emitted pending data to socketio for user {user_id}: {userInfo}')
 
 # LOGGING Setup
-log_filename = "IQRight_FE_WEB.debug"
+log_filename = "logs/IQRight_FE_WEB.debug"
 max_log_size = 20 * 1024 * 1024  # 20Mb
 backup_count = 10
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')

@@ -25,7 +25,7 @@ else:
     logging.info('Bypassing Lora Module')
 
 # LOGGING Setup
-log_filename = "IQRight_Scanner_Validation.debug"
+log_filename = "logs/IQRight_Scanner_Validation.debug"
 max_log_size = 20 * 1024 * 1024  # 20Mb
 backup_count = 10
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')

@@ -16,7 +16,7 @@ if os.environ.get("LOCAL") != 'TRUE':
     import serial
 
 # LOGGING Setup
-log_filename = "IQRight_Scanner_QR_READER.debug"
+log_filename = "logs/IQRight_Scanner_QR_READER.debug"
 max_log_size = 20 * 1024 * 1024  # 20Mb
 backup_count = 10
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')

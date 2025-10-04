@@ -1,4 +1,4 @@
- # Import Python System Libraries
+# Import Python System Libraries
 import time
 import logging
 import logging.handlers
@@ -13,16 +13,17 @@ from dotenv import load_dotenv
 from aiohttp import BasicAuth
 from cryptography.fernet import Fernet
 from io import StringIO
+import meshtastic
+import meshtastic.tcp_interface
+from pubsub import pub
 
 load_dotenv()
 
 #Import Config
-from utils.config import API_URL, API_TIMEOUT, DEBUG, LORASERVICE_PATH, OFFLINE_FULL_LOAD_FILENAME, HOME_DIR, FILE_DTYPE, \
+from utils.config import API_URL, API_TIMEOUT, DEBUG, LORASERVICE_PATH, OFFLINE_FULL_LOAD_FILENAME, HOME_DIR, \
     TOPIC, TOPIC_PREFIX, MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, MQTT_TRANSPORT, MQTT_VERSION, MQTT_KEEPALIVE,   \
-    LOG_FILENAME, MAX_LOG_SIZE, BACKUP_COUNT, RFM9X_FREQUENCE,   \
-    RFM9X_SEND_DELAY, RFM9X_TX_POWER, RFM9X_NODE, RFM9X_ACK_DELAY, RMF9X_POOLING,\
-    PROJECT_ID, BEACON_LOCATIONS, IDFACILITY
-    
+    LOG_FILENAME, MAX_LOG_SIZE, BACKUP_COUNT, BEACON_LOCATIONS, IDFACILITY, \
+    MESHTASTIC_SERVER_HOST, MESHTASTIC_SERVER_PORT, MESHTASTIC_SERVER_NODE_ID
 
 #Import MQ Libraries
 import paho.mqtt.client as mqtt
@@ -41,13 +42,10 @@ else:
 
 CommandTopic = "IQRSend"
 
+FILEPATH = LORASERVICE_PATH + '/data/'
+
 #GET Beacon Locations
-beacon_locations_dict = beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
-
-#Load Offline Full Load File
-#df = pd.read_csv(f'{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}',
-#                 dtype=FILE_DTYPE)
-
+beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
 
 try:
     #LOGGING Setup ####################################################
@@ -62,43 +60,33 @@ except Exception as e:
     print(f'Error creating log object')
     print(e.__str__())
 
-
-# Create the I2C interface.
-# Import LORA Libraries - THIS WILL FAIL IN A NON RASPBERRY PI ENVIRONMENT
+# Meshtastic Interface - Connect to local meshtasticd daemon via TCP
+mesh_interface = None
 if os.environ.get("LOCAL") != 'TRUE':
-    import busio
-    from digitalio import DigitalInOut, Direction, Pull
-    import board
-    import adafruit_rfm9x
-    i2c = busio.I2C(board.SCL, board.SDA)
-    reset_pin = DigitalInOut(board.D4)
-    # Configure LoRa Radio
-    CS = DigitalInOut(board.CE1)
-    RESET = DigitalInOut(board.D25)
-    spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
-    rfm9x = adafruit_rfm9x.RFM9x(spi, CS, RESET, RFM9X_FREQUENCE)
-    rfm9x.tx_power = RFM9X_TX_POWER
-    rfm9x.node = RFM9X_NODE
-    rfm9x.ack_delay = RFM9X_ACK_DELAY
-    prev_packet = None
-    logging.info('Connected to Lora Module')
+    try:
+        mesh_interface = meshtastic.tcp_interface.TCPInterface(hostname=MESHTASTIC_SERVER_HOST)
+        logging.info(f'Connected to Meshtastic daemon at {MESHTASTIC_SERVER_HOST}:{MESHTASTIC_SERVER_PORT}')
+        logging.info(f'Server Node ID: {MESHTASTIC_SERVER_NODE_ID}')
+    except Exception as e:
+        logging.error(f'Failed to connect to Meshtastic daemon: {e}')
+        exit(1)
 else:
-    logging.info('Bypassing Lora Module')
+    logging.info('Bypassing Meshtastic Module (LOCAL mode)')
 
+mqtt_client = mqtt.Client(client_id="IQRight_Daemon", transport=MQTT_TRANSPORT, protocol=mqtt.MQTTv5)
+mqtt_client.username_pw_set("IQRight", "123456")
 
-client = mqtt.Client(client_id="IQRight_Daemon", transport=MQTT_TRANSPORT, protocol=mqtt.MQTTv5)
-client.username_pw_set("IQRight", "123456")
- 
 properties=Properties(PacketTypes.CONNECT)
 properties.SessionExpiryInterval=30*60 # in seconds
-client.connect(MQTT_BROKER,
+mqtt_client.connect(MQTT_BROKER,
                port=MQTT_PORT,
                clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
                properties=properties,
-               keepalive=MQTT_KEEPALIVE);
+               keepalive=MQTT_KEEPALIVE)
 logging.info('Connected to MQTT Server')
 
 lastCommand = None
+pending_responses = {}
 
 def getGrade(strGrade: str):
     if strGrade == 'First Grade' or strGrade[0:2] == '01':
@@ -109,24 +97,23 @@ def getGrade(strGrade: str):
         return '3rd'
     elif strGrade == 'Fourth Grade' or strGrade[0:2] == '04':
         return '4th'
-    if strGrade == 'Fifth Grade' or strGrade[0:2] == '01':
+    elif strGrade == 'Fifth Grade' or strGrade[0:2] == '05':
         return '5th'
-    elif strGrade == 'Sixth Grade' or strGrade[0:2] == '02':
+    elif strGrade == 'Sixth Grade' or strGrade[0:2] == '06':
         return '6th'
-    elif strGrade == 'Seventh Grade' or strGrade[0:2] == '03':
+    elif strGrade == 'Seventh Grade' or strGrade[0:2] == '07':
         return '7th'
-    elif strGrade == 'Eighth Grade' or strGrade[0:2] == '04':
+    elif strGrade == 'Eighth Grade' or strGrade[0:2] == '08':
         return '8th'
     elif strGrade[1] == 'K':
         return 'Kind'
     else:
         return 'N/A'
 
-
 def openFile(filename: str, keyfilename: str ='offline.key'):
     """Opens and decrypts a file."""
     try:
-        keyfilename = (LORASERVICE_PATH + '/' + keyfilename) if keyfilename else None
+        keyfilename = (FILEPATH + keyfilename) if keyfilename else None
         if os.path.exists(filename):
             if keyfilename:
                 return True, decrypt_file(datafile=filename, filename=keyfilename)
@@ -157,9 +144,8 @@ def decrypt_file(datafile, filename: str ='offline.key'):
         logging.error(f"Error decrypting file {datafile}: {str(e)}")
         return None
 
-
-if os.path.exists(f"{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}"):
-    status, df = openFile(filename=f"{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}")
+if os.path.exists(f"{FILEPATH}/{OFFLINE_FULL_LOAD_FILENAME}"):
+    status, df = openFile(filename=f"{FILEPATH}/{OFFLINE_FULL_LOAD_FILENAME}")
     logging.info(f"{status}")
     logging.info(f"{df.size}")
 else:
@@ -167,9 +153,8 @@ else:
     exit(1)
 
 async def get_user_from_api(code):
-    #try:
     async with aiohttp.ClientSession() as session:
-        api_url = f"{API_URL}apiGetUserInfo"  # Replace with your actual API endpoint
+        api_url = f"{API_URL}apiGetUserInfo"
         payload = {"searchCode": code}
         headers = {
             "Content-Type": "application/json",
@@ -178,19 +163,18 @@ async def get_user_from_api(code):
             "idFacility": str(IDFACILITY)
         }
 
-        # Debug logging
         logging.info(f"API URL: {api_url}")
         logging.info(f"Payload: {payload}")
         logging.info(f"Headers: {headers}")
         logging.info(f"Timeout: {API_TIMEOUT} seconds")
-        
+
         apiUsername = get_secret('apiUsername')
         apiPassword = get_secret('apiPassword')
 
         if apiUsername and apiPassword:
             auth = BasicAuth(apiUsername["value"], apiPassword["value"])
             logging.info(f"Auth username: {apiUsername['value']}")
-            
+
             try:
                 logging.info("Attempting API call...")
                 async with session.post(api_url, json=payload, timeout=API_TIMEOUT, headers=headers, auth=auth) as response:
@@ -216,17 +200,9 @@ async def get_user_from_api(code):
         else:
             logging.error("API getUserAccess request failed on getting secrets")
             return None
-                
-    #except asyncio.TimeoutError:
-    #    logging.warning("API getUserAccess request timed out")
-    #    return None
-    #except aiohttp.ClientError as e:
-    #    logging.error(f"API getUserAccess request error: {e}")
-    #    return None
-
 
 async def get_user_local(beacon, code, distance, df):
-    if not code:  # Return early if code is missing
+    if not code:
         logging.error(f'Empty string sent for conversion into MQTT Object')
         return None
 
@@ -235,10 +211,9 @@ async def get_user_local(beacon, code, distance, df):
         matches = df.loc[df['DeviceID'] == code]
         if matches.empty:
             logging.debug(f"Couldn't find Code: {code} locally")
-            return None  # Return None if not found locally
+            return None
         else:
             results = []
-            # Iterate through all matching rows
             for _, row in matches.iterrows():
                 result = {
                     "name": row['ChildName'],
@@ -259,91 +234,92 @@ async def get_user_local(beacon, code, distance, df):
         logging.error(f'Error converting local data: {e}')
         return None
 
-
 async def getInfo(beacon, code, distance, df):
     api_task = asyncio.create_task(get_user_from_api(code))
     local_task = asyncio.create_task(get_user_local(beacon, code, distance, df))
 
-    #try:
-    api_result = await asyncio.wait_for(api_task, timeout=10.0)  # Wait for the API with a timeout
+    api_result = await asyncio.wait_for(api_task, timeout=10.0)
     if api_result:
         if not isinstance(api_result, list):
-            api_result = [api_result]  # Convert single result to list
+            api_result = [api_result]
         for result in api_result:
             result["source"] = "api"
         logging.info("Using API results")
         return api_result
-    #except asyncio.TimeoutError:
-    #    logging.warning("API Timeout. Using local data if available.")
-    #    pass  # Handle timeout (use local result if available)
-    #except Exception as ex:
-    #    logging.error(f'Error processing data: {ex}')
-    #    return None
 
-    local_result = await local_task  # Get the local result
+    local_result = await local_task
+    return local_result
 
-    return local_result  # Return local data if API timed out
-
-async def handleInfo(strInfo: str):
+async def handleInfo(strInfo: str, source_node: int):
     global lastCommand
     ret = False
     payload = None
+
     if len(strInfo) > 5:
-        beacon, payload, distance = strInfo.split('|')
-        if payload.find(":") >= 0:
-            strCmd, command = payload.split(":")
+        beacon, payload_code, distance = strInfo.split('|')
+
+        if payload_code.find(":") >= 0:
+            strCmd, command = payload_code.split(":")
             if command != lastCommand:
                 payload = {'command': command}
         else:
-            sendObj = await getInfo(beacon, payload, distance, df)
+            sendObj = await getInfo(beacon, payload_code, distance, df)
             payload = sendObj if sendObj else None
-        
+
         if payload:
             # Handle list of results
             if isinstance(payload, list):
                 for item in payload:
-                    time.sleep(RFM9X_SEND_DELAY)
-                    if sendDataScanner(item) == False:
-                        logging.error(f'FAILED to sent to Scanner: {json.dumps(item)}')
+                    time.sleep(0.3)  # Small delay between messages
+                    if sendDataScanner(item, source_node) == False:
+                        logging.error(f'FAILED to send to Scanner: {json.dumps(item)}')
                     else:
                         sendObj = json.dumps(item)
                         logging.info(sendObj)
                         hierarchyID = str(item.get("hierarchyID", '00'))
                         if publishMQTT(sendObj, hierarchyID):
-                            logging.info(' Message Sent')
+                            logging.info(' Message Sent to MQTT')
                         else:
                             logging.error('MQTT ERROR')
             else:
                 # Handle single command payload
-                time.sleep(RFM9X_SEND_DELAY)
-                if sendDataScanner(payload) == False:
-                    logging.error(f'FAILED to sent to Scanner: {json.dumps(payload)}')
+                time.sleep(0.3)
+                if sendDataScanner(payload, source_node) == False:
+                    logging.error(f'FAILED to send to Scanner: {json.dumps(payload)}')
                 else:
                     hierarchyID = str(payload.get("hierarchyID", '00'))
                     sendObj = json.dumps(payload)
                     logging.info(sendObj)
                     if publishMQTT(sendObj):
-                        logging.info(' Message Sent')
+                        logging.info(' Message Sent to MQTT')
                     else:
                         logging.error('MQTT ERROR')
     return True
 
-def sendDataScanner(payload: dict):
-    startTime = time.time()
-    while True:
+def sendDataScanner(payload: dict, destination_node: int):
+    """Send data back to scanner via Meshtastic with acknowledgment"""
+    try:
         if 'name' in payload:
             msg = f"{payload['name']}|{payload['hierarchyLevel1']}|{getGrade(payload['hierarchyLevel2'])}"
         else:
             msg = f"cmd|ack|{payload['command']}"
             print(msg)
-        if rfm9x.send_with_ack(bytes(msg, "UTF-8")):
-            logging.debug('Info sent back')
-            return True
-        else:
-            logging.debug(f"Failed to send Data to node: {msg}")
-        if time.time() >= startTime + 5:
-            logging.error(f"Timeout trying to send Data to node: {msg}")
-            return False
+
+        logging.debug(f'Sending to node {destination_node}: {msg}')
+
+        # Send with acknowledgment using Meshtastic
+        mesh_interface.sendText(
+            text=msg,
+            destinationId=destination_node,
+            wantAck=True
+        )
+
+        logging.info(f'Info sent back to node {destination_node}')
+        return True
+
+    except Exception as e:
+        logging.error(f"Failed to send data to node {destination_node}: {msg} - Error: {e}")
+        return False
 
 def publishMQTT(payload: str, hierarchyID: str = None):
     count = 5
@@ -351,24 +327,24 @@ def publishMQTT(payload: str, hierarchyID: str = None):
         if sendMessageMQTT(payload, hierarchyID):
             return True
         else:
-            count = count -1
+            count = count - 1
             #IF failed, reconnect to MQTT Server
-            client.disconnect()
+            mqtt_client.disconnect()
             logging.info(f"Disconnected from MQTT")
-            client.connect(MQTT_BROKER,
+            mqtt_client.connect(MQTT_BROKER,
                    port=MQTT_PORT,
                    clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
                    properties=properties,
-                   keepalive=MQTT_KEEPALIVE);
+                   keepalive=MQTT_KEEPALIVE)
             logging.info('Connected to MQTT Server')
     return False
 
 def sendMessageMQTT(payload: str, topicSufix: str = None):
     logging.info(f"Sending {payload} to MQTT")
     if topicPrefix and topicSufix:
-        ret = client.publish(f'{Topic}{topicSufix}', payload)
+        ret = mqtt_client.publish(f'{Topic}{topicSufix}', payload)
     else:
-        ret = client.publish(CommandTopic, payload)
+        ret = mqtt_client.publish(CommandTopic, payload)
     if ret[0] == 0:
         logging.debug(f'Message sent to Topic: {Topic}')
         logging.debug(f'Message ID {ret[1]}')
@@ -376,7 +352,7 @@ def sendMessageMQTT(payload: str, topicSufix: str = None):
     else:
         logging.error(ret[0])
         logging.error(ret[1])
-        logging.error('FAILED to sent to Topic: {Topic}')
+        logging.error('FAILED to send to Topic: {Topic}')
         return False
 
 def beaconLocator(idBeacon: int):
@@ -386,38 +362,49 @@ def beaconLocator(idBeacon: int):
     else:
         return ''
 
+def onReceive(packet, interface):
+    """Callback for received Meshtastic messages"""
+    try:
+        # Check if this is a text message
+        if 'decoded' in packet and 'text' in packet['decoded']:
+            message_text = packet['decoded']['text']
+            source_node = packet['from']
+
+            logging.info(f"Received from node {source_node}: {message_text}")
+
+            # Process the message asynchronously
+            asyncio.run(handleInfo(message_text, source_node))
+
+    except Exception as e:
+        logging.error(f"Error processing received packet: {e}")
+        logging.error(f"Packet: {packet}")
+
+def onConnection(interface, topic=pub.AUTO_TOPIC):
+    """Callback when Meshtastic connection is established"""
+    logging.info("Meshtastic connection established")
+    logging.info(f"My node info: {interface.myInfo}")
+
+# Subscribe to Meshtastic events
+if mesh_interface:
+    pub.subscribe(onReceive, "meshtastic.receive.text")
+    pub.subscribe(onConnection, "meshtastic.connection.established")
+    logging.info("Subscribed to Meshtastic events")
+
 # Main Loop
 if os.getenv("LOCAL") == 'TRUE':
-    asyncio.run(handleInfo('102|123456789|1'))
+    asyncio.run(handleInfo('102|123456789|1', 102))
 else:
-    while True:
+    logging.info("Starting Meshtastic server listener...")
+    logging.info("Waiting for messages from scanners...")
 
-        packet = None
-        packet = rfm9x.receive(with_ack = True, with_header = True)
-        if packet != None:
-            prev_packet = packet[4:]
-            print(prev_packet)
-            try:
-                packet_text = str(prev_packet, "utf-8")
-            except Exception as e:
-                logging.error(f'{prev_packet}: Invalid byte String')
-                logging.error(f'{e.__str__()}')
-                packet_text = None
-            finally:
-                if packet_text:
-                    if DEBUG:
-                        logging.debug(f'{packet} Received')
-                        logging.debug(f'{packet_text} Converted to String')
-                        logging.debug('RX: ')
-                        logging.debug(packet_text)
-                        #result, payload = handleInfo(packet_text)
-                        asyncio.run(handleInfo(packet_text))
+    # Keep the script running to receive messages
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        logging.info("Shutting down...")
+        if mesh_interface:
+            mesh_interface.close()
+        mqtt_client.disconnect()
 
-                    else:
-                        logging.error('No response received from MQ Topic: IQSend or Empty Message received from Lora')
-                else:
-                    if DEBUG:
-                        logging.debug('Empty Package Received')
-                time.sleep(RMF9X_POOLING)
-
-client.loop_forever();
+mqtt_client.loop_forever()

@@ -25,7 +25,7 @@ else:
     logging.info('Bypassing Lora Module')
 
 # LOGGING Setup
-log_filename = "IQRight_Scanner_Validation.debug"
+log_filename = "../logs/IQRight_Scanner_Validation.debug"
 max_log_size = 20 * 1024 * 1024  # 20Mb
 backup_count = 10
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -40,7 +40,7 @@ handler.setFormatter(log_formatter)
 logging.getLogger().addHandler(handler)
 logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
-df = pd.read_csv("/Users/fulviomanente/Documents/Code/IQRight/Local/IQRight_Local/Validation_DB.csv")
+df = pd.read_csv("/Validation_DB.csv")
 # COnvert ExternalNUmber column to String
 df['DeviceID'] = df['DeviceID'].astype(str)
 

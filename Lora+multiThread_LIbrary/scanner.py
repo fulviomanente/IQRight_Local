@@ -17,7 +17,7 @@ def init_radio(freq, cs_pin, reset_pin):
     return rfm
 
 def main():
-    parser = argparse.ArgumentParser(description="Meshstatic Mobile node (end device)")
+    parser = argparse.ArgumentParser(description="Lora+multiThread_LIbrary Mobile node (end device)")
     parser.add_argument("--node-id", type=int, required=True, help="numeric id")
     parser.add_argument("--server-id", type=int, default=1, help="server/gateway node id")
     parser.add_argument("--freq", type=float, default=915.0)

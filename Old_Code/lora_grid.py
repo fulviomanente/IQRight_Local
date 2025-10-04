@@ -60,7 +60,7 @@ class SerialThread(Thread):
         self.prev_packet = None
         logging.info('Connected to Lora Module')
 
-        self.df = pd.read_csv('full_load.iqr',
+        self.df = pd.read_csv('../data/full_load.iqr',
                               dtype={'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 'AppIDApprovalStatus': int \
                          , 'AppApprovalStatus': str, 'DeviceID': str, 'Phone': str, 'ChildName': str,
                             'ExternalNumber': str \
