@@ -2,34 +2,32 @@ import os
 import json
 import logging
 import requests
-from google.cloud import secretmanager
+from typing import Optional, Dict, Any, Tuple
+from utils.secure_credentials import get_secret
 from utils.config import API_URL, PROJECT_ID
 
-#Function to retrieve secrets from Google Cloud Secret Manager, inputs are secret and expect value and output is the secret
+# Note: get_secret() is now imported from secure_credentials module
+# It provides automatic fallback to encrypted local storage when GCP is unavailable
 
-def get_secret(secret, expected: str = None, compare: bool = False):
-    secret_name = secret
-    secretValue: str = None
-    result: bool = False
-    try:
-        client = secretmanager.SecretManagerServiceClient()
-        name = f"projects/{PROJECT_ID}/secrets/{secret_name}/versions/latest"
-        secretValue = client.access_secret_version(name=name)
-        if compare and expected:
-            if secret == expected:
-                result = True
-            else:
-                result = False
-            secretValue = None
-    except Exception as e:
-        logging.debug(f'Error getting secret {secret} from environment')
-        logging.debug(str(e))
-    finally:
-        response = {'value': secretValue.payload.data.decode('UTF-8'), 'result': result}
-    return response
+def api_request(method: str, url: str, data: Dict[str, Any],
+                content: bool = False, bearer: Optional[str] = None,
+                is_file: bool = False) -> Tuple[int, Any]:
+    """
+    Make API request with automatic credential fallback
 
-def api_request(method, url, data, content: bool = False, bearer: str = None, is_file: bool = False):
+    Args:
+        method: HTTP method (GET, POST)
+        url: API endpoint path
+        data: Request data/params
+        content: Return content instead of JSON
+        bearer: Bearer token (optional)
+        is_file: Whether response is a file
+
+    Returns:
+        Tuple of (status_code, response_data)
+    """
     url = f"{API_URL}{url}"
+
     if is_file:
         headers = {}
     else:
@@ -39,12 +37,20 @@ def api_request(method, url, data, content: bool = False, bearer: str = None, is
             "caller": "LocalApp"
         }
 
+    # Handle authentication
+    auth = None
     if bearer:
         headers['Authorization'] = f'Bearer {bearer}'
     else:
-        apiUsername = get_secret('apiUsername')
-        apiPassword = get_secret('apiPassword')
-        auth = (apiUsername["value"], apiPassword["value"])
+        # Get credentials with automatic GCP/local fallback
+        api_username_result = get_secret('apiUsername')
+        api_password_result = get_secret('apiPassword')
+
+        if api_username_result and api_password_result:
+            auth = (api_username_result["value"], api_password_result["value"])
+        else:
+            logging.error("Failed to retrieve API credentials from GCP or local storage")
+            return 500, {"message": "Authentication credentials not available"}
 
     try:
         if method.upper() == 'POST':

@@ -5,7 +5,6 @@ This guide provides step-by-step instructions for setting up the Meshtastic mesh
 ## Table of Contents
 - [Overview](#overview)
 - [Hardware Requirements](#hardware-requirements)
-- [System Architecture](#system-architecture)
 - [Installation Steps](#installation-steps)
 - [Configuration](#configuration)
 - [Running the System](#running-the-system)
@@ -40,41 +39,6 @@ The Meshtastic implementation replaces the direct LoRa communication with a mesh
 - Battery or power supply
 - Optional: Enclosure for outdoor deployment
 
-## System Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Mesh Network Topology                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  Scanner Client (Node 102)                                   │
-│  ┌──────────────────┐                                        │
-│  │ RPi + SX1262     │                                        │
-│  │ scanner_meshstatic.py                                     │
-│  └────────┬─────────┘                                        │
-│           │                                                   │
-│           │ (Meshtastic Mesh)                                │
-│           ▼                                                   │
-│  ┌──────────────────┐         ┌──────────────────┐          │
-│  │ ESP32 Repeater   │◄────────┤ ESP32 Repeater   │          │
-│  │ (Node 200)       │         │ (Node 201)       │          │
-│  │ ROUTER role      │         │ ROUTER role      │          │
-│  └────────┬─────────┘         └─────────┬────────┘          │
-│           │                              │                   │
-│           └──────────┬───────────────────┘                   │
-│                      ▼                                        │
-│           ┌──────────────────┐                               │
-│           │ Server (Node 1)  │                               │
-│           │ RPi + SX1262     │                               │
-│           │ CaptureMeshstatic.py                             │
-│           └────────┬─────────┘                               │
-│                    │                                          │
-│                    ├──► MQTT Broker (localhost)              │
-│                    └──► API Server (cloud)                   │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
-```
-
 ## Installation Steps
 
 ### 1. Prepare Raspberry Pi (Server and Clients)
@@ -96,19 +60,14 @@ Reboot:
 sudo reboot
 ```
 
-#### 1.2 Install System Dependencies
-```bash
-sudo apt update
-sudo apt install -y python3-pip python3-venv git
-```
-
-#### 1.3 Install Meshtastic Daemon
+#### 1.2 Install Meshtastic Daemon 
+(Source: https://meshtastic.org/docs/hardware/devices/linux-native-hardware/)
 
 Add the Meshtastic repository:
 ```bash
-# Add OpenSUSE Build Service repository for Raspbian
-curl -fsSL https://download.opensuse.org/repositories/home:/meshtastic:/meshtastic/Raspbian_12/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/home_meshtastic_meshtastic.gpg > /dev/null
-echo 'deb http://download.opensuse.org/repositories/home:/meshtastic:/meshtastic/Raspbian_12/ /' | sudo tee /etc/apt/sources.list.d/meshtastic.list
+[[ "$(. /etc/os-release && echo $NAME)" == Raspbian* ]] && echo "ERROR: Raspberry Pi OS (32-bit) detected, please use the Raspbian repos."
+echo 'deb http://download.opensuse.org/repositories/network:/Meshtastic:/beta/Debian_12/ /' | sudo tee /etc/apt/sources.list.d/network:Meshtastic:beta.list
+curl -fsSL https://download.opensuse.org/repositories/network:Meshtastic:beta/Debian_12/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/network_Meshtastic_beta.gpg > /dev/null
 ```
 
 Install meshtasticd:
@@ -119,30 +78,41 @@ sudo apt install -y meshtasticd
 
 #### 1.4 Install Python Dependencies
 ```bash
-cd /path/to/IQRight_Local
+cd /etc/iqright/LoraService
+source venv/bin/activate
 pip3 install meshtastic pypubsub
 ```
 
 ### 2. Configure Meshtastic Daemon
 
-#### 2.1 Create Configuration Directory
-```bash
-sudo mkdir -p /etc/meshtasticd/config.d
-```
+#### 2.1 General Configuration
 
-#### 2.2 Server Configuration (Node 1)
+Check the existance of  `/etc/meshtasticd/config.d/config.yaml`:
+**Note**: For Raspberry Pi 5 server , add `gpiochip: 4` to the Lora section.
 
-Create `/etc/meshtasticd/config.d/config.yaml`:
-```yaml
-# Meshtastic Server Configuration (Node ID: 1)
+# Check all available yaml config files
+ls /etc/meshtasticd/available.d
+
+# Then, copy the right config to `config.d`
+sudo cp /etc/meshtasticd/available.d/lora-waveshare-sxxx.yaml /etc/meshtasticd/config.d/.
+
+Insert the specific config for the node into `/etc/meshtasticd/config.d/lora-waveshare-sxxx.yaml`:
+sudo nano /etc/meshtasticd/config.d/lora-waveshare-sxxx.yaml
+
+**Note**: From here, follow 2.2 for server and 2.3 for Scanners
+
+#### 2.2 Server Configuration (Node 1) - Server
+
+# DO NOT TOUCH THIS PIECE OF THE YAML 
 Lora:
   Module: sx1262
   DIO2_AS_RF_SWITCH: true
-  # GPIO pins for standard SX1262 HAT
   CS: 21
   IRQ: 16
   Busy: 20
   Reset: 18
+######################################  
+# Copy from next line on, to the yaml file 
   Region: US
   ModemPreset: LONG_FAST
 
@@ -155,24 +125,22 @@ Config:
   Network:
     WiFiEnabled: true
     EthEnabled: false
+    TCPEnabled: true
+    TCPPort: 4403
 
   # Serial and TCP interfaces
   Serial:
     Enabled: true
     Baud: 115200
 
-  Network:
-    TCPEnabled: true
-    TCPPort: 4403
-```
+  Region: US
+  ModemPreset: LONG_FAST
+#######################################
 
-**Note**: For Raspberry Pi 5, add `gpiochip: 4` to the Lora section.
 
-#### 2.3 Client Configuration (Node 102, 103, etc.)
+#### 2.3 Client Configuration (Node 102, 103, etc.) - For each Scanner
 
-Create `/etc/meshtasticd/config.d/config.yaml` on each client:
-```yaml
-# Meshtastic Client Configuration (Node ID: 102, 103, etc.)
+# DO NOT TOUCH THIS PIECE OF THE YAML 
 Lora:
   Module: sx1262
   DIO2_AS_RF_SWITCH: true
@@ -180,6 +148,8 @@ Lora:
   IRQ: 16
   Busy: 20
   Reset: 18
+######################################  
+# Copy from next line on, to the yaml file 
   Region: US
   ModemPreset: LONG_FAST
 
@@ -191,58 +161,40 @@ Config:
   Network:
     TCPEnabled: true
     TCPPort: 4403
-```
+#######################################
 
 #### 2.4 Set Permissions
 ```bash
 sudo chown -R meshtasticd:meshtasticd /etc/meshtasticd
-sudo chmod 644 /etc/meshtasticd/config.d/config.yaml
+sudo chmod 644 /etc/meshtasticd/config.d/lora-waveshare-sxxx.yaml
 ```
+### 4. Create and Start Meshtastic Services
 
-### 3. Configure ESP32 Repeaters
+#### 4.1 Create the Service
 
-For ESP32 repeaters, you don't need custom code - just flash the official Meshtastic firmware:
-
-#### 3.1 Install Meshtastic Firmware
-1. Go to https://flasher.meshtastic.org/
-2. Connect ESP32 to computer via USB
-3. Select your device model
-4. Flash the latest stable firmware
-
-#### 3.2 Configure via Web Interface
 ```bash
-# Install Meshtastic CLI on your laptop
-pip3 install meshtastic
-
-# Connect to device via serial
-meshtastic --port /dev/ttyUSB0
-
-# Or via Bluetooth
-meshtastic --ble "Device Name"
+sudo nano /etc/systemd/system/meshtasticd.service
 ```
 
-Set the configuration:
-```bash
-# Set region
-meshtastic --set lora.region US
+#Paste the content into the meshtasticd.service file
+[Unit]
+Description=Meshtastic Daemon
+After=network.target
 
-# Set role to ROUTER
-meshtastic --set device.role ROUTER
+[Service]
+ExecStart=/usr/bin/meshtasticd
+Restart=always
+User=root
+Group=root
+Type=simple
 
-# Set node ID (200, 201, etc.)
-meshtastic --set device.node_id 200
+[Install]
+WantedBy=multi-user.target
 
-# Set modem preset for range
-meshtastic --set lora.modem_preset LONG_FAST
-
-# Enable position broadcast (optional)
-meshtastic --set position.gps_enabled false
-```
-
-### 4. Start Meshtastic Services
 
 #### 4.1 Enable and Start Service
 ```bash
+sudo systemctl daemon-reload
 sudo systemctl enable meshtasticd
 sudo systemctl start meshtasticd
 ```
@@ -271,6 +223,46 @@ MESHTASTIC_CLIENT_NODE_ID = 102  # Not used on server
 ```python
 MESHTASTIC_SERVER_NODE_ID = 1
 MESHTASTIC_CLIENT_NODE_ID = 102  # Change per device
+```
+
+### 6. Configure ESP32 Repeaters
+
+For ESP32 repeaters, you don't need custom code - just flash the official Meshtastic firmware:
+
+#### 6.1 Install Meshtastic Firmware
+1. Go to https://flasher.meshtastic.org/
+2. Connect ESP32 to computer via USB
+3. Select your device model
+4. Flash the latest stable firmware
+
+#### 6.2 Configure via Web Interface
+```bash
+# Install Meshtastic CLI on your laptop
+pip3 install meshtastic
+
+# Connect to device via serial
+meshtastic --port /dev/ttyUSB0
+
+# Or via Bluetooth
+meshtastic --ble "Device Name"
+```
+
+Set the configuration:
+```bash
+# Set region
+meshtastic --set lora.region US
+
+# Set role to ROUTER
+meshtastic --set device.role ROUTER
+
+# Set node ID (200, 201, etc.)
+meshtastic --set device.node_id 200
+
+# Set modem preset for range
+meshtastic --set lora.modem_preset LONG_FAST
+
+# Enable position broadcast (optional)
+meshtastic --set position.gps_enabled false
 ```
 
 ## Running the System
@@ -427,25 +419,6 @@ All nodes must use the same region (US, EU_868, etc.)
 ```bash
 meshtastic --port /dev/ttyUSB0 --factory-reset
 ```
-
-## Key Differences from LoRa Implementation
-
-| Feature | Old (LoRa) | New (Meshtastic) |
-|---------|-----------|-----------------|
-| **Range** | Direct link only | Multi-hop mesh |
-| **Hardware** | RPi only | RPi + ESP32 repeaters |
-| **Acknowledgments** | Manual `send_with_ack()` | Built-in with `wantAck=True` |
-| **Routing** | Point-to-point | Automatic mesh routing |
-| **Interface** | Direct SPI | TCP to meshtasticd |
-| **Node Discovery** | Manual | Automatic |
-| **Retry Logic** | Manual | Automatic |
-
-## Performance Expectations
-
-- **Range**: 2-5km line of sight (per hop)
-- **Latency**: 1-3 seconds (depending on hops)
-- **Reliability**: >95% delivery with acknowledgments
-- **Throughput**: ~40-50 messages/minute per node
 
 ## Security Considerations
 

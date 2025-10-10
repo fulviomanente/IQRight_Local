@@ -35,6 +35,7 @@ Here's a breakdown of the code:
 
 **Main Loop**: The mainloop method is called to start the main event loop of the GUI. This loop listens for user interactions and updates the GUI as needed.
 '''
+import datetime
 
 import board
 import busio
@@ -52,18 +53,14 @@ import queue
 import logging
 import logging.handlers
 
+debug = True
+
 #LOGGING Setup
 log_filename = "IQRight_Scanner.debug"
 max_log_size = 20 * 1024 * 1024 #20Mb
 backup_count = 10
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-debug = True
 handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
-
-#else:
-#    debug = False
-#    logging.basicConfig(filename="IQRight_Daemon.log"), level=logging.INFO)
-
 handler.setFormatter(log_formatter)
 logging.getLogger().addHandler(handler)
 logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
@@ -97,24 +94,21 @@ class SerialThread(Thread):
                 logging.info('Write Serial')
                 self.ser.write(bytes.fromhex("7E000801000201ABCD"))
                 time.sleep(0.1)
-                logging.info('Read Serial')
+                logging.info('Read Serial Blank')
                 blankReturn = self.ser.read()
-                logging.info(blankReturn)
+                logging.info(f'blank read: {blankReturn}')
                 time.sleep(1.3)
                 remaining = self.ser.inWaiting()
-                logging.info(remaining)
-                codeReaded = self.ser.read(remaining)
-                logging.info('codeReaded')
-                qrCode = str(codeReaded, encoding="UTF-8")
-                logging.info(qrCode)
-                logging.info(len(qrCode))
-                logging.info(qrCode[0:6])
-                logging.info(qrCode[6:])
-                #print(f"a:{a}")
-                #print("decoded: ", a.decode("UTF-8"))
-                #if len(qrCode.strip()) > 2 and qrCode.strip()[:4] == '31':
-                self.queue.put(qrCode[6:].strip())
-                logging.info('PUT in the Queue')
+                serialRead = self.ser.read(remaining)
+                #Convert bytes from serial into str
+                strRead = str(serialRead, encoding="UTF-8")
+                logging.info(f"full read ({len(strRead)} bytes): {strRead}")
+                qrCode = strRead[6:].strip()
+                if len(qrCode) > 6:
+                    self.queue.put(qrCode)
+                    logging.info(f'PUT in the Queue: {qrCode}')
+                else:
+                    logging.info(f'Invalid String captured from Serial: {qrCode}')
                 pressed = 1
             is_killed = self._kill.wait(1)
             if is_killed:
@@ -154,7 +148,7 @@ class App(tk.Tk):
         self.configure(bg='white')
         upperFrame = tk.Frame(height=100, bg="blue")
         # Add labels to the window
-        lbl_title = tk.Label(master=upperFrame, text=f"CGES - Main Entrance", font=("Arial", 18), fg="white",
+        lbl_title = tk.Label(master=upperFrame, text=f"(A)SVDP - East Side", font=("Arial", 18), fg="white",
                              bg="blue").pack()
         self.lbl_name = tk.Label(master=upperFrame, text=f"Ready to Scan", font=("Arial", 18), fg="white", bg="blue")
         self.lbl_status = tk.Label(master=upperFrame, text=f"Idle", font=("Arial", 14), fg="white", bg="blue")
@@ -194,18 +188,24 @@ class App(tk.Tk):
 
     def lora_receiver(self, cmd: bool):
         startTime = time.time()
+        confirmationReceived = False
+        list_received = []
+        count = 0
         while True:
             # Look for a new packet: only accept if addressed to my_node
+            logging.debug('Waiting for packet from Server')
+            time.sleep(0.3)
             packet = self.rfm9x.receive(with_header=True)
             # If no packet was received during the timeout then None is returned.
             if packet is not None:
                 # Received a packet!
                 # Print out the raw bytes of the packet:
+                logging.info(f'response from Server: {packet}')
                 strPayload = str(packet[4:], "UTF-8")
-                logging.info(cmd)
+                logging.info(f'Payload: {strPayload}')
+                response = strPayload.split("|")
+                logging.info("??".join(response))
                 if cmd:
-                    response = strPayload.split("|")
-                    logging.info("??".join(response))
                     if response[1] == 'ack' and response[2] == self.lastCommand:
                         self.lbl_status.config(text='CMD Confirmed ')
                         logging.info('SERVER ACK TRUE')
@@ -214,48 +214,57 @@ class App(tk.Tk):
                         logging.info('SERVER ACK FALSE')
                         return False
                 else:
-                    name, level1, level2 = strPayload.split("|")
-                    self.lbl_name.config(text=f"{name} - {level1}")
-                    self.lbl_status.config(text=f"Queue Confirmed")
-                    self.sheet.insert_row([name, level1, level2], redraw=True)
-                return True
+                    if count == 0:
+                        count = int(response[3])
+                    name = response[0]
+                    level1 = response[1]
+                    level2 = response[2]
+                    list_received.append({"name": name, "level1": level1, "level2": level2})
+                    logging.debug(f"Received packet {len(list_received)}/{count}")
+                    if count == 1:
+                        confirmationReceived = True
+                        break
+                    elif len(list_received) == count:
+                        logging.debug(f"All packets received/{count}")
+                        confirmationReceived = True
+                        break
             #else:
             #    return False
             if time.time() >= startTime + 5:
+                logging.debug('TIMEOUT: Waiting for packet from Server')
                 return False
+        if confirmationReceived:
+            for student in list_received:
+                name = student["name"]
+                level1 = student["level1"]
+                level2 = student["level2"]
+                self.sheet.insert_row([name, level1, level2], redraw=True)
+            self.lbl_name.config(text=f"{name} - {level1}")
+            self.lbl_status.config(text=f"Queue Confirmed")
+            return True
 
-    def lora_sender(self, sending: bool, payload: str, cmd: bool = False):
-        startTime = time.time()
-        cont = 0
-        while sending:
-            cont += 1
-            if not self.rfm9x.send_with_ack(bytes(f"{self.rfm9x.node}|{payload}|1", "UTF-8")):
-                self.lbl_status.config(text=f"Error sending to Server - {cont}", bg="red")
-            else:
-                self.lbl_status.config(text=f"Info sent to Server - {cont}", bg="green")
-                if self.lora_receiver(cmd):
-                    self.lstCode.append(payload)
-                    sending = False
-                    return True
-            if time.time() >= startTime + 5:
-                self.lbl_status.config(text=f"Ack not received - {cont}", bg="red")
-                return False
-
-    def processUpdate(self, qrCode: str):
-        logging.info(f"ProcessUpdate {qrCode}")
-        if qrCode in self.lstCode:
-            self.lbl_name.config(text=f"{qrCode}")
-            self.lbl_status.config(text=f"Duplicate QRCode")
-        else:
-            self.lbl_name.config(text=f"{qrCode}")
-            self.lbl_status.config(text=f"Sending to IQRight Server")
-            if len(qrCode) < 3:
-                logging.info("Empty Message")
-                sending = False
-            else:
-                logging.info(f"QRCode {qrCode}")
-                sending = True
-            self.lora_sender(sending = sending, payload=qrCode)
+    def lora_sender(self, sending: bool, payload: str, cmd: bool = False, serverResponseTimeout: int = 5):
+        comm_status = False
+        try:
+            startTime = time.time()
+            cont = 0
+            while sending:
+                cont += 1
+                logging.info(f"ready to send ({cont}): {self.rfm9x.node}|{payload}|1")
+                if not self.rfm9x.send(bytes(f"{self.rfm9x.node}|{payload}|1", "UTF-8")):
+                    logging.info(f"error sending on Lora")
+                    self.lbl_status.config(text=f"Error sending to Server - {cont}", bg="red")
+                else:
+                    logging.info(f"Send executed")
+                    self.lbl_status.config(text=f"Info sent to Server - {cont}", bg="green")
+                    if self.lora_receiver(cmd):
+                        self.lstCode.append(payload)
+                        sending = False
+                if time.time() >= startTime + serverResponseTimeout:
+                    self.lbl_status.config(text=f"Ack not received - {cont}", bg="red")
+                    return False
+        except Exception as e:
+            logging.info(f"Error sending to Server: {e}")
 
     def screenCleanup(self):
         answer = messagebox.askyesno("Confirm", "Erase all Data?")
@@ -307,12 +316,19 @@ class App(tk.Tk):
         value = True
         while self.queue.qsize():
             try:
-                new = self.queue.get()
-                logging.info('Read from Queue')
-                logging.info(new)
-                self.lbl_status.config(text=f"{new}")
+                qrCode = self.queue.get()
+                logging.info(f'Read from Queue: {qrCode} value = {value}')
+                self.lbl_status.config(text=f"{qrCode}")
                 if value:
-                    self.processUpdate(new)
+                    if qrCode in self.lstCode:
+                        self.lbl_name.config(text=f"{qrCode}")
+                        self.lbl_status.config(text=f"Duplicate QRCode")
+                    else:
+                        self.lbl_name.config(text=f"{qrCode}")
+                        self.lbl_status.config(text=f"Sending to IQRight Server")
+                        logging.info(f"QRCode {qrCode}")
+                        sending = True
+                        self.lora_sender(sending=sending, payload=qrCode)
                 value = False
             except queue.Empty:
                 logging.info("EMPTY QUEUE")

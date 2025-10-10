@@ -94,26 +94,6 @@ sudo systemctl status meshtasticd
 meshtastic --host localhost --info
 ```
 
-### 6. Update Application Config
-
-Edit `utils/config.py`:
-```python
-# Set according to device role
-MESHTASTIC_SERVER_NODE_ID = 1          # Server node ID
-MESHTASTIC_CLIENT_NODE_ID = 102        # This device's client ID (change per device)
-```
-
-### 7. Run Application
-
-**Server:**
-```bash
-python3 CaptureMeshstatic.py
-```
-
-**Client:**
-```bash
-python3 scanner_meshstatic.py
-```
 
 ## Quick ESP32 Repeater Setup
 

@@ -231,7 +231,7 @@ async def get_user_local(beacon, code, distance, df):
         return None
 
     try:
-        logging.debug(f'Student Lookup (Local)')
+        logging.debug(f'Attempting Student Local Lookup...')
         matches = df.loc[df['DeviceID'] == code]
         if matches.empty:
             logging.debug(f"Couldn't find Code: {code} locally")
@@ -265,13 +265,13 @@ async def getInfo(beacon, code, distance, df):
     local_task = asyncio.create_task(get_user_local(beacon, code, distance, df))
 
     #try:
-    api_result = await asyncio.wait_for(api_task, timeout=10.0)  # Wait for the API with a timeout
+    api_result = await asyncio.wait_for(api_task, timeout=2.0)  # Wait for the API with a timeout
     if api_result:
         if not isinstance(api_result, list):
             api_result = [api_result]  # Convert single result to list
         for result in api_result:
             result["source"] = "api"
-        logging.info("Using API results")
+        logging.debug("Using API results")
         return api_result
     #except asyncio.TimeoutError:
     #    logging.warning("API Timeout. Using local data if available.")
@@ -303,14 +303,13 @@ async def handleInfo(strInfo: str):
             if isinstance(payload, list):
                 for item in payload:
                     time.sleep(RFM9X_SEND_DELAY)
-                    if sendDataScanner(item) == False:
+                    if sendDataScanner(item, len(payload)) == False:
                         logging.error(f'FAILED to sent to Scanner: {json.dumps(item)}')
                     else:
                         sendObj = json.dumps(item)
-                        logging.info(sendObj)
                         hierarchyID = str(item.get("hierarchyID", '00'))
                         if publishMQTT(sendObj, hierarchyID):
-                            logging.info(' Message Sent')
+                            logging.debug('MQTT Message Sent')
                         else:
                             logging.error('MQTT ERROR')
             else:
@@ -328,11 +327,11 @@ async def handleInfo(strInfo: str):
                         logging.error('MQTT ERROR')
     return True
 
-def sendDataScanner(payload: dict):
+def sendDataScanner(payload: dict, totalPackets: int = 1):
     startTime = time.time()
     while True:
         if 'name' in payload:
-            msg = f"{payload['name']}|{payload['hierarchyLevel1']}|{getGrade(payload['hierarchyLevel2'])}"
+            msg = f"{payload['name']}|{getGrade(payload['hierarchyLevel1'])[:1]}|{payload['hierarchyLevel2']}|{totalPackets}"
         else:
             msg = f"cmd|ack|{payload['command']}"
             print(msg)
@@ -366,17 +365,16 @@ def publishMQTT(payload: str, hierarchyID: str = None):
 def sendMessageMQTT(payload: str, topicSufix: str = None):
     logging.info(f"Sending {payload} to MQTT")
     if topicPrefix and topicSufix:
-        ret = client.publish(f'{Topic}{topicSufix}', payload)
+        sendTopic = f'{Topic}{topicSufix}'
     else:
-        ret = client.publish(CommandTopic, payload)
+        sendTopic = CommandTopic
+    ret = client.publish(sendTopic, payload)
     if ret[0] == 0:
-        logging.debug(f'Message sent to Topic: {Topic}')
+        logging.debug(f'Message sent to Topic: sendTopic')
         logging.debug(f'Message ID {ret[1]}')
         return True
     else:
-        logging.error(ret[0])
-        logging.error(ret[1])
-        logging.error('FAILED to sent to Topic: {Topic}')
+        logging.error(f'FAILED to sent to Topic: sendTopic. Status {ret[0]}, Error: {ret[1]}')
         return False
 
 def beaconLocator(idBeacon: int):

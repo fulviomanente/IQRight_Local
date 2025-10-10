@@ -7,23 +7,27 @@ import json
 from datetime import datetime
 import pandas as pd
 import asyncio
-from utils.api_client import get_secret
-import aiohttp
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from utils.secure_credentials import get_secret
 from dotenv import load_dotenv
 from aiohttp import BasicAuth
 from cryptography.fernet import Fernet
 from io import StringIO
-import meshtastic
-import meshtastic.tcp_interface
 from pubsub import pub
+
+if os.environ.get("LOCAL") != 'TRUE':
+    import aiohttp
+    import meshtastic.tcp_interface
+    import meshtastic
 
 load_dotenv()
 
 #Import Config
 from utils.config import API_URL, API_TIMEOUT, DEBUG, LORASERVICE_PATH, OFFLINE_FULL_LOAD_FILENAME, HOME_DIR, \
-    TOPIC, TOPIC_PREFIX, MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, MQTT_TRANSPORT, MQTT_VERSION, MQTT_KEEPALIVE,   \
+    TOPIC, TOPIC_PREFIX, MQTT_BROKER, MQTT_PORT, MQTT_TRANSPORT, MQTT_VERSION, MQTT_KEEPALIVE,   \
     LOG_FILENAME, MAX_LOG_SIZE, BACKUP_COUNT, BEACON_LOCATIONS, IDFACILITY, \
-    MESHTASTIC_SERVER_HOST, MESHTASTIC_SERVER_PORT, MESHTASTIC_SERVER_NODE_ID
+    MESHTASTIC_SERVER_NODE_ID
 
 #Import MQ Libraries
 import paho.mqtt.client as mqtt
@@ -42,7 +46,7 @@ else:
 
 CommandTopic = "IQRSend"
 
-FILEPATH = LORASERVICE_PATH + '/data/'
+FILEPATH = f"{LORASERVICE_PATH}/data"
 
 #GET Beacon Locations
 beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
@@ -60,12 +64,12 @@ except Exception as e:
     print(f'Error creating log object')
     print(e.__str__())
 
-# Meshtastic Interface - Connect to local meshtasticd daemon via TCP
+# Meshtastic Interface - Connect to meshtasticd daemon via TCP
 mesh_interface = None
 if os.environ.get("LOCAL") != 'TRUE':
     try:
-        mesh_interface = meshtastic.tcp_interface.TCPInterface(hostname=MESHTASTIC_SERVER_HOST)
-        logging.info(f'Connected to Meshtastic daemon at {MESHTASTIC_SERVER_HOST}:{MESHTASTIC_SERVER_PORT}')
+        mesh_interface = meshtastic.tcp_interface.TCPInterface(hostname='localhost')
+        logging.info(f'Connected to Meshtastic daemon at localhost:4403')
         logging.info(f'Server Node ID: {MESHTASTIC_SERVER_NODE_ID}')
     except Exception as e:
         logging.error(f'Failed to connect to Meshtastic daemon: {e}')
@@ -73,8 +77,20 @@ if os.environ.get("LOCAL") != 'TRUE':
 else:
     logging.info('Bypassing Meshtastic Module (LOCAL mode)')
 
+# Get MQTT credentials from secure storage with offline fallback
+mqtt_username_result = get_secret('mqttUsername')
+mqtt_password_result = get_secret('mqttPassword')
+
+if not mqtt_username_result or not mqtt_password_result:
+    logging.error("Failed to retrieve MQTT credentials - using defaults for testing only")
+    mqtt_username = "IQRight"
+    mqtt_password = "123456"
+else:
+    mqtt_username = mqtt_username_result["value"]
+    mqtt_password = mqtt_password_result["value"]
+
 mqtt_client = mqtt.Client(client_id="IQRight_Daemon", transport=MQTT_TRANSPORT, protocol=mqtt.MQTTv5)
-mqtt_client.username_pw_set("IQRight", "123456")
+mqtt_client.username_pw_set(mqtt_username, mqtt_password)
 
 properties=Properties(PacketTypes.CONNECT)
 properties.SessionExpiryInterval=30*60 # in seconds
@@ -85,8 +101,15 @@ mqtt_client.connect(MQTT_BROKER,
                keepalive=MQTT_KEEPALIVE)
 logging.info('Connected to MQTT Server')
 
+# Start MQTT loop in background thread (non-blocking)
+mqtt_client.loop_start()
+logging.info('MQTT client loop started in background thread')
+
 lastCommand = None
 pending_responses = {}
+
+# Thread pool for processing messages without blocking Meshtastic callbacks
+message_executor = ThreadPoolExecutor(max_workers=5, thread_name_prefix="MessageHandler")
 
 def getGrade(strGrade: str):
     if strGrade == 'First Grade' or strGrade[0:2] == '01':
@@ -113,7 +136,7 @@ def getGrade(strGrade: str):
 def openFile(filename: str, keyfilename: str ='offline.key'):
     """Opens and decrypts a file."""
     try:
-        keyfilename = (FILEPATH + keyfilename) if keyfilename else None
+        keyfilename = (f"{FILEPATH}/{keyfilename}") if keyfilename else None
         if os.path.exists(filename):
             if keyfilename:
                 return True, decrypt_file(datafile=filename, filename=keyfilename)
@@ -267,24 +290,25 @@ async def handleInfo(strInfo: str, source_node: int):
             payload = sendObj if sendObj else None
 
         if payload:
-            # Handle list of results
+            # Handle list of results (multi-packet protocol)
             if isinstance(payload, list):
-                for item in payload:
+                total_messages = len(payload)
+                for idx, item in enumerate(payload, start=1):
                     time.sleep(0.3)  # Small delay between messages
-                    if sendDataScanner(item, source_node) == False:
-                        logging.error(f'FAILED to send to Scanner: {json.dumps(item)}')
+                    if sendDataScanner(item, source_node, message_num=idx, total_messages=total_messages) == False:
+                        logging.error(f'FAILED to send to Scanner ({idx}/{total_messages}): {json.dumps(item)}')
                     else:
                         sendObj = json.dumps(item)
-                        logging.info(sendObj)
+                        logging.info(f'Sent packet {idx}/{total_messages}: {sendObj}')
                         hierarchyID = str(item.get("hierarchyID", '00'))
                         if publishMQTT(sendObj, hierarchyID):
                             logging.info(' Message Sent to MQTT')
                         else:
                             logging.error('MQTT ERROR')
             else:
-                # Handle single command payload
+                # Handle single command payload (1/1 message)
                 time.sleep(0.3)
-                if sendDataScanner(payload, source_node) == False:
+                if sendDataScanner(payload, source_node, message_num=1, total_messages=1) == False:
                     logging.error(f'FAILED to send to Scanner: {json.dumps(payload)}')
                 else:
                     hierarchyID = str(payload.get("hierarchyID", '00'))
@@ -296,16 +320,51 @@ async def handleInfo(strInfo: str, source_node: int):
                         logging.error('MQTT ERROR')
     return True
 
-def sendDataScanner(payload: dict, destination_node: int):
-    """Send data back to scanner via Meshtastic with acknowledgment"""
+def sendDataScanner(payload: dict, destination_node: int, message_num: int = 1, total_messages: int = 1):
+    """
+    Send data back to scanner via Meshtastic with multi-packet protocol
+
+    Message format: "name|grade_initial|teacher|msg_num/total_msgs"
+    Example: "John Smith|5|Mrs Jane|1/3" means message 1 of 3
+
+    CRITICAL LIMIT: 32 bytes max to avoid meshtasticd TCP buffer panic
+    The "bytes size exceeded" panic occurs when meshtasticd re-encodes
+    packets for TCP clients, even though over-the-air limit is 233 bytes.
+    """
     try:
         if 'name' in payload:
-            msg = f"{payload['name']}|{payload['hierarchyLevel1']}|{getGrade(payload['hierarchyLevel2'])}"
+            # Get first letter of grade
+            grade_initial = getGrade(payload['hierarchyLevel1'])[:1]
+            grade_teacher = payload['hierarchyLevel2']
+
+            # AGGRESSIVE truncation to avoid TCP buffer panic in meshtasticd
+            # Limit: 32 bytes total to stay well under internal buffer limits
+            name_truncated = payload['name'][:15]  # Max 15 chars for name
+            teacher_truncated = grade_teacher[:10]  # Max 10 chars for teacher
+
+            # Build message: "Name|G|Teacher|1/2" format
+            msg = f"{name_truncated}|{grade_initial}|{teacher_truncated}|{message_num}/{total_messages}"
+
+            # Enforce STRICT 32-byte limit (meshtasticd TCP bug workaround)
+            msg_bytes = msg.encode('utf-8')
+            if len(msg_bytes) > 32:
+                logging.warning(f"Message {len(msg_bytes)} bytes > 32, aggressive truncation")
+                # Further reduce name/teacher to fit
+                name_safe = payload['name'][:10]
+                teacher_safe = grade_teacher[:6]
+                msg = f"{name_safe}|{grade_initial}|{teacher_safe}|{message_num}/{total_messages}"
+
+                # Absolute fallback - truncate at byte level
+                msg_bytes = msg.encode('utf-8')
+                if len(msg_bytes) > 32:
+                    msg = msg_bytes[:30].decode('utf-8', errors='ignore')
+
         else:
+            # Command acknowledgment
             msg = f"cmd|ack|{payload['command']}"
             print(msg)
 
-        logging.debug(f'Sending to node {destination_node}: {msg}')
+        logging.debug(f'Sending to node {destination_node} ({message_num}/{total_messages}): {msg} (length: {len(msg)} chars, {len(msg.encode("utf-8"))} bytes)')
 
         # Send with acknowledgment using Meshtastic
         mesh_interface.sendText(
@@ -314,11 +373,11 @@ def sendDataScanner(payload: dict, destination_node: int):
             wantAck=True
         )
 
-        logging.info(f'Info sent back to node {destination_node}')
+        logging.info(f'Packet {message_num}/{total_messages} sent to node {destination_node}')
         return True
 
     except Exception as e:
-        logging.error(f"Failed to send data to node {destination_node}: {msg} - Error: {e}")
+        logging.error(f"Failed to send packet {message_num}/{total_messages} to node {destination_node}: {e}")
         return False
 
 def publishMQTT(payload: str, hierarchyID: str = None):
@@ -362,8 +421,29 @@ def beaconLocator(idBeacon: int):
     else:
         return ''
 
+def process_message_in_thread(message_text: str, source_node: int):
+    """
+    Process message in separate thread with its own event loop
+    This prevents event loop conflicts with Meshtastic TCP interface
+    """
+    thread_id = threading.current_thread().name
+    logging.debug(f"[{thread_id}] Processing message from {source_node}: {message_text}")
+
+    # Create new event loop for this thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(handleInfo(message_text, source_node))
+    finally:
+        loop.close()
+
+    logging.debug(f"[{thread_id}] Completed processing message from {source_node}")
+
 def onReceive(packet, interface):
-    """Callback for received Meshtastic messages"""
+    """
+    Callback for received Meshtastic messages
+    IMPORTANT: This must return immediately to avoid blocking the Meshtastic event loop
+    """
     try:
         # Check if this is a text message
         if 'decoded' in packet and 'text' in packet['decoded']:
@@ -372,8 +452,9 @@ def onReceive(packet, interface):
 
             logging.info(f"Received from node {source_node}: {message_text}")
 
-            # Process the message asynchronously
-            asyncio.run(handleInfo(message_text, source_node))
+            # Submit to thread pool - returns immediately
+            message_executor.submit(process_message_in_thread, message_text, source_node)
+            logging.debug(f"Submitted message from {source_node} to processing queue")
 
     except Exception as e:
         logging.error(f"Error processing received packet: {e}")
@@ -392,19 +473,22 @@ if mesh_interface:
 
 # Main Loop
 if os.getenv("LOCAL") == 'TRUE':
-    asyncio.run(handleInfo('102|123456789|1', 102))
+    # Test mode with thread pool
+    message_executor.submit(process_message_in_thread, '102|123456789|1', 102)
 else:
     logging.info("Starting Meshtastic server listener...")
     logging.info("Waiting for messages from scanners...")
 
-    # Keep the script running to receive messages
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        logging.info("Shutting down...")
-        if mesh_interface:
-            mesh_interface.close()
-        mqtt_client.disconnect()
-
-mqtt_client.loop_forever()
+# Keep the script running to receive messages
+# MQTT runs in background thread via loop_start()
+try:
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:
+    logging.info("Shutting down...")
+    message_executor.shutdown(wait=True)
+    if mesh_interface:
+        mesh_interface.close()
+    mqtt_client.loop_stop()
+    mqtt_client.disconnect()
+    logging.info("Shutdown complete")

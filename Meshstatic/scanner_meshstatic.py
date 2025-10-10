@@ -39,7 +39,8 @@ from utils.config import (
     MESHTASTIC_CLIENT_HOST,
     MESHTASTIC_CLIENT_PORT,
     MESHTASTIC_CLIENT_NODE_ID,
-    MESHTASTIC_SERVER_NODE_ID
+    MESHTASTIC_SERVER_NODE_ID,
+    MESHTASTIC_SERVER_NODE_NUM
 )
 
 #LOGGING Setup
@@ -62,7 +63,7 @@ class SerialThread(Thread):
         self.queue = queue
         # SCANNER SERIAL DEFINITIONS
         self.delay = 0.1
-        self.inPin = 21
+        self.inPin = 22
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.inPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         self.ser = serial.Serial("/dev/serial0", 115200, timeout=2)
@@ -85,12 +86,13 @@ class SerialThread(Thread):
                     logging.info(remaining)
                     codeReaded = self.ser.read(remaining)
                     logging.info('codeReaded')
-                    qrCode = str(codeReaded, encoding="UTF-8")
-                    logging.info(qrCode)
-                    logging.info(len(qrCode))
-                    logging.info(qrCode[0:6])
-                    logging.info(qrCode[6:])
-                    self.queue.put(qrCode[6:].strip())
+                    #qrCode = str(codeReaded, encoding="UTF-8")
+                    #logging.info(qrCode)
+                    #logging.info(len(qrCode))
+                    #logging.info(qrCode[0:6])
+                    #logging.info(qrCode[6:])
+                    #self.queue.put(qrCode[6:].strip())
+                    self.queue.put("P18710587")
                     logging.info('PUT in the Queue')
                     pressed = 1
                 is_killed = self._kill.wait(1)
@@ -111,11 +113,6 @@ class App(tk.Tk):
             logging.info(f'Client Node ID: {MESHTASTIC_CLIENT_NODE_ID}')
             logging.info(f'Server Node ID: {MESHTASTIC_SERVER_NODE_ID}')
 
-            # Subscribe to Meshtastic events
-            pub.subscribe(self.onReceive, "meshtastic.receive.text")
-            pub.subscribe(self.onConnection, "meshtastic.connection.established")
-            logging.info("Subscribed to Meshtastic events")
-
         except Exception as e:
             logging.error(f'Failed to connect to Meshtastic daemon: {e}')
             messagebox.showerror("Connection Error", f"Failed to connect to Meshtastic daemon: {e}")
@@ -129,6 +126,13 @@ class App(tk.Tk):
         self.previousCommand = None
         self.response_received = threading.Event()
         self.last_response = None
+
+        # Multi-packet tracking
+        self.expected_message_count = 0
+        self.received_message_count = 0
+        self.current_student_name = ""
+        self.current_grade = ""
+        self.response_list = []
 
         # Create the main window
         screenWidth = self.winfo_screenwidth()
@@ -170,6 +174,16 @@ class App(tk.Tk):
         bottomFrame.pack(fill=tk.X)
         barFrame.pack(fill=tk.X)
 
+        try:
+            # Subscribe to Meshtastic events
+            pub.subscribe(self.onReceive, "meshtastic.receive.text")
+            pub.subscribe(self.onConnection, "meshtastic.connection.established")
+            logging.info("Subscribed to Meshtastic events")
+        except Exception as e:
+            logging.error(f'Failed to subscribe to Meshtastic events: {e}')
+            messagebox.showerror("Connection Error", f"Failed to subscribe to Meshtastic events: {e}")
+            exit(1)
+
         self.queue = queue.Queue()
         self.thread = SerialThread(self.queue)
         self.thread.start()
@@ -178,16 +192,49 @@ class App(tk.Tk):
     def onReceive(self, packet, interface):
         """Callback for received Meshtastic messages"""
         try:
-            # Check if this is a text message
-            if 'decoded' in packet and 'text' in packet['decoded']:
-                message_text = packet['decoded']['text']
-                source_node = packet['from']
+            message_text = None
 
+            # Check if this is a DECODED text message (preferred)
+            if 'decoded' in packet:
+                decoded = packet['decoded']
+
+                # Check for 'text' field first (most common)
+                if 'text' in decoded:
+                    message_text = decoded['text']
+                    logging.info(f"Decoded text: {message_text}")
+
+                # Fallback to 'payload' field
+                elif 'payload' in decoded:
+                    payload = decoded['payload']
+                    if isinstance(payload, str):
+                        message_text = payload
+                    elif isinstance(payload, bytes):
+                        message_text = payload.decode('utf-8', errors='ignore')
+                    else:
+                        message_text = str(payload)
+                    logging.info(f"Decoded payload: {message_text}")
+
+            # If not decoded, check if encrypted (KEY MISMATCH!)
+            elif 'encrypted' in packet:
+                logging.error("Received ENCRYPTED packet - channel/key mismatch!")
+                logging.error("Check: meshtastic --host localhost --info")
+                logging.error("Ensure scanner and server use same channel and PSK")
+                self.lbl_status.config(text="Encryption Error", bg="red")
+                return
+
+            if message_text:
+                source_node = packet.get('from', 0)
                 logging.info(f"Received from node {source_node}: {message_text}")
 
                 # Only process messages from the server
-                if source_node == MESHTASTIC_SERVER_NODE_ID:
-                    self.processResponse(message_text)
+                if source_node == MESHTASTIC_SERVER_NODE_NUM:
+                    # Schedule on main thread for thread-safety
+                    self.after(0, self.processResponse, message_text)
+                    logging.debug(f"Scheduled processing of message from {source_node}")
+                else:
+                    logging.warning(f"Node {source_node} not recognized (expected {MESHTASTIC_SERVER_NODE_NUM})")
+            else:
+                logging.warning(f"No decodable message in packet: {packet.keys()}")
 
         except Exception as e:
             logging.error(f"Error processing received packet: {e}")
@@ -199,7 +246,12 @@ class App(tk.Tk):
         self.lbl_status.config(text="Meshtastic Connected", bg="green")
 
     def processResponse(self, response: str):
-        """Process response from server"""
+        """
+        Process response from server with multi-packet protocol
+
+        Message format: "name|grade_initial|msg_num/total_msgs"
+        Example: "John Smith|5|1/3" means message 1 of 3
+        """
         try:
             parts = response.split("|")
 
@@ -215,20 +267,79 @@ class App(tk.Tk):
                     self.last_response = False
                     self.response_received.set()
             else:
-                # Student information
-                name, level1, level2 = parts[0], parts[1], parts[2]
-                self.lbl_name.config(text=f"{name} - {level1}")
-                self.lbl_status.config(text=f"Queue Confirmed", bg="green")
-                self.sheet.insert_row([name, level1, level2], redraw=True)
-                self.last_response = True
+                # Student information with packet counter
+                name = parts[0]
+                grade_initial = parts[1]
+                grade_teacher = parts[2]
+                packet_info = parts[3]  # Format: "1/3"
+
+                # Parse packet counter
+                current_msg, total_msgs = packet_info.split('/')
+                current_msg = int(current_msg)
+                total_msgs = int(total_msgs)
+
+                logging.info(f"Received packet {current_msg}/{total_msgs}: {name}, Grade: {grade_initial}")
+
+                # If this is the first packet of a multi-packet sequence
+                if current_msg == 1:
+                    self.expected_message_count = total_msgs
+                    self.received_message_count = 1
+                    self.current_student_name = name
+                    self.current_grade = grade_initial
+
+                    # Update display
+                    self.lbl_name.config(text=f"{name}")
+
+                    if total_msgs > 1:
+                        # More packets coming - acknowledge receipt started
+                        self.lbl_status.config(text=f"Receiving... ({current_msg}/{total_msgs})", bg="yellow")
+                        logging.info(f"Expecting {total_msgs} total messages, received {current_msg}")
+                        self.response_list.append({"name":name, "grade_initial": grade_initial, "grade_teacher":grade_teacher})
+                        # Add all students to a list to be processed at the end
+                        self.last_response = False
+                    else:
+                        # Single packet - complete
+                        self.lbl_status.config(text=f"Queue Confirmed", bg="green")
+                        self.sheet.insert_row([name, grade_initial, grade_teacher], redraw=True)
+                        self.last_response = True
+
+                else:
+                    # Subsequent packet
+                    self.received_message_count += 1
+
+                    # Update display with latest packet info
+                    self.lbl_name.config(text=f"{name}")
+
+                    # Update status
+                    self.lbl_status.config(text=f"Receiving... ({current_msg}/{total_msgs})", bg="yellow")
+                    logging.info(f"Received {current_msg}/{total_msgs} packets")
+
+                    # Check if this is the last packet
+                    if current_msg == total_msgs:
+                        # All packets received - complete!
+                        # Use the LAST packet's info for the spreadsheet (most recent student)
+                        self.lbl_status.config(text=f"Queue Confirmed", bg="green")
+                        for student in self.response_list:
+                            self.sheet.insert_row([student['name'], student['grade_initial'], student['grade_teacher']], redraw=True)
+
+                        logging.info(f"All {total_msgs} packets received successfully")
+
+                        # Reset counters
+                        self.expected_message_count = 0
+                        self.received_message_count = 0
+                        self.last_response = True
+                        self.response_list = []
                 self.response_received.set()
+
 
         except Exception as e:
             logging.error(f"Error processing response: {e}")
+            logging.error(f"Response was: {response}")
+            self.lbl_status.config(text=f"Error: {e}", bg="red")
             self.last_response = False
             self.response_received.set()
 
-    def mesh_sender(self, payload: str, cmd: bool = False, timeout: float = 10.0):
+    def mesh_sender(self, payload: str, cmd: bool = False, timeout: float = 15.0):
         """Send message to server via Meshtastic with acknowledgment"""
         try:
             self.response_received.clear()
