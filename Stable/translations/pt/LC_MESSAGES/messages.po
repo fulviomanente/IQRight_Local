@@ -1,0 +1,414 @@
+# Portuguese translations for .
+# Copyright (C) 2023 ORGANIZATION
+# This file is distributed under the same license as the  project.
+# FIRST AUTHOR <ADMIN@IQRIGHT.APP>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version:  1.0\n"
+"Report-Msgid-Bugs-To: support@iqright.app\n"
+"POT-Creation-Date: 2023-09-01 23:35+0400\n"
+"PO-Revision-Date: 2023-08-21 14:20+0600\n"
+"Last-Translator: IQRight Team support@iqright.app\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: app.py:178
+msgid "Student created successfully"
+msgstr "Estudante adicionado com sucesso!"
+
+#: app.py:180 app.py:240 app.py:263 app.py:361 app.py:491 app.py:521 app.py:581
+msgid "Error occured"
+msgstr "Ocorreu um erro"
+
+#: app.py:190
+msgid "Email already exist"
+msgstr "Email já existente"
+
+#: app.py:238
+msgid "Relationship created successfully"
+msgstr "Relação estabelecida com Sucesso"
+
+#: app.py:261
+msgid "Relationship revoked successfully"
+msgstr "Relação removida com Sucesso"
+
+#: app.py:359
+msgid "Parent created successfully"
+msgstr "Responsável criado com Sucesso"
+
+#: app.py:405 app.py:519
+msgid "Success"
+msgstr "Sucesso"
+
+#: app.py:407 templates/404.html:5 templates/500.html:5
+msgid "Error"
+msgstr "Erro"
+
+#: app.py:440
+msgid ""
+"File Uploaded and Import Process Started. You will receive an email once "
+"the import is done"
+msgstr ""
+"Upload e Importação do Arquivo Executados. O processo foi iniciado e você"
+" receberá um email quando o processo estiver terminado."
+
+#: app.py:442
+msgid "Invalid Grades: "
+msgstr "Série Inválida"
+
+#: app.py:444
+msgid "Invalid Teachers: "
+msgstr "Nome de Professor inválido"
+
+#: app.py:489
+msgid "User admin created successfully"
+msgstr "Usuário Admin criado com sucesso"
+
+#: app.py:643
+msgid "Session has expired, please login again"
+msgstr "Sessão expirada, por favor faça o login novamente"
+
+#: forms.py:8 forms.py:12
+msgid "Username"
+msgstr "Nome do Usuario"
+
+#: forms.py:9
+msgid "Password"
+msgstr "Senha"
+
+#: forms.py:15
+msgid "Current Password"
+msgstr "Senha Atual"
+
+#: forms.py:16
+msgid "New Password"
+msgstr "Nova Senha"
+
+#: forms.py:17
+msgid "Confirm Password"
+msgstr "Confirme sua Senha"
+
+#: forms.py:23
+msgid "Passwords do not match"
+msgstr "Senhas não coincidem"
+
+#: googleStorage.py:124
+msgid "Error uploading File to the Storage "
+msgstr "Erro ao executar o upload do arquivo"
+
+#: configs/languages.py:5
+msgid "English"
+msgstr "English"
+
+#: configs/languages.py:6
+msgid "Spanish"
+msgstr "Español"
+
+#: configs/languages.py:7
+msgid "Portuguese"
+msgstr "Portugues"
+
+#: templates/404.html:29
+msgid "Page Not Found"
+msgstr "Página não Encontrada"
+
+#: templates/500.html:29
+msgid "Not support yet"
+msgstr "Funcionalidade não suportada"
+
+#: templates/_pagination.html:9 templates/_pagination.html:16
+msgid "Previous"
+msgstr "Anterior"
+
+#: templates/_pagination.html:41 templates/_pagination.html:48
+msgid "Next"
+msgstr "Próximo"
+
+#: templates/approval-requests.html:2 templates/approval-requests.html:7
+#: templates/sidebar.html:81
+msgid "Approval Requests"
+msgstr "Aprovações"
+
+#: templates/approval-requests.html:10 templates/approval-requests.html:151
+msgid "Access Request"
+msgstr "Solicitação de acesso"
+
+#: templates/approval-requests.html:17 templates/approval-requests.html:84
+#: templates/approval-requests.html:159 templates/family-maintenance.html:110
+#: templates/user-admin.html:22
+msgid "Name"
+msgstr "Nome"
+
+#: templates/approval-requests.html:20 templates/approval-requests.html:87
+#: templates/family-maintenance.html:14 templates/family-maintenance.html:113
+#: templates/family-maintenance.html:251 templates/student-maintenance.html:15
+#: templates/student-maintenance.html:111
+#: templates/student-maintenance.html:210
+msgid "Grade"
+msgstr "Série"
+
+#: templates/approval-requests.html:23 templates/approval-requests.html:90
+#: templates/family-maintenance.html:34 templates/family-maintenance.html:116
+#: templates/family-maintenance.html:270 templates/student-maintenance.html:35
+#: templates/student-maintenance.html:114
+#: templates/student-maintenance.html:229
+msgid "Teacher"
+msgstr "Professor(a)"
+
+#: templates/approval-requests.html:26
+msgid "PrimaryResponsible"
+msgstr "Responsável Primário"
+
+#: templates/approval-requests.html:29
+msgid "Requestor"
+msgstr "Solicitante"
+
+#: templates/approval-requests.html:32 templates/approval-requests.html:102
+msgid "Status"
+msgstr "Status"
+
+#: templates/approval-requests.html:67 templates/approval-requests.html:171
+msgid "Info"
+msgstr "Informações"
+
+#: templates/approval-requests.html:68 templates/approval-requests.html:134
+msgid "Approve"
+msgstr "Aprovar"
+
+#: templates/approval-requests.html:69 templates/approval-requests.html:135
+msgid "Deny"
+msgstr "Negar"
+
+#: templates/approval-requests.html:77
+msgid "Ad-Hoc Pickup Authorization"
+msgstr "Autorização de retirada ad hoc"
+
+#: templates/approval-requests.html:93
+msgid "Picker"
+msgstr "Seletor"
+
+#: templates/approval-requests.html:96
+msgid "Requested_by"
+msgstr "Requerido por"
+
+#: templates/approval-requests.html:99
+msgid "Authorized_User"
+msgstr "Autorizado"
+
+#: templates/approval-requests.html:165 templates/family-maintenance.html:119
+#: templates/family-maintenance.html:296 templates/student-maintenance.html:120
+#: templates/student-maintenance.html:302
+msgid "Relationship"
+msgstr "Relação"
+
+#: templates/approval-requests.html:177 templates/family-maintenance.html:205
+#: templates/student-maintenance.html:290 templates/user-admin.html:25
+#: templates/user-admin.html:86
+msgid "Email"
+msgstr "Email"
+
+#: templates/approval-requests.html:183 templates/family-maintenance.html:107
+#: templates/family-maintenance.html:211 templates/student-maintenance.html:296
+msgid "Phone"
+msgstr "Fone"
+
+#: templates/approval-requests.html:189 templates/family-maintenance.html:216
+#: templates/family-maintenance.html:332 templates/student-maintenance.html:254
+#: templates/student-maintenance.html:338 templates/user-admin.html:95
+msgid "OK"
+msgstr "OK"
+
+#: templates/change-password.html:22
+msgid "Confirm"
+msgstr "Confirmar"
+
+#: templates/family-maintenance.html:2 templates/family-maintenance.html:7
+#: templates/sidebar.html:69
+msgid "Family Maintenance"
+msgstr "Manutenção Familiar"
+
+#: templates/family-maintenance.html:55 templates/student-maintenance.html:56
+msgid "Student First Name"
+msgstr "Nome do Aluno"
+
+#: templates/family-maintenance.html:61 templates/student-maintenance.html:62
+msgid "Student Last Name"
+msgstr "Sobrenome do Aluno"
+
+#: templates/family-maintenance.html:67 templates/family-maintenance.html:290
+#: templates/student-maintenance.html:68 templates/student-maintenance.html:249
+msgid "Student Number"
+msgstr "Número/Matricula"
+
+#: templates/family-maintenance.html:73 templates/student-maintenance.html:74
+msgid "Parent's First Name"
+msgstr "Nome do Responsável"
+
+#: templates/family-maintenance.html:79 templates/student-maintenance.html:80
+msgid "Parent's Last Name"
+msgstr "Sobrenome do Responsável"
+
+#: templates/family-maintenance.html:85 templates/student-maintenance.html:86
+msgid "Phone Number"
+msgstr "Telefone"
+
+#: templates/family-maintenance.html:91 templates/student-maintenance.html:92
+msgid "Search"
+msgstr "Buscar"
+
+#: templates/family-maintenance.html:96 templates/family-maintenance.html:183
+msgid "Add Parent"
+msgstr "Adicionar Responsável"
+
+#: templates/family-maintenance.html:104 templates/student-maintenance.html:105
+msgid "Group"
+msgstr "Grupo"
+
+#: templates/family-maintenance.html:122 templates/family-maintenance.html:308
+#: templates/student-maintenance.html:123
+#: templates/student-maintenance.html:314
+msgid "Expire Date"
+msgstr "Data Validade"
+
+#: templates/family-maintenance.html:125
+msgid "Actions"
+msgstr "Ações"
+
+#: templates/family-maintenance.html:142 templates/student-maintenance.html:145
+msgid "Add"
+msgstr "Adicionar"
+
+#: templates/family-maintenance.html:166 templates/student-maintenance.html:169
+#: templates/user-admin.html:46
+msgid "Revoke"
+msgstr "Suspender"
+
+#: templates/family-maintenance.html:193 templates/family-maintenance.html:240
+#: templates/student-maintenance.html:199
+#: templates/student-maintenance.html:278 templates/user-admin.html:74
+msgid "First Name"
+msgstr "Nome"
+
+#: templates/family-maintenance.html:199 templates/family-maintenance.html:246
+#: templates/student-maintenance.html:205
+#: templates/student-maintenance.html:284 templates/user-admin.html:80
+msgid "Last Name"
+msgstr "Sobrenome"
+
+#: templates/family-maintenance.html:229 templates/student-maintenance.html:267
+msgid "Add Relationship"
+msgstr "Adicionar Relacionamento"
+
+#: templates/family-maintenance.html:302 templates/student-maintenance.html:308
+msgid "Starting Date"
+msgstr "Data de Inicio"
+
+#: templates/family-maintenance.html:328
+msgid " Main Contract"
+msgstr " Contato Principal"
+
+#: templates/index.html:2 templates/sidebar.html:39
+msgid "Home"
+msgstr "Home"
+
+#: templates/index.html:8
+msgid "Welcome"
+msgstr "Bem vindo(a)"
+
+#: templates/index.html:16
+msgid "Urgent For Today"
+msgstr "Urgente para Hoje"
+
+#: templates/index.html:18
+msgid "It's Running Late"
+msgstr "Em Atraso"
+
+#: templates/index.html:20
+msgid "Pending for Today"
+msgstr "Pendente para Hoje"
+
+#: templates/login.html:28
+msgid "Forgot Your Password?"
+msgstr "Esqueceu sua Senha"
+
+#: templates/massive-maintenance.html:2 templates/massive-maintenance.html:8
+#: templates/sidebar.html:93
+msgid "Massive Maintenance"
+msgstr "Manutenção Massiva"
+
+#: templates/massive-maintenance.html:23
+msgid "Drag and drop files here"
+msgstr "Move seus arquivos aqui"
+
+#: templates/massive-maintenance.html:24
+msgid "Limit 200MB per file"
+msgstr "Limite de 200Mb por arquivo"
+
+#: templates/massive-maintenance.html:27
+msgid "Browse Files"
+msgstr "Buscar Arquivos"
+
+#: templates/massive-maintenance.html:34
+msgid "Upload"
+msgstr "Upload"
+
+#: templates/reset-password.html:2 templates/reset-password.html:13
+msgid "Reset Password"
+msgstr "Reset de Senha"
+
+#: templates/reset-password.html:25
+msgid "Reset"
+msgstr "Reset"
+
+#: templates/sidebar.html:53 templates/student-maintenance.html:2
+#: templates/student-maintenance.html:8
+msgid "Student Maintenance"
+msgstr "Manutenção de Alunos"
+
+#: templates/sidebar.html:104
+msgid "Change Password"
+msgstr "Trocar Senha"
+
+#: templates/sidebar.html:119 templates/user-admin.html:2
+#: templates/user-admin.html:8
+msgid "User Admin"
+msgstr "Usuarios ADM"
+
+#: templates/sidebar.html:130
+msgid "Logout"
+msgstr "Logout"
+
+#: templates/student-maintenance.html:97 templates/student-maintenance.html:189
+msgid "Add Student"
+msgstr "Adicionar Aluno"
+
+#: templates/student-maintenance.html:108
+msgid "External Number"
+msgstr Número/Matricula"
+
+#: templates/student-maintenance.html:117
+msgid "Authorized"
+msgstr "Autorizado"
+
+#: templates/student-maintenance.html:334
+msgid "Main Contract"
+msgstr "Contato Principal"
+
+#: templates/user-admin.html:13
+msgid "Add User Admin"
+msgstr "Add Usuário ADM"
+
+#: templates/user-admin.html:28 templates/user-admin.html:92
+msgid "Super User"
+msgstr "Super Usuário"
+
+#: templates/user-admin.html:64
+msgid "Add Admin"
+msgstr "Add ADM"
+

@@ -1,0 +1,18 @@
+{% extends "base.html" %}  <-- Inherit from base.html
+
+{% block title %}IQRight Server Error{% endblock %} <--- Page title
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-4">
+            <h1 class="text-center display-4">Cannot communicate with IQRight Server</h1> <div Centralized and bigger message -->
+            <p class="text-center">Please try again later or contact support.</p>
+            <br>
+            <div class="flex justify-center">
+                <button type="submit" class="btn btn-primary cursor-pointer rounded-lg border border-primary bg-primary p-2 font-medium text-white transition hover:bg-opacity-90" onclick="window.location.href='/home';">Refresh</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
