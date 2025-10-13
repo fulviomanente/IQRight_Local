@@ -1,0 +1,21 @@
+# IQRight LoRa Scanner Requirements
+# Node Type: Scanner (Node ID: 100-199)
+# Application: scanner_queue.py
+
+# Core dependencies
+python-dotenv>=1.0.0
+pandas>=2.0.0
+cryptography>=41.0.0
+
+# GUI (Tkinter is built-in on most systems)
+tksheet>=7.0.0
+
+# LoRa hardware (Raspberry Pi only)
+adafruit-circuitpython-rfm9x>=2.2.0
+adafruit-blinka>=8.0.0
+
+# Serial communication (Raspberry Pi only)
+pyserial>=3.5
+
+# GPIO (Raspberry Pi only)
+RPi.GPIO>=0.7.1

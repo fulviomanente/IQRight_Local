@@ -1,0 +1,24 @@
+# IQRight LoRa Server Requirements
+# Node Type: Server (Node ID: 1)
+# Applications: CaptureLora.py, mqtt_grid_web.py
+
+# Core dependencies
+python-dotenv>=1.0.0
+pandas>=2.0.0
+cryptography>=41.0.0
+
+# MQTT
+paho-mqtt>=1.6.1
+
+# Async HTTP for API calls
+aiohttp>=3.9.0
+
+# LoRa hardware (Raspberry Pi only)
+adafruit-circuitpython-rfm9x>=2.2.0
+adafruit-blinka>=8.0.0
+
+# Web server (for mqtt_grid_web.py)
+flask>=3.0.0
+
+# Google Cloud Secret Manager (optional)
+google-cloud-secret-manager>=2.16.0

@@ -1,16 +1,13 @@
 # Virtual Environment
 venv/
 env/
-.env/
+configs/.env/
 .venv/
 
 # Python cache files
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Environment variables
-.env
 
 # IDE specific files
 .idea/
@@ -31,3 +28,4 @@ full_load*
 # Encryption keys
 *.key
 /static/sounds/
+/logs/

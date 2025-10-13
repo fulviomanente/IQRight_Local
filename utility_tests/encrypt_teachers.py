@@ -29,8 +29,8 @@ load_dotenv()
 
 # Paths
 if os.getenv('LOCAL', None) == 'TRUE':
-    DATA_PATH = '.'
-    KEY_PATH = './offline.key'
+    DATA_PATH = '..'
+    KEY_PATH = '../offline.key'
 else:
     DATA_PATH = '/etc/iqright/LoraService/data'
     KEY_PATH = '/etc/iqright/LoraService/offline.key'

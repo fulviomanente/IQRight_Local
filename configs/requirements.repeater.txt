@@ -1,0 +1,14 @@
+# IQRight LoRa Repeater Requirements
+# Node Type: Repeater (Node ID: 200-256)
+# Application: repeater.py
+
+# Core dependencies
+python-dotenv>=1.0.0
+
+# LoRa hardware (Raspberry Pi only)
+adafruit-circuitpython-rfm9x>=2.2.0
+adafruit-blinka>=8.0.0
+
+# OLED display (optional, Raspberry Pi only)
+adafruit-circuitpython-ssd1306>=2.12.0
+pillow>=10.0.0
