@@ -40,6 +40,11 @@ class LoRaPacket:
     CRC_SIZE = 2
     MAX_PAYLOAD = 229  # 253 - 22 - 2
 
+    @property
+    def is_repeat(self) -> bool:
+        """Check if packet has IS_REPEAT flag set"""
+        return bool(self.flags & PacketFlags.IS_REPEAT)
+
     @classmethod
     def create(cls,
                packet_type: PacketType,
@@ -163,6 +168,11 @@ class LoRaPacket:
 
         # Check if packet originated from self (loop detection)
         if self.source_node == my_node_id:
+            return False, "own_packet_looped"
+
+        # Check if we just forwarded this packet (sender is us)
+        # This prevents re-forwarding packets we already repeated
+        if self.sender_node == my_node_id and node_type == NodeType.REPEATER:
             return False, "own_packet_looped"
 
         # Check TTL expired

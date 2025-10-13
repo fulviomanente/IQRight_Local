@@ -23,7 +23,6 @@ Usage:
 import logging
 import logging.handlers
 import time
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -34,6 +33,7 @@ from utils.config import (
     LORA_NODE_ID, LORA_FREQUENCY, LORA_TX_POWER, LORA_TTL, LORA_ENABLE_CA,
     LOG_FILENAME, MAX_LOG_SIZE, BACKUP_COUNT, DEBUG, HOME_DIR
 )
+from utils.oled_display import get_oled_display
 
 # Logging setup
 try:
@@ -74,15 +74,22 @@ class RepeaterStats:
 def main():
     """Main repeater loop"""
 
+    # Initialize OLED display (auto-off after 30s of inactivity)
+    oled = get_oled_display(auto_off_seconds=30)
+
     # Validate node ID is in repeater range
     if LORA_NODE_ID < 200 or LORA_NODE_ID > 256:
         logging.error(f"Invalid repeater node ID: {LORA_NODE_ID}. Must be 200-256.")
         print(f"ERROR: Repeater node ID must be 200-256, got {LORA_NODE_ID}")
+        oled.show_error(f"Invalid Node ID: {LORA_NODE_ID}")
         return
 
     logging.info(f"Starting LoRa Repeater Node {LORA_NODE_ID}")
     logging.info(f"Frequency: {LORA_FREQUENCY}MHz, TX Power: {LORA_TX_POWER}dBm")
     logging.info(f"Collision Avoidance: {'ENABLED' if LORA_ENABLE_CA else 'DISABLED'}")
+
+    # Show startup on OLED
+    oled.show_startup()
 
     # Initialize transceiver
     transceiver = LoRaTransceiver(
@@ -94,9 +101,15 @@ def main():
 
     stats = RepeaterStats()
     last_stats_time = time.time()
+    last_oled_update = time.time()
     STATS_INTERVAL = 300  # Log stats every 5 minutes
+    OLED_STATS_INTERVAL = 60  # Update OLED stats every 60 seconds
 
     logging.info("Repeater ready, listening for packets...")
+
+    # Show ready status on OLED
+    time.sleep(2)  # Wait for startup message to display
+    oled.show_ready(LORA_NODE_ID, device_type="Repeater")
 
     try:
         while True:
@@ -111,6 +124,27 @@ def main():
                 if time.time() - last_stats_time > STATS_INTERVAL:
                     stats.log_stats()
                     last_stats_time = time.time()
+
+                # Periodically update OLED stats
+                if time.time() - last_oled_update > OLED_STATS_INTERVAL:
+                    try:
+                        total_dropped = (stats.packets_dropped_ttl +
+                                       stats.packets_dropped_duplicate +
+                                       stats.packets_dropped_crc)
+                        oled.show_repeater_stats(
+                            stats.packets_received,
+                            stats.packets_forwarded,
+                            total_dropped
+                        )
+                        last_oled_update = time.time()
+                    except Exception as e:
+                        logging.error(f"Failed to update OLED: {e}")
+
+                # Check OLED auto-off
+                try:
+                    oled.update()
+                except Exception:
+                    pass
 
                 continue
 
@@ -149,6 +183,12 @@ def main():
 
             logging.info(f"Forwarding packet: {repeated_packet}")
 
+            # Show forwarding on OLED (brief)
+            try:
+                oled.show_packet_forwarded(packet.source_node, packet.dest_node)
+            except Exception:
+                pass
+
             # Forward with collision avoidance
             try:
                 if LORA_ENABLE_CA and transceiver.rfm9x:
@@ -180,11 +220,21 @@ def main():
     except KeyboardInterrupt:
         logging.info("Repeater shutting down...")
         stats.log_stats()
+        try:
+            oled.shutdown()
+        except Exception as e:
+            logging.error(f"Error shutting down OLED: {e}")
         print("\nRepeater stopped")
 
     except Exception as e:
         logging.error(f"Fatal error in repeater: {e}")
         stats.log_stats()
+        try:
+            oled.show_error(f"Fatal error: {str(e)[:20]}")
+            time.sleep(5)
+            oled.shutdown()
+        except Exception:
+            pass
         raise
 
 

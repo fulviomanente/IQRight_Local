@@ -21,7 +21,11 @@ from utils.config import API_URL, API_TIMEOUT, DEBUG, LORASERVICE_PATH, OFFLINE_
     TOPIC, TOPIC_PREFIX, MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, MQTT_TRANSPORT, MQTT_VERSION, MQTT_KEEPALIVE,   \
     LOG_FILENAME, MAX_LOG_SIZE, BACKUP_COUNT, RFM9X_FREQUENCE,   \
     RFM9X_SEND_DELAY, RFM9X_TX_POWER, RFM9X_NODE, RFM9X_ACK_DELAY, RMF9X_POOLING,\
-    PROJECT_ID, BEACON_LOCATIONS, IDFACILITY
+    PROJECT_ID, BEACON_LOCATIONS, IDFACILITY, \
+    LORA_NODE_ID, LORA_FREQUENCY, LORA_TX_POWER, LORA_ENABLE_CA
+
+# Import enhanced LoRa packet handler
+from lora import LoRaTransceiver, LoRaPacket, PacketType, NodeType, MultiPartFlags, CollisionAvoidance
     
 
 #Import MQ Libraries
@@ -63,27 +67,13 @@ except Exception as e:
     print(e.__str__())
 
 
-# Create the I2C interface.
-# Import LORA Libraries - THIS WILL FAIL IN A NON RASPBERRY PI ENVIRONMENT
-if os.environ.get("LOCAL") != 'TRUE':
-    import busio
-    from digitalio import DigitalInOut, Direction, Pull
-    import board
-    import adafruit_rfm9x
-    i2c = busio.I2C(board.SCL, board.SDA)
-    reset_pin = DigitalInOut(board.D4)
-    # Configure LoRa Radio
-    CS = DigitalInOut(board.CE1)
-    RESET = DigitalInOut(board.D25)
-    spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
-    rfm9x = adafruit_rfm9x.RFM9x(spi, CS, RESET, RFM9X_FREQUENCE)
-    rfm9x.tx_power = RFM9X_TX_POWER
-    rfm9x.node = RFM9X_NODE
-    rfm9x.ack_delay = RFM9X_ACK_DELAY
-    prev_packet = None
-    logging.info('Connected to Lora Module')
-else:
-    logging.info('Bypassing Lora Module')
+# Initialize enhanced LoRa transceiver (handles hardware setup internally)
+transceiver = LoRaTransceiver(
+    node_id=LORA_NODE_ID,
+    node_type=NodeType.SERVER,
+    frequency=LORA_FREQUENCY,
+    tx_power=LORA_TX_POWER
+)
 
 
 client = mqtt.Client(client_id="IQRight_Daemon", transport=MQTT_TRANSPORT, protocol=mqtt.MQTTv5)
@@ -261,50 +251,120 @@ async def get_user_local(beacon, code, distance, df):
 
 
 async def getInfo(beacon, code, distance, df):
+    """
+    Get student info from API or local database (whichever responds first)
+
+    Strategy:
+    1. Start both API and local lookups in parallel
+    2. Wait for first result with 2-second timeout
+    3. Prefer API result if it completes first and has data
+    4. Fall back to local if API times out or returns None
+    """
     api_task = asyncio.create_task(get_user_from_api(code))
     local_task = asyncio.create_task(get_user_local(beacon, code, distance, df))
 
-    #try:
-    api_result = await asyncio.wait_for(api_task, timeout=2.0)  # Wait for the API with a timeout
-    if api_result:
-        if not isinstance(api_result, list):
-            api_result = [api_result]  # Convert single result to list
-        for result in api_result:
-            result["source"] = "api"
-        logging.debug("Using API results")
-        return api_result
-    #except asyncio.TimeoutError:
-    #    logging.warning("API Timeout. Using local data if available.")
-    #    pass  # Handle timeout (use local result if available)
-    #except Exception as ex:
-    #    logging.error(f'Error processing data: {ex}')
-    #    return None
+    try:
+        # Wait for the first task to complete, with overall 2-second timeout
+        done, pending = await asyncio.wait(
+            [api_task, local_task],
+            timeout=2.0,
+            return_when=asyncio.FIRST_COMPLETED
+        )
 
-    local_result = await local_task  # Get the local result
+        # Check if API completed first with valid data
+        if api_task in done:
+            api_result = await api_task
+            if api_result:
+                # API returned data - use it
+                if not isinstance(api_result, list):
+                    api_result = [api_result]
+                for result in api_result:
+                    result["source"] = "api"
+                logging.debug("Using API results (completed first)")
 
-    return local_result  # Return local data if API timed out
+                # Cancel local task if still running
+                if local_task in pending:
+                    local_task.cancel()
 
-async def handleInfo(strInfo: str):
+                return api_result
+
+        # Check if local completed first or API returned None
+        if local_task in done:
+            local_result = await local_task
+            if local_result:
+                logging.debug("Using local results")
+
+                # Cancel API task if still running
+                if api_task in pending:
+                    api_task.cancel()
+
+                return local_result
+
+        # If we get here, timeout occurred or both returned None
+        # Wait for any pending tasks to complete
+        if pending:
+            logging.warning("Timeout reached, waiting for remaining tasks...")
+            remaining_done, remaining_pending = await asyncio.wait(pending, timeout=0.5)
+
+            # Check results from remaining tasks
+            for task in remaining_done:
+                result = await task
+                if result:
+                    if task == api_task:
+                        if not isinstance(result, list):
+                            result = [result]
+                        for r in result:
+                            r["source"] = "api"
+                        logging.debug("Using API results (after timeout)")
+                    else:
+                        logging.debug("Using local results (after timeout)")
+                    return result
+
+        logging.warning("No results from API or local lookup")
+        return None
+
+    except asyncio.CancelledError:
+        logging.warning("getInfo was cancelled")
+        # Cancel both tasks
+        api_task.cancel()
+        local_task.cancel()
+        return None
+    except Exception as ex:
+        logging.error(f'Error in getInfo: {ex}')
+        # Cancel both tasks on error
+        api_task.cancel()
+        local_task.cancel()
+        return None
+
+async def handleInfo(strInfo: str, source_node: int):
+    """
+    Handle incoming info request from scanner
+
+    Args:
+        strInfo: Payload string from scanner (beacon|code|distance)
+        source_node: Source node ID (scanner that sent request)
+    """
     global lastCommand
     ret = False
     payload = None
     if len(strInfo) > 5:
-        beacon, payload, distance = strInfo.split('|')
-        if payload.find(":") >= 0:
-            strCmd, command = payload.split(":")
+        beacon, payload_code, distance = strInfo.split('|')
+        if payload_code.find(":") >= 0:
+            strCmd, command = payload_code.split(":")
             if command != lastCommand:
                 payload = {'command': command}
         else:
-            sendObj = await getInfo(beacon, payload, distance, df)
+            sendObj = await getInfo(beacon, payload_code, distance, df)
             payload = sendObj if sendObj else None
-        
+
         if payload:
-            # Handle list of results
+            # Handle list of results (multi-packet)
             if isinstance(payload, list):
-                for item in payload:
+                total_packets = len(payload)
+                for idx, item in enumerate(payload, start=1):
                     time.sleep(RFM9X_SEND_DELAY)
-                    if sendDataScanner(item, len(payload)) == False:
-                        logging.error(f'FAILED to sent to Scanner: {json.dumps(item)}')
+                    if sendDataScanner(item, source_node, packet_index=idx, total_packets=total_packets) == False:
+                        logging.error(f'FAILED to send to Scanner: {json.dumps(item)}')
                     else:
                         sendObj = json.dumps(item)
                         hierarchyID = str(item.get("hierarchyID", '00'))
@@ -315,8 +375,8 @@ async def handleInfo(strInfo: str):
             else:
                 # Handle single command payload
                 time.sleep(RFM9X_SEND_DELAY)
-                if sendDataScanner(payload) == False:
-                    logging.error(f'FAILED to sent to Scanner: {json.dumps(payload)}')
+                if sendDataScanner(payload, source_node, packet_index=0, total_packets=0) == False:
+                    logging.error(f'FAILED to send to Scanner: {json.dumps(payload)}')
                 else:
                     hierarchyID = str(payload.get("hierarchyID", '00'))
                     sendObj = json.dumps(payload)
@@ -327,22 +387,57 @@ async def handleInfo(strInfo: str):
                         logging.error('MQTT ERROR')
     return True
 
-def sendDataScanner(payload: dict, totalPackets: int = 1):
-    startTime = time.time()
-    while True:
+def sendDataScanner(payload: dict, dest_node: int, packet_index: int = 0, total_packets: int = 0):
+    """
+    Send data to scanner using enhanced packet protocol
+
+    Args:
+        payload: Dictionary with student info or command
+        dest_node: Destination scanner node ID
+        packet_index: Index in multi-packet sequence (0 if single)
+        total_packets: Total packets in sequence (0 if single)
+    """
+    try:
+        # Build message payload
         if 'name' in payload:
-            msg = f"{payload['name']}|{getGrade(payload['hierarchyLevel1'])[:1]}|{payload['hierarchyLevel2']}|{totalPackets}"
+            grade_initial = getGrade(payload['hierarchyLevel1'])[:1]
+            # Send hierarchyID instead of teacher name to save bytes
+            msg = f"{payload['name']}|{grade_initial}|{payload['hierarchyID']}"
         else:
             msg = f"cmd|ack|{payload['command']}"
-            print(msg)
-        if rfm9x.send_with_ack(bytes(msg, "UTF-8")):
-            logging.debug('Info sent back')
-            return True
+
+        # Create packet using transceiver helper
+        packet = transceiver.create_data_packet(
+            dest_node=dest_node,
+            payload=msg.encode('utf-8'),
+            use_ack=True,
+            multi_part_index=packet_index,
+            multi_part_total=total_packets
+        )
+
+        # Send with collision avoidance if enabled
+        if LORA_ENABLE_CA and transceiver.rfm9x:
+            data = packet.serialize()
+            success = CollisionAvoidance.send_with_ca(
+                transceiver.rfm9x,
+                data,
+                max_retries=3,
+                enable_rx_guard=True,
+                enable_random_delay=True
+            )
         else:
-            logging.debug(f"Failed to send Data to node: {msg}")
-        if time.time() >= startTime + 5:
-            logging.error(f"Timeout trying to send Data to node: {msg}")
-            return False
+            success = transceiver.send_packet(packet, use_ack=True)
+
+        if success:
+            logging.info(f'Sent to scanner {dest_node}: {msg} [{packet_index}/{total_packets}]')
+        else:
+            logging.error(f'Failed to send to scanner {dest_node}: {msg}')
+
+        return success
+
+    except Exception as e:
+        logging.error(f'Error in sendDataScanner: {e}')
+        return False
 
 def publishMQTT(payload: str, hierarchyID: str = None):
     count = 5
@@ -386,36 +481,37 @@ def beaconLocator(idBeacon: int):
 
 # Main Loop
 if os.getenv("LOCAL") == 'TRUE':
-    asyncio.run(handleInfo('102|123456789|1'))
+    asyncio.run(handleInfo('102|123456789|1', 102))
 else:
     while True:
+        # Receive packet using enhanced packet handler
+        packet = transceiver.receive_packet(timeout=RMF9X_POOLING)
 
-        packet = None
-        packet = rfm9x.receive(with_ack = True, with_header = True)
-        if packet != None:
-            prev_packet = packet[4:]
-            print(prev_packet)
+        if packet:
             try:
-                packet_text = str(prev_packet, "utf-8")
-            except Exception as e:
-                logging.error(f'{prev_packet}: Invalid byte String')
-                logging.error(f'{e.__str__()}')
-                packet_text = None
-            finally:
-                if packet_text:
-                    if DEBUG:
-                        logging.debug(f'{packet} Received')
-                        logging.debug(f'{packet_text} Converted to String')
-                        logging.debug('RX: ')
-                        logging.debug(packet_text)
-                        #result, payload = handleInfo(packet_text)
-                        asyncio.run(handleInfo(packet_text))
+                # Extract payload and source node from packet
+                packet_text = packet.payload.decode('utf-8')
+                source_node = packet.source_node
 
-                    else:
-                        logging.error('No response received from MQ Topic: IQSend or Empty Message received from Lora')
-                else:
-                    if DEBUG:
-                        logging.debug('Empty Package Received')
-                time.sleep(RMF9X_POOLING)
+                if DEBUG:
+                    logging.debug(f'{packet} Received')
+                    logging.debug(f'{packet_text} Converted to String')
+                    logging.debug('RX: ')
+                    logging.debug(packet_text)
+
+                # Process the packet
+                asyncio.run(handleInfo(packet_text, source_node))
+
+            except UnicodeDecodeError as e:
+                logging.error(f'{packet.payload}: Invalid UTF-8 String')
+                logging.error(f'{e.__str__()}')
+            except Exception as e:
+                logging.error(f'Error processing packet: {e}')
+                logging.error(f'{e.__str__()}')
+        else:
+            if DEBUG:
+                logging.debug('No packet received (timeout)')
+
+        time.sleep(0.1)  # Brief sleep to prevent CPU spinning
 
 client.loop_forever();

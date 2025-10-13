@@ -16,7 +16,7 @@ communicating with other devices, sending and receiving information and running 
 
 #### Local Wed Front End
 
-- The local web server running mqtt_grid_web.py as follows:
+- The local web server running mqtt_grid_web.py in a Raspberry 4B pi as follows:
 - The project is a Flask application meant to be deployed Locally.
 - Isolation of the users is important and the integration with Paho MQTT is fundamental.
 - Every user has a unique ID and a name and the login is done with user and password
@@ -35,19 +35,27 @@ communicating with other devices, sending and receiving information and running 
 - All files stored locally MUST be encrypted
 - All parameters for logging in, keys, secrets and anything that should be stored locally should be encrypted 
 
-#### The Meshstatic interface service
+#### The LoRa interface service
 
 - The service is a python script(capture_lora.py) that runs  as follows:
-- The service captures the data from the Radio module using meshstatic libraries and send it to the specific MQTT topic
-- The service is responsible applying business rules and enriching it with the data from the local files
+- The service captures the data from the Radio module using adafruit_rfm9x libraries and send it to the specific MQTT topic
+- The service is responsible for applying business rules and enriching it with the data from the local files
 - The data that is coming is from the Clients (scanners or Bluetooth Modules) is the information of the detection 
 - of the parents' presence of a pickup car line in the parking lot
 - The service uses the Paho MQTT client library for communication with the MQTT broker.
 - The service uses the Google Cloud Secret Manager client library for managing the secrets.
 - The service uses the Pandas library for data manipulation and analysis.
-- The service is a local service and it is not accessible from the web app
-- The service should have no outside communication or dependency what so ever, except the radio to capture the info
+- The service is exclusive for the local network it is not accessible from the web app
+- The service should have no outside communication or dependency whatsoever, except the radio to capture the info
 
+### The Scanner
+
+The scanner is a raspberry pi zero, that runs a single application, multithread, that is used by the operators in the car line to:
+1) Capture the kids info through reading a QRCode
+2) Organizing the line and determining when to release the students
+3) Visualize all students that should leave and hear their names. 
+4) This App has a lot of interactions, and they all get replicated to the server that interpretes, applies the business rules and always returns information
+5) There are some cases when one single QR Code Read returns multiple students from the server, therefore, multiple messages
 
 ## Build & Run Commands
 - Run Web App: `flask run` or `python -m flask run` (uses mqtt_grid_web.py)
@@ -67,7 +75,7 @@ communicating with other devices, sending and receiving information and running 
 - Error handling with try/except at start of functions
 - JSON deserialization wrapped in exception handling
 - Use defensive coding (None checks, type checks) 
-- Secrets managed via Google Cloud Secret Manager
+- Secrets managed via Google Cloud Secret Manager or locally stored in a encrypted file
 - Config values from environment variables or config.py
 - Log errors with stack traces for debugging (debug vs info level)
 - Write concise, technical responses with accurate Python examples. 
@@ -97,7 +105,7 @@ communicating with other devices, sending and receiving information and running 
 - Google Cloud Secret Manager client library (for secret management)
 - Paho-MQTT client library (for MQTT communication)
 - Pandas (for data manipulation and analysis)
-- Meshstatic (for communication)
+- adafruit_rfm9x (for communication)
 - Pytest (for testing)
 - Pytest-cov (for test coverage)
 - Pytest-mock (for mocking)
@@ -113,7 +121,6 @@ communicating with other devices, sending and receiving information and running 
 - All data processing should be done offline and the results should be saved to a file.
 - All files stored locally should be encrypted at rest.
 
-
 ### Key Conventions
  1. Use Flask's application context and request context appropriately. 
  2. Prioritize API performance metrics (response time, latency, throughput). 
@@ -125,6 +132,24 @@ communicating with other devices, sending and receiving information and running 
 4. Secrets are stored in Google Cloud Secret Manager and are loaded into the application using the Secret Manager client library.
     
 ### Integration 
-- All services used in the Local Application are part of another project which you have full access to on ../../api_integration_layer 
+- All services used in the Local Application are part of another project which you have full access to on ˜/Documents/Code/IQRight/api_integration_layer 
 - Use secure calls for all htts requests sending the proper authentication header
 - For file download/upload use the createToken service before calling the main service
+
+## Implementation Details
+
+Right now we have a stable code where Scanner and Server communicate properly. What comes next is phase 2, which is described below:
+1) Create a separate class in a separate file that handles the packet methods (parsing, creating the packet, reading, etc)
+2) CaptureLora and scanner_queue should be refactored to use the new class
+3) The new class should implement controls to better handle packets and replication by other nodes. It should include at least:
+   a) Timestamp (should be used to measure how long the packet is in the air)
+   b) Source and Destination Nodes
+   c) Sender Node (which will be used by the repeater when the sender node is not the source of the info)
+   d) TTL information to know when to expire the packets that are in flight
+   e) Sequential Number, that should be used by the reader method to discard duplicate or old packets received
+4) The method that reads the packet should:
+   a) Know which node they are (server, scanner or repeater) and proceed with the handling accordingly
+   b) Check for the sequence and log and discard old packets
+   c) Check for origin and log and discard packets that were sent by themselves and somehow replicated back
+5) Implement a repeater who should only apply the rules detailed on #4 and repeat the packets updating the sender and TTL info
+6) The reader should have Colision Avoidance methods like: randomized delay, rx guard and eventually even estimate air time and add channel rotation

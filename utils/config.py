@@ -59,6 +59,17 @@ RFM9X_ACK_DELAY = 0.1
 RFM9X_SEND_DELAY = 0.3
 RMF9X_POOLING = 0.9
 
+# Enhanced LoRa Packet Configuration
+LORA_NODE_TYPE = os.getenv('LORA_NODE_TYPE', 'SERVER')  # SERVER, SCANNER, REPEATER
+LORA_NODE_ID = int(os.getenv('LORA_NODE_ID', '1'))  # 1=server, 100-199=scanners, 200-256=repeaters
+LORA_FREQUENCY = float(os.getenv('LORA_FREQUENCY', '915.23'))  # MHz
+LORA_TX_POWER = int(os.getenv('LORA_TX_POWER', '23'))  # dBm
+LORA_TTL = int(os.getenv('LORA_TTL', '3'))  # Max hops for repeater
+LORA_ENABLE_CA = os.getenv('LORA_ENABLE_CA', 'TRUE') == 'TRUE'  # Collision avoidance
+LORA_CA_MIN_DELAY_MS = int(os.getenv('LORA_CA_MIN_DELAY_MS', '10'))
+LORA_CA_MAX_DELAY_MS = int(os.getenv('LORA_CA_MAX_DELAY_MS', '100'))
+LORA_RX_GUARD_MS = int(os.getenv('LORA_RX_GUARD_MS', '50'))
+
 #MESHTASTIC Configuration
 # Server configuration (main receiver - typically node ID 1)
 MESHTASTIC_SERVER_NODE_ID = 1

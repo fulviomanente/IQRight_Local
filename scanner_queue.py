@@ -37,21 +37,33 @@ Here's a breakdown of the code:
 '''
 import datetime
 
-import board
-import busio
-import digitalio
-import adafruit_rfm9x
 import tkinter as tk
 from tkinter import messagebox
 from tksheet import Sheet
 from threading import Thread
-import threading
-import serial
 import time
-import RPi.GPIO as GPIO
+import threading
 import queue
 import logging
 import logging.handlers
+import os
+import pandas as pd
+from cryptography.fernet import Fernet
+from io import StringIO
+from utils.config import LORA_FREQUENCY, LORA_TX_POWER, LORA_ENABLE_CA
+
+
+if os.getenv("LOCAL", "FALSE") != "TRUE":
+    import serial
+    import RPi.GPIO as GPIO
+    # Import enhanced LoRa packet handler
+    from lora import LoRaTransceiver, LoRaPacket, PacketType, NodeType, MultiPartFlags, CollisionAvoidance
+    TEACHERS_DATA_PATH = '/home/iqright/data/teachers.iqr'
+    KEY_PATH = '/home/iqright/offline.key'
+else:
+    TEACHERS_DATA_PATH = './teachers.iqr'
+    KEY_PATH = './offline.key'
+
 
 debug = True
 
@@ -64,6 +76,49 @@ handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_si
 handler.setFormatter(log_formatter)
 logging.getLogger().addHandler(handler)
 logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
+
+
+def load_teachers_mapping():
+    """Load and decrypt teachers mapping file"""
+    try:
+        if not os.path.exists(TEACHERS_DATA_PATH):
+            logging.warning(f"Teachers file not found: {TEACHERS_DATA_PATH}")
+            logging.warning("Scanner will display hierarchy IDs instead of teacher names")
+            return None
+
+        if not os.path.exists(KEY_PATH):
+            logging.error(f"Encryption key not found: {KEY_PATH}")
+            return None
+
+        # Load key
+        with open(KEY_PATH, 'rb') as key_file:
+            key = key_file.read()
+        f = Fernet(key)
+
+        # Decrypt teachers file
+        with open(TEACHERS_DATA_PATH, 'rb') as encrypted_file:
+            encrypted_data = encrypted_file.read()
+
+        decrypted_data = f.decrypt(encrypted_data)
+
+        # Parse CSV
+        df = pd.read_csv(StringIO(decrypted_data.decode('utf-8')), dtype={'IDHierarchy': int, 'TeacherName': str})
+
+        # Create dictionary for fast lookup: {hierarchyID: teacherName}
+        teachers_dict = {f"{row['IDHierarchy']:02d}": row['TeacherName'] for _, row in df.iterrows()}
+
+        logging.info(f"Loaded {len(teachers_dict)} teacher mappings from {TEACHERS_DATA_PATH}")
+        return teachers_dict
+
+    except Exception as e:
+        logging.error(f"Error loading teachers mapping: {e}", exc_info=True)
+        logging.error(f"TEACHERS_DATA_PATH: {TEACHERS_DATA_PATH}")
+        logging.error(f"KEY_PATH: {KEY_PATH}")
+        return None
+
+
+# Load teachers mapping at startup
+teachers_mapping = load_teachers_mapping()
 
 
 #def serial_UART_Monitor():
@@ -104,6 +159,13 @@ class SerialThread(Thread):
                 strRead = str(serialRead, encoding="UTF-8")
                 logging.info(f"full read ({len(strRead)} bytes): {strRead}")
                 qrCode = strRead[6:].strip()
+
+                # Remove leading "31" characters (scanner low battery bug)
+                # Will never have valid QR code starting with "31"
+                while qrCode.startswith("31"):
+                    qrCode = qrCode[2:]
+                    logging.debug(f"Removed leading '31' from QR code")
+
                 if len(qrCode) > 6:
                     self.queue.put(qrCode)
                     logging.info(f'PUT in the Queue: {qrCode}')
@@ -121,19 +183,16 @@ class SerialThread(Thread):
 
 class App(tk.Tk):
     def __init__(self):
-        # LORA DEFINITIONS
-        RADIO_FREQ_MHZ = 915.23
-        CS = digitalio.DigitalInOut(board.CE1)
-        RESET = digitalio.DigitalInOut(board.D25)
-        # Initialize SPI bus.
-        spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
-        # Initialze RFM radio
-        self.rfm9x = adafruit_rfm9x.RFM9x(spi, CS, RESET, RADIO_FREQ_MHZ)
-        # set node addresses
-        self.rfm9x.node = 102
-        self.rfm9x.destination = 1
-        # initialize counter
-        counter = 0
+        # Initialize enhanced LoRa transceiver (handles hardware setup internally)
+        # Scanner node ID should be 100-199 range
+        self.scanner_node_id = 102  # Change this for each scanner
+        self.server_node_id = 1
+        self.transceiver = LoRaTransceiver(
+            node_id=self.scanner_node_id,
+            node_type=NodeType.SCANNER,
+            frequency=LORA_FREQUENCY,
+            tx_power=LORA_TX_POWER
+        )
         ##########################
         self.lstCode = []
         self.breakLineList: list = []
@@ -187,84 +246,172 @@ class App(tk.Tk):
         self.process_serial()
 
     def lora_receiver(self, cmd: bool):
+        """
+        Receive packets from server using enhanced packet protocol
+
+        Args:
+            cmd: True if expecting command acknowledgment, False for data
+        """
         startTime = time.time()
         confirmationReceived = False
         list_received = []
-        count = 0
+        expected_count = 0
+
         while True:
-            # Look for a new packet: only accept if addressed to my_node
+            # Look for a new packet using enhanced protocol
             logging.debug('Waiting for packet from Server')
             time.sleep(0.3)
-            packet = self.rfm9x.receive(with_header=True)
-            # If no packet was received during the timeout then None is returned.
+
+            packet = self.transceiver.receive_packet(timeout=0.5)
+
             if packet is not None:
                 # Received a packet!
-                # Print out the raw bytes of the packet:
                 logging.info(f'response from Server: {packet}')
-                strPayload = str(packet[4:], "UTF-8")
-                logging.info(f'Payload: {strPayload}')
-                response = strPayload.split("|")
-                logging.info("??".join(response))
-                if cmd:
-                    if response[1] == 'ack' and response[2] == self.lastCommand:
-                        self.lbl_status.config(text='CMD Confirmed ')
-                        logging.info('SERVER ACK TRUE')
-                        return True
+
+                try:
+                    strPayload = packet.payload.decode('utf-8')
+                    logging.info(f'Payload: {strPayload}')
+                    response = strPayload.split("|")
+                    logging.info("??".join(response))
+                    if cmd:
+                            # Handle command acknowledgment
+                        if response[1] == 'ack' and response[2] == self.lastCommand:
+                            self.lbl_status.config(text='CMD Confirmed ')
+                            logging.info('SERVER ACK TRUE')
+                            return True
+                        else:
+                            logging.info('SERVER ACK FALSE')
+                            return False
                     else:
-                        logging.info('SERVER ACK FALSE')
-                        return False
-                else:
-                    if count == 0:
-                        count = int(response[3])
-                    name = response[0]
-                    level1 = response[1]
-                    level2 = response[2]
-                    list_received.append({"name": name, "level1": level1, "level2": level2})
-                    logging.debug(f"Received packet {len(list_received)}/{count}")
-                    if count == 1:
-                        confirmationReceived = True
-                        break
-                    elif len(list_received) == count:
-                        logging.debug(f"All packets received/{count}")
-                        confirmationReceived = True
-                        break
-            #else:
-            #    return False
+                            # Handle data packet (student info)
+                            # Format: Name|Grade|HierarchyID
+                        name = response[0]
+                        level1 = response[1]
+                        hierarchy_id = response[2]  # Now receiving hierarchyID (e.g., "02")
+
+                        # Lookup teacher name from hierarchyID
+                        if teachers_mapping and hierarchy_id in teachers_mapping:
+                            teacher_name = teachers_mapping[hierarchy_id]
+                        else:
+                            # Fallback to displaying hierarchy ID if mapping not available
+                            teacher_name = f"Teacher {hierarchy_id}"
+                            if not teachers_mapping:
+                                logging.warning("Teachers mapping not loaded, displaying hierarchy ID")
+
+                        list_received.append({"name": name, "level1": level1, "level2": teacher_name})
+
+                        # Check if multi-packet sequence
+                        if packet.is_multi_part():
+                            expected_count = packet.multi_part_total
+                            logging.debug(f"Received packet {packet.multi_part_index}/{packet.multi_part_total}")
+
+                            # Check if last packet in sequence
+                            if packet.multi_flags & MultiPartFlags.LAST:
+                                confirmationReceived = True
+                                break
+                            else:
+                                # Single packet
+                                confirmationReceived = True
+                                break
+
+                except UnicodeDecodeError as e:
+                    logging.error(f'Invalid UTF-8 in packet payload: {e}')
+                    return False
+                except Exception as e:
+                    logging.error(f'Error processing packet: {e}')
+                    return False
+
+            # Check timeout
             if time.time() >= startTime + 5:
                 logging.debug('TIMEOUT: Waiting for packet from Server')
                 return False
+
+        # Display all received students
         if confirmationReceived:
             for student in list_received:
                 name = student["name"]
                 level1 = student["level1"]
                 level2 = student["level2"]
                 self.sheet.insert_row([name, level1, level2], redraw=True)
-            self.lbl_name.config(text=f"{name} - {level1}")
-            self.lbl_status.config(text=f"Queue Confirmed")
+
+            # Update status with last student
+            if list_received:
+                last = list_received[-1]
+                self.lbl_name.config(text=f"{last['name']} - {last['level1']}")
+                self.lbl_status.config(text=f"Queue Confirmed ({len(list_received)} students)")
             return True
 
+        return False
+
     def lora_sender(self, sending: bool, payload: str, cmd: bool = False, serverResponseTimeout: int = 5):
-        comm_status = False
+        """
+        Send data to server using enhanced packet protocol
+
+        Args:
+            sending: Control flag for retry loop
+            payload: QR code or command to send
+            cmd: True if sending command, False for data
+            serverResponseTimeout: Timeout in seconds
+        """
         try:
             startTime = time.time()
             cont = 0
             while sending:
                 cont += 1
-                logging.info(f"ready to send ({cont}): {self.rfm9x.node}|{payload}|1")
-                if not self.rfm9x.send(bytes(f"{self.rfm9x.node}|{payload}|1", "UTF-8")):
+
+                # Build message: "scanner_id|payload|distance"
+                msg = f"{self.scanner_node_id}|{payload}|1"
+                logging.info(f"ready to send ({cont}): {msg}")
+
+                # Create packet based on type
+                if cmd:
+                    # Command packet
+                    packet = self.transceiver.create_cmd_packet(
+                        dest_node=self.server_node_id,
+                        command=payload.split(':')[1]  # Extract command from "cmd:break" format
+                    )
+                else:
+                    # Data packet (QR scan request)
+                    packet = self.transceiver.create_data_packet(
+                        dest_node=self.server_node_id,
+                        payload=msg.encode('utf-8'),
+                        use_ack=True
+                    )
+
+                # Send with collision avoidance if enabled
+                if LORA_ENABLE_CA and self.transceiver.rfm9x:
+                    data = packet.serialize()
+                    success = CollisionAvoidance.send_with_ca(
+                        self.transceiver.rfm9x,
+                        data,
+                        max_retries=3,
+                        enable_rx_guard=True,
+                        enable_random_delay=True
+                    )
+                else:
+                    success = self.transceiver.send_packet(packet, use_ack=True)
+
+                if not success:
                     logging.info(f"error sending on Lora")
                     self.lbl_status.config(text=f"Error sending to Server - {cont}", bg="red")
                 else:
                     logging.info(f"Send executed")
                     self.lbl_status.config(text=f"Info sent to Server - {cont}", bg="green")
+
+                    # Wait for response
                     if self.lora_receiver(cmd):
-                        self.lstCode.append(payload)
-                        sending = False
+                        if not cmd:  # Only add to lstCode for data, not commands
+                            self.lstCode.append(payload)
+                            sending = False
+                            return True
+
+                # Check timeout
                 if time.time() >= startTime + serverResponseTimeout:
                     self.lbl_status.config(text=f"Ack not received - {cont}", bg="red")
                     return False
         except Exception as e:
-            logging.info(f"Error sending to Server: {e}")
+            logging.error(f"Error sending to Server: {e}")
+            return False
 
     def screenCleanup(self):
         answer = messagebox.askyesno("Confirm", "Erase all Data?")
