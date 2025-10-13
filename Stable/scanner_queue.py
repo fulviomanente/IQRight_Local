@@ -270,7 +270,7 @@ class App(tk.Tk):
         answer = messagebox.askyesno("Confirm", "Erase all Data?")
         if answer == True:
             self.pileCommands("cleanup")
-            if self.lora_sender(sending=True, payload='cmd:cleanup}', cmd=True):
+            if self.lora_sender(sending=True, payload='cleanup', cmd=True):
                 self.lstCode = []
                 self.sheet.delete_rows([x for x in range(0, self.sheet.get_total_rows())], deselect_all=True, redraw=True)
             else:
@@ -278,7 +278,7 @@ class App(tk.Tk):
                 
     def breakQueue(self):
         self.pileCommands("break") 
-        if self.lora_sender(sending=True, payload='cmd:break', cmd=True):
+        if self.lora_sender(sending=True, payload='break', cmd=True):
             self.sheet.insert_row(['RELEASE POINT', '', ''], redraw=True)
             self.sheet.highlight_rows(rows=[self.sheet.get_total_rows() - 1], bg='blue', fg='white', highlight_index=True,
                                  redraw=True)
@@ -288,7 +288,7 @@ class App(tk.Tk):
 
     def releaseQueue(self):
         self.pileCommands("release")
-        if len(self.breakLineList) > 0 and self.lora_sender(sending=True, payload='cmd:release', cmd=True):
+        if len(self.breakLineList) > 0 and self.lora_sender(sending=True, payload='release', cmd=True):
             breakLineIndex = self.breakLineList[0]
             self.sheet.delete_rows([x for x in range(0, breakLineIndex)], deselect_all=True, redraw=True)
             self.breakLineList.pop(0)

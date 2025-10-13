@@ -401,3 +401,109 @@ class LoRaTransceiver:
             flags=PacketFlags.ACK_REQ,
             multi_flags=MultiPartFlags.ONLY
         )
+
+    def create_hello_packet(self, dest_node: int) -> LoRaPacket:
+        """
+        Create HELLO handshake packet to synchronize sequence numbers
+
+        Sent on startup to notify server of sequence reset.
+        Payload format: "HELLO|{current_seq}|{node_type}"
+
+        Args:
+            dest_node: Destination node ID (typically server = 1)
+
+        Returns:
+            HELLO packet
+        """
+        node_type_name = self.node_type.name  # "SCANNER", "SERVER", or "REPEATER"
+        payload = f"HELLO|{self.sequence_num}|{node_type_name}".encode('utf-8')
+
+        return LoRaPacket.create(
+            packet_type=PacketType.HELLO,
+            source_node=self.node_id,
+            dest_node=dest_node,
+            payload=payload,
+            sequence_num=self.get_next_sequence(),
+            flags=PacketFlags.ACK_REQ,  # Request ACK
+            multi_flags=MultiPartFlags.ONLY
+        )
+
+    def create_hello_ack_packet(self, dest_node: int) -> LoRaPacket:
+        """
+        Create HELLO_ACK response packet
+
+        Sent by server in response to HELLO.
+        Payload format: "HELLO_ACK|{server_seq}|OK"
+
+        Args:
+            dest_node: Node that sent HELLO
+
+        Returns:
+            HELLO_ACK packet
+        """
+        payload = f"HELLO_ACK|{self.sequence_num}|OK".encode('utf-8')
+
+        return LoRaPacket.create(
+            packet_type=PacketType.HELLO_ACK,
+            source_node=self.node_id,
+            dest_node=dest_node,
+            payload=payload,
+            sequence_num=self.get_next_sequence(),
+            flags=0,  # No ACK needed for ACK
+            multi_flags=MultiPartFlags.ONLY
+        )
+
+    def send_hello_handshake(self, dest_node: int, timeout: float = 3.0,
+                            max_retries: int = 3) -> bool:
+        """
+        Send HELLO and wait for HELLO_ACK
+
+        Used by scanner on startup to synchronize sequence numbers with server.
+
+        Args:
+            dest_node: Server node ID (typically 1)
+            timeout: Timeout in seconds per attempt
+            max_retries: Maximum number of retry attempts
+
+        Returns:
+            True if HELLO_ACK received, False if failed
+        """
+        attempt = 0
+
+        while attempt < max_retries:
+
+            attempt += 1
+            logging.info(f"Sending HELLO to node {dest_node} (attempt {attempt}/{max_retries})")
+
+            # Create and send HELLO
+            hello_packet = self.create_hello_packet(dest_node)
+
+            if not self.send_packet(hello_packet, use_ack=False):
+                logging.warning(f"Failed to send HELLO packet (attempt {attempt + 1})")
+                time.sleep(1.0)  # Wait before retry
+                continue
+
+            # Wait for HELLO_ACK
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                ack_packet = self.receive_packet(timeout=0.5)
+
+                if ack_packet and ack_packet.packet_type == PacketType.HELLO_ACK:
+                    if ack_packet.source_node == dest_node:
+                        try:
+                            payload = ack_packet.payload.decode('utf-8')
+                            parts = payload.split('|')
+                            if parts[0] == "HELLO_ACK" and parts[2] == "OK":
+                                server_seq = int(parts[1])
+                                logging.info(f"HELLO_ACK received from node {dest_node}, server_seq={server_seq}")
+                                return True
+                        except Exception as e:
+                            logging.error(f"Error parsing HELLO_ACK: {e}")
+
+                time.sleep(0.1)
+
+            logging.warning(f"HELLO_ACK timeout (attempt {attempt + 1}/{max_retries})")
+            time.sleep(1.0)  # Wait before retry
+
+        logging.error(f"HELLO handshake failed after {max_retries} attempts")
+        return False

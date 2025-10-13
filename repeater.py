@@ -178,6 +178,15 @@ def main():
             if len(transceiver.seen_packets) > transceiver.max_seen:
                 transceiver.seen_packets = set(list(transceiver.seen_packets)[500:])
 
+            # Special handling for HELLO packets: clear cache for source node
+            if packet.packet_type == PacketType.HELLO:
+                source_id = packet.source_node
+                transceiver.seen_packets = {
+                    (src, seq) for src, seq in transceiver.seen_packets
+                    if src != source_id
+                }
+                logging.info(f"HELLO from node {source_id}: cleared sequence cache before forwarding")
+
             # Create repeated packet with updated sender and TTL
             repeated_packet = packet.create_repeat(LORA_NODE_ID)
 

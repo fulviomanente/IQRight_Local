@@ -336,7 +336,7 @@ async def getInfo(beacon, code, distance, df):
         local_task.cancel()
         return None
 
-async def handleInfo(strInfo: str, source_node: int):
+async def handleInfo(strInfo: str, source_node: int, packet_type: PacketType):
     """
     Handle incoming info request from scanner
 
@@ -348,18 +348,27 @@ async def handleInfo(strInfo: str, source_node: int):
     ret = False
     payload = None
     if len(strInfo) > 5:
-        beacon, payload_code, distance = strInfo.split('|')
-        if payload_code.find(":") >= 0:
-            strCmd, command = payload_code.split(":")
-            if command != lastCommand:
-                payload = {'command': command}
-        else:
+        if packet_type == PacketType.CMD:
+            command = strInfo.split('|')
+            if command[2] != lastCommand:
+                # Handle single command payload
+                payload = {'command': command[2]}
+                time.sleep(RFM9X_SEND_DELAY)
+                if sendDataScanner(payload, source_node, packet_index=0, total_packets=0) == False:
+                    logging.error(f'FAILED to send to Scanner: {json.dumps(payload)}')
+                else:
+                    sendObj = json.dumps(payload)
+                    logging.info(sendObj)
+                    if publishMQTT(sendObj):
+                        logging.info(' Message Sent')
+                    else:
+                        logging.error('MQTT ERROR')
+        elif packet_type == PacketType.DATA:
+            #Handle Data Packets
+            beacon, payload_code, distance = strInfo.split('|')
             sendObj = await getInfo(beacon, payload_code, distance, df)
             payload = sendObj if sendObj else None
-
-        if payload:
-            # Handle list of results (multi-packet)
-            if isinstance(payload, list):
+            if payload:
                 total_packets = len(payload)
                 for idx, item in enumerate(payload, start=1):
                     time.sleep(RFM9X_SEND_DELAY)
@@ -372,19 +381,7 @@ async def handleInfo(strInfo: str, source_node: int):
                             logging.debug('MQTT Message Sent')
                         else:
                             logging.error('MQTT ERROR')
-            else:
-                # Handle single command payload
-                time.sleep(RFM9X_SEND_DELAY)
-                if sendDataScanner(payload, source_node, packet_index=0, total_packets=0) == False:
-                    logging.error(f'FAILED to send to Scanner: {json.dumps(payload)}')
-                else:
-                    hierarchyID = str(payload.get("hierarchyID", '00'))
-                    sendObj = json.dumps(payload)
-                    logging.info(sendObj)
-                    if publishMQTT(sendObj):
-                        logging.info(' Message Sent')
-                    else:
-                        logging.error('MQTT ERROR')
+
     return True
 
 def sendDataScanner(payload: dict, dest_node: int, packet_index: int = 0, total_packets: int = 0):
@@ -479,6 +476,66 @@ def beaconLocator(idBeacon: int):
     else:
         return ''
 
+def handle_hello_packet(packet: LoRaPacket):
+    """
+    Handle HELLO handshake from scanner or repeater
+
+    When a scanner reboots, it sends HELLO to reset sequence tracking.
+    Server responds with HELLO_ACK to confirm synchronization.
+
+    Args:
+        packet: HELLO packet from scanner
+    """
+    try:
+        logging.info("=" * 60)
+        logging.info("HELLO PACKET RECEIVED!")
+        logging.info(f"Full packet: {packet}")
+
+        source_node = packet.source_node
+        payload_str = packet.payload.decode('utf-8')
+        logging.info(f"Payload string: {payload_str}")
+
+        parts = payload_str.split('|')
+        logging.info(f"Payload parts: {parts}")
+
+        if parts[0] != "HELLO" or len(parts) < 3:
+            logging.error(f"Invalid HELLO packet format: {payload_str}")
+            logging.error(f"Expected: HELLO|seq|node_type, got {len(parts)} parts")
+            return
+
+        scanner_seq = int(parts[1])
+        node_type = parts[2]
+
+        logging.info(f"✓ HELLO from {node_type} node {source_node}, seq={scanner_seq}")
+
+        # Clear sequence tracking for this node (reset duplicate detection)
+        cache_size_before = len(transceiver.seen_packets)
+        transceiver.seen_packets = {
+            (src, seq) for src, seq in transceiver.seen_packets
+            if src != source_node
+        }
+        cache_size_after = len(transceiver.seen_packets)
+        logging.info(f"✓ Cleared sequence cache for node {source_node} (removed {cache_size_before - cache_size_after} entries)")
+
+        # Send HELLO_ACK response
+        logging.info(f"Creating HELLO_ACK for node {source_node}...")
+        ack_packet = transceiver.create_hello_ack_packet(source_node)
+        logging.info(f"HELLO_ACK packet created: {ack_packet}")
+
+        logging.info("Sending HELLO_ACK...")
+        success = transceiver.send_packet(ack_packet, use_ack=False)
+
+        if success:
+            logging.info(f"✓ HELLO_ACK sent successfully to node {source_node}")
+        else:
+            logging.error(f"✗ Failed to send HELLO_ACK to node {source_node}")
+
+        logging.info("=" * 60)
+
+    except Exception as e:
+        logging.error(f"✗ Error handling HELLO packet: {e}", exc_info=True)
+        logging.error("=" * 60)
+
 # Main Loop
 if os.getenv("LOCAL") == 'TRUE':
     asyncio.run(handleInfo('102|123456789|1', 102))
@@ -489,6 +546,11 @@ else:
 
         if packet:
             try:
+                # Check for HELLO packet first
+                if packet.packet_type == PacketType.HELLO:
+                    handle_hello_packet(packet)
+                    continue
+
                 # Extract payload and source node from packet
                 packet_text = packet.payload.decode('utf-8')
                 source_node = packet.source_node
@@ -500,7 +562,7 @@ else:
                     logging.debug(packet_text)
 
                 # Process the packet
-                asyncio.run(handleInfo(packet_text, source_node))
+                asyncio.run(handleInfo(packet_text, source_node, packet.packet_type))
 
             except UnicodeDecodeError as e:
                 logging.error(f'{packet.payload}: Invalid UTF-8 String')

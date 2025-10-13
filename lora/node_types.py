@@ -13,6 +13,8 @@ class PacketType(IntEnum):
     ACK = 0x02       # Acknowledgment
     CMD = 0x03       # Command (break, release, undo, cleanup)
     BEACON = 0x04    # Keep-alive/discovery (future use)
+    HELLO = 0x05     # Handshake: sequence number sync on startup
+    HELLO_ACK = 0x06 # Acknowledgment of HELLO handshake
 
 
 class PacketFlags(IntEnum):

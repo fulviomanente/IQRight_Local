@@ -187,18 +187,26 @@ class App(tk.Tk):
         # Scanner node ID should be 100-199 range
         self.scanner_node_id = 102  # Change this for each scanner
         self.server_node_id = 1
-        self.transceiver = LoRaTransceiver(
-            node_id=self.scanner_node_id,
-            node_type=NodeType.SCANNER,
-            frequency=LORA_FREQUENCY,
-            tx_power=LORA_TX_POWER
-        )
+
+        # Only initialize transceiver in hardware mode (not LOCAL)
+        if os.getenv("LOCAL", "FALSE") != "TRUE":
+            self.transceiver = LoRaTransceiver(
+                node_id=self.scanner_node_id,
+                node_type=NodeType.SCANNER,
+                frequency=LORA_FREQUENCY,
+                tx_power=LORA_TX_POWER
+            )
+        else:
+            self.transceiver = None
         ##########################
         self.lstCode = []
         self.breakLineList: list = []
-        tk.Tk.__init__(self)
         self.lastCommand = None
         self.previousCommand = None
+
+        # Initialize Tkinter window FIRST
+        tk.Tk.__init__(self)
+
         # Create the main window
         screenWidth = self.winfo_screenwidth()
         self.attributes('-fullscreen', True)
@@ -224,26 +232,132 @@ class App(tk.Tk):
         # sheet.grid(row=2, column=0, padx=10, pady=10, columnspan=2)
 
         barFrame = tk.Frame(height=60, bg="white", width=480)
-        btn_addBreak = tk.Button(master=barFrame, text="Break", font=("Arial", 16), height=12, fg="blue",
-                                 command=self.breakQueue).pack(fill='both', expand=True, side=tk.LEFT)
-        btn_removeLast = tk.Button(master=barFrame, text="Release", height=12, font=("Arial", 16), fg="blue",
-                                   command=self.releaseQueue).pack(fill='both', expand=True, side=tk.LEFT)
-        btn_undo = tk.Button(master=barFrame, text="Undo", height=12, font=("Arial", 16), fg="blue",
-                             command=self.undoLast).pack(fill='both', expand=True, side=tk.LEFT)
-        btn_refresh = tk.Button(master=barFrame, text="Reset", height=12, font=("Arial", 16), fg="blue",
-                                command=self.screenCleanup).pack(fill='both', expand=True, side=tk.LEFT)
-        btn_quit = tk.Button(master=barFrame, text="Quit", height=12, font=("Arial", 16), fg="blue",
-                             command=self.quitScanner).pack(fill='both', expand=True, side=tk.LEFT)
+
+        # Create buttons with references (for enable/disable)
+        self.btn_break = tk.Button(master=barFrame, text="Break", font=("Arial", 16), height=12, fg="blue",
+                                   command=self.breakQueue)
+        self.btn_break.pack(fill='both', expand=True, side=tk.LEFT)
+
+        self.btn_release = tk.Button(master=barFrame, text="Release", height=12, font=("Arial", 16), fg="blue",
+                                     command=self.releaseQueue)
+        self.btn_release.pack(fill='both', expand=True, side=tk.LEFT)
+
+        self.btn_undo = tk.Button(master=barFrame, text="Undo", height=12, font=("Arial", 16), fg="blue",
+                                  command=self.undoLast)
+        self.btn_undo.pack(fill='both', expand=True, side=tk.LEFT)
+
+        self.btn_refresh = tk.Button(master=barFrame, text="Reset", height=12, font=("Arial", 16), fg="blue",
+                                     command=self.retry_hello_handshake)
+        self.btn_refresh.pack(fill='both', expand=True, side=tk.LEFT)
+
+        self.btn_quit = tk.Button(master=barFrame, text="Quit", height=12, font=("Arial", 16), fg="blue",
+                                  command=self.quitScanner)
+        self.btn_quit.pack(fill='both', expand=True, side=tk.LEFT)
 
         idTable: int = 1
         upperFrame.pack(fill=tk.X)
         bottomFrame.pack(fill=tk.X)
         barFrame.pack(fill=tk.X)
 
-        self.queue = queue.Queue()
-        self.thread = SerialThread(self.queue)
-        self.thread.start()
-        self.process_serial()
+        # Start serial thread if not LOCAL mode
+        if os.getenv("LOCAL", "FALSE") != "TRUE":
+            self.queue = queue.Queue()
+            self.thread = SerialThread(self.queue)
+            self.thread.start()
+
+        # NOW perform HELLO handshake (everything is fully loaded)
+        if not self._perform_hello_handshake():
+            # HELLO failed - show error and disable buttons
+            self._handle_hello_failure()
+            return
+
+        # HELLO successful - start processing
+        if os.getenv("LOCAL", "FALSE") != "TRUE":
+            self.process_serial()
+
+
+    def _perform_hello_handshake(self) -> bool:
+        """
+        Perform HELLO handshake with server to synchronize sequence numbers
+
+        Returns:
+            True if handshake successful, False if failed
+        """
+        # Skip HELLO in LOCAL mode (no hardware)
+        if os.getenv("LOCAL", "FALSE") == "TRUE":
+            logging.info("LOCAL mode: skipping HELLO handshake")
+            return True
+
+        logging.info(f"Initiating HELLO handshake with server (node {self.server_node_id})")
+        self.lbl_status.config(text="Connecting to server...", bg="yellow")
+        self.update()
+
+        success = self.transceiver.send_hello_handshake(
+            dest_node=self.server_node_id,
+            timeout=3.0,
+            max_retries=3
+        )
+
+        if success:
+            logging.info("HELLO handshake successful - ready to scan")
+            self.lbl_status.config(text="Ready", bg="green")
+        else:
+            logging.error("HELLO handshake failed - cannot communicate with server")
+            self.lbl_status.config(text="Server Handshake Failed!", bg="red")
+
+        return success
+
+    def _handle_hello_failure(self):
+        """
+        Handle HELLO handshake failure
+        Show error message and disable all buttons except Quit and Reset
+        """
+        self.lbl_name.config(text="CONNECTION ERROR", bg="red", fg="white")
+        self.lbl_status.config(text="Server Handshake Failed!", bg="red", fg="white")
+
+        # Disable all buttons except Quit and Reset
+        self.btn_break.config(state=tk.DISABLED)
+        self.btn_release.config(state=tk.DISABLED)
+        self.btn_undo.config(state=tk.DISABLED)
+        # btn_refresh and btn_quit remain enabled
+
+        logging.error("Scanner in error state - user must retry handshake or quit")
+
+    def retry_hello_handshake(self):
+        """
+        Retry HELLO handshake (called by Reset button when in error state)
+        """
+        logging.info("User requested HELLO handshake retry")
+
+        # Re-enable buttons temporarily
+        self.lbl_name.config(text="Retrying connection...", bg="blue", fg="white")
+        self.lbl_status.config(text="Connecting to server...", bg="yellow", fg="black")
+        self.update()
+
+        # Try handshake again
+        if self._perform_hello_handshake():
+            # Success! Re-enable all buttons and start processing
+            logging.info("HELLO retry successful")
+            self.lbl_name.config(text="Ready to Scan", bg="blue", fg="white")
+            self.lbl_status.config(text="Ready", bg="green", fg="white")
+
+            # Re-enable all buttons
+            self.btn_break.config(state=tk.NORMAL)
+            self.btn_release.config(state=tk.NORMAL)
+            self.btn_undo.config(state=tk.NORMAL)
+
+            # Change Reset button back to normal cleanup function
+            self.btn_refresh.config(command=self.screenCleanup)
+
+            # Start processing if not already running
+            if os.getenv("LOCAL", "FALSE") != "TRUE":
+                if not hasattr(self, 'processing_started'):
+                    self.processing_started = True
+                    self.process_serial()
+        else:
+            # Failed again
+            logging.error("HELLO retry failed")
+            self._handle_hello_failure()
 
     def lora_receiver(self, cmd: bool):
         """
