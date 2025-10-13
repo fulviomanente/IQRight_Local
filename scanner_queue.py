@@ -78,55 +78,6 @@ logging.getLogger().addHandler(handler)
 logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
 
-def load_teachers_mapping():
-    """Load and decrypt teachers mapping file"""
-    try:
-        if not os.path.exists(TEACHERS_DATA_PATH):
-            logging.warning(f"Teachers file not found: {TEACHERS_DATA_PATH}")
-            logging.warning("Scanner will display hierarchy IDs instead of teacher names")
-            return None
-
-        if not os.path.exists(KEY_PATH):
-            logging.error(f"Encryption key not found: {KEY_PATH}")
-            return None
-
-        # Load key
-        with open(KEY_PATH, 'rb') as key_file:
-            key = key_file.read()
-        f = Fernet(key)
-
-        # Decrypt teachers file
-        with open(TEACHERS_DATA_PATH, 'rb') as encrypted_file:
-            encrypted_data = encrypted_file.read()
-
-        decrypted_data = f.decrypt(encrypted_data)
-
-        # Parse CSV
-        df = pd.read_csv(StringIO(decrypted_data.decode('utf-8')), dtype={'IDHierarchy': int, 'TeacherName': str})
-
-        # Create dictionary for fast lookup: {hierarchyID: teacherName}
-        teachers_dict = {f"{row['IDHierarchy']:02d}": row['TeacherName'] for _, row in df.iterrows()}
-
-        logging.info(f"Loaded {len(teachers_dict)} teacher mappings from {TEACHERS_DATA_PATH}")
-        return teachers_dict
-
-    except Exception as e:
-        logging.error(f"Error loading teachers mapping: {e}", exc_info=True)
-        logging.error(f"TEACHERS_DATA_PATH: {TEACHERS_DATA_PATH}")
-        logging.error(f"KEY_PATH: {KEY_PATH}")
-        return None
-
-
-# Load teachers mapping at startup
-teachers_mapping = load_teachers_mapping()
-
-
-#def serial_UART_Monitor():
-#    while True:
-#        result = serial_UART_Loop()
-#        if result == False:
-#            print('Scanner Fatal error at', datetime.datetime.now())
-
 class SerialThread(Thread):
     def __init__(self, queue):
         Thread.__init__(self)
@@ -259,6 +210,9 @@ class App(tk.Tk):
         bottomFrame.pack(fill=tk.X)
         barFrame.pack(fill=tk.X)
 
+        # Load teachers mapping at startup
+        self.teachers_mapping = self._load_teachers_mapping()
+
         # Start serial thread if not LOCAL mode
         if os.getenv("LOCAL", "FALSE") != "TRUE":
             self.queue = queue.Queue()
@@ -270,6 +224,9 @@ class App(tk.Tk):
             # HELLO failed - show error and disable buttons
             self._handle_hello_failure()
             return
+        else:
+            # Change Reset button back to normal cleanup function
+            self.btn_refresh.config(command=self.screenCleanup)
 
         # HELLO successful - start processing
         if os.getenv("LOCAL", "FALSE") != "TRUE":
@@ -404,12 +361,12 @@ class App(tk.Tk):
                         hierarchy_id = response[2]  # Now receiving hierarchyID (e.g., "02")
 
                         # Lookup teacher name from hierarchyID
-                        if teachers_mapping and hierarchy_id in teachers_mapping:
-                            teacher_name = teachers_mapping[hierarchy_id]
+                        if self.teachers_mapping and hierarchy_id in self.teachers_mapping:
+                            teacher_name = self.teachers_mapping[hierarchy_id]
                         else:
                             # Fallback to displaying hierarchy ID if mapping not available
-                            teacher_name = f"Teacher {hierarchy_id}"
-                            if not teachers_mapping:
+                            teacher_name = f"Teacher ID {hierarchy_id}"
+                            if not self.teachers_mapping:
                                 logging.warning("Teachers mapping not loaded, displaying hierarchy ID")
 
                         list_received.append({"name": name, "level1": level1, "level2": teacher_name})
@@ -526,6 +483,44 @@ class App(tk.Tk):
         except Exception as e:
             logging.error(f"Error sending to Server: {e}")
             return False
+
+    def _load_teachers_mapping(self):
+        """Load and decrypt teachers mapping file"""
+        try:
+            if not os.path.exists(TEACHERS_DATA_PATH):
+                logging.warning(f"Teachers file not found: {TEACHERS_DATA_PATH}")
+                logging.warning("Scanner will display hierarchy IDs instead of teacher names")
+                return None
+
+            if not os.path.exists(KEY_PATH):
+                logging.error(f"Encryption key not found: {KEY_PATH}")
+                return None
+
+            # Load key
+            with open(KEY_PATH, 'rb') as key_file:
+                key = key_file.read()
+            f = Fernet(key)
+
+            # Decrypt teachers file
+            with open(TEACHERS_DATA_PATH, 'rb') as encrypted_file:
+                encrypted_data = encrypted_file.read()
+
+            decrypted_data = f.decrypt(encrypted_data)
+
+            # Parse CSV
+            df = pd.read_csv(StringIO(decrypted_data.decode('utf-8')), dtype={'IDHierarchy': int, 'TeacherName': str})
+
+            # Create dictionary for fast lookup: {hierarchyID: teacherName}
+            teachers_dict = {f"{row['IDHierarchy']:02d}": row['TeacherName'] for _, row in df.iterrows()}
+
+            logging.info(f"Loaded {len(teachers_dict)} teacher mappings from {TEACHERS_DATA_PATH}")
+            return teachers_dict
+
+        except Exception as e:
+            logging.error(f"Error loading teachers mapping: {e}", exc_info=True)
+            logging.error(f"TEACHERS_DATA_PATH: {TEACHERS_DATA_PATH}")
+            logging.error(f"KEY_PATH: {KEY_PATH}")
+            return None
 
     def screenCleanup(self):
         answer = messagebox.askyesno("Confirm", "Erase all Data?")
