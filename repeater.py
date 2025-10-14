@@ -35,6 +35,14 @@ from utils.config import (
 )
 from utils.oled_display import get_oled_display
 
+# Import battery monitor for OLED display
+try:
+    from utils.battery_monitor import read_battery_status
+    BATTERY_MONITOR_AVAILABLE = True
+except ImportError:
+    logging.warning("Battery monitor not available")
+    BATTERY_MONITOR_AVAILABLE = False
+
 # Logging setup
 try:
     handler = logging.handlers.RotatingFileHandler(
@@ -102,8 +110,11 @@ def main():
     stats = RepeaterStats()
     last_stats_time = time.time()
     last_oled_update = time.time()
+    last_battery_read = time.time()
+    battery_percent = None  # Cache battery percentage
     STATS_INTERVAL = 300  # Log stats every 5 minutes
     OLED_STATS_INTERVAL = 60  # Update OLED stats every 60 seconds
+    BATTERY_READ_INTERVAL = 60  # Read battery every 60 seconds
 
     logging.info("Repeater ready, listening for packets...")
 
@@ -125,6 +136,20 @@ def main():
                     stats.log_stats()
                     last_stats_time = time.time()
 
+                # Periodically read battery status
+                if BATTERY_MONITOR_AVAILABLE and time.time() - last_battery_read > BATTERY_READ_INTERVAL:
+                    try:
+                        battery_info = read_battery_status()
+                        if battery_info and battery_info.get('available'):
+                            battery_percent = battery_info.get('percent', None)
+                            logging.debug(f"Battery: {battery_percent}% ({battery_info.get('voltage')}V)")
+                        else:
+                            battery_percent = None
+                        last_battery_read = time.time()
+                    except Exception as e:
+                        logging.debug(f"Failed to read battery: {e}")
+                        battery_percent = None
+
                 # Periodically update OLED stats
                 if time.time() - last_oled_update > OLED_STATS_INTERVAL:
                     try:
@@ -134,7 +159,8 @@ def main():
                         oled.show_repeater_stats(
                             stats.packets_received,
                             stats.packets_forwarded,
-                            total_dropped
+                            total_dropped,
+                            battery_percent  # Pass battery percentage to OLED
                         )
                         last_oled_update = time.time()
                     except Exception as e:

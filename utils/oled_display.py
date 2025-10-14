@@ -258,14 +258,15 @@ class OLEDDisplay:
             self._update()
             logging.debug(f"OLED: Scan result displayed - {count} students")
 
-    def show_repeater_stats(self, received: int, forwarded: int, dropped: int):
+    def show_repeater_stats(self, received: int, forwarded: int, dropped: int, battery_percent: int = None):
         """
-        Show repeater statistics
+        Show repeater statistics with optional battery percentage
 
         Args:
             received: Total packets received
             forwarded: Total packets forwarded
             dropped: Total packets dropped
+            battery_percent: Battery percentage (0-100), None if unavailable
         """
         with self.lock:
             if not self.display:
@@ -274,10 +275,20 @@ class OLEDDisplay:
             self._turn_on()
             self._clear()
 
-            # Draw stats
-            self.draw.text((20, 5), "Repeater Stats", font=self.font, fill=255)
+            # Draw "Repeater" label on top-left
+            self.draw.text((5, 5), "Repeater", font=self.font, fill=255)
+
+            # Draw battery percentage in top-right corner if available
+            if battery_percent is not None:
+                batt_text = f"({battery_percent}%)"
+                # Right-align the text (approx 6 pixels per char)
+                text_w = len(batt_text) * 6
+                self.draw.text((self.width - text_w - 5, 5), batt_text, font=self.font, fill=255)
+
+            # Draw separator line
             self.draw.rectangle((0, 18, self.width, 20), outline=255, fill=255)
 
+            # Draw stats
             self.draw.text((5, 25), f"RX: {received}", font=self.font, fill=255)
             self.draw.text((5, 38), f"FWD: {forwarded}", font=self.font, fill=255)
             self.draw.text((5, 51), f"DROP: {dropped}", font=self.font, fill=255)
@@ -288,7 +299,12 @@ class OLEDDisplay:
                 self.draw.text((70, 38), f"({rate}%)", font=self.font, fill=255)
 
             self._update()
-            logging.debug(f"OLED: Stats displayed - RX:{received} FWD:{forwarded} DROP:{dropped}")
+
+            # Log with battery info if available
+            if battery_percent is not None:
+                logging.debug(f"OLED: Stats displayed - RX:{received} FWD:{forwarded} DROP:{dropped} BAT:{battery_percent}%")
+            else:
+                logging.debug(f"OLED: Stats displayed - RX:{received} FWD:{forwarded} DROP:{dropped}")
 
     def show_packet_forwarded(self, src: int, dst: int):
         """
