@@ -37,6 +37,103 @@
             margin-right: 10px; /* Space between username and logout button */
         }
 
+        /* Watcher of the Day styles */
+        .header-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            padding: 0 20px;
+        }
+
+        .watcher-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .watcher-label {
+            font-weight: bold;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .watcher-select {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            min-width: 200px;
+            cursor: pointer;
+            background-color: white;
+            transition: border-color 0.3s;
+        }
+
+        .watcher-select:hover {
+            border-color: #007bff;
+        }
+
+        .watcher-select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0,123,255,0.3);
+        }
+
+        .watcher-display {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4a 50%, #ffd700 100%);
+            padding: 10px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            }
+            to {
+                box-shadow: 0 4px 25px rgba(255, 215, 0, 0.7);
+            }
+        }
+
+        .sheriff-star {
+            font-size: 2em;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .watcher-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #8B4513;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+
+        .watcher-title {
+            font-size: 0.8em;
+            color: #654321;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .clear-watcher-btn {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+            padding: 5px;
+        }
+
+        .clear-watcher-btn:hover {
+            opacity: 1;
+        }
+
         /* Styles for grids and message label */
         .row {
             margin-left: -15px; /* Adjust for default Bootstrap row padding */
@@ -87,6 +184,26 @@
                 <img src="/static/images/SVDP_Logo.png" alt="SVDP Logo" height="80">
             </div>
         </div>
+
+        <!-- Watcher of the Day - Center Section -->
+        <div class="header-center">
+            <div class="watcher-container" id="watcher-selector">
+                <span class="watcher-label">Watcher of the Day:</span>
+                <select class="watcher-select" id="watcher-dropdown">
+                    <option value="">-- Select a Student --</option>
+                </select>
+            </div>
+            <div class="watcher-display" id="watcher-display">
+                <span class="sheriff-star">&#11088;</span>
+                <div>
+                    <div class="watcher-title">Watcher of the Day</div>
+                    <div class="watcher-name" id="watcher-name-display"></div>
+                </div>
+                <span class="sheriff-star">&#11088;</span>
+                <button class="clear-watcher-btn" id="clear-watcher" title="Change Watcher">&#10006;</button>
+            </div>
+        </div>
+
         <div class="header-right" style="display: flex; flex-direction: column; align-items: flex-start;">
             <span id="date-time" style="margin-left: 10px; vertical-align: middle;font-weight: bold; text-align: center; width: 100%;"></span>
             <div style="display: flex; align-items: center;">
@@ -441,6 +558,107 @@
         updateDateTime();
         // Update the time every minute
         setInterval(updateDateTime, 60000); // 60000 milliseconds = 1 minute
+
+        // ==========================================
+        // Watcher of the Day Functionality
+        // ==========================================
+
+        // Load students for the dropdown on page load
+        function loadWatcherStudents() {
+            fetch('/api/students')
+                .then(response => response.json())
+                .then(data => {
+                    const dropdown = document.getElementById('watcher-dropdown');
+
+                    if (data.error) {
+                        console.error('Error loading students:', data.error);
+                        return;
+                    }
+
+                    // Clear existing options except the placeholder
+                    dropdown.innerHTML = '<option value="">-- Select a Student --</option>';
+
+                    // Add students to dropdown
+                    data.students.forEach(student => {
+                        const option = document.createElement('option');
+                        option.value = student.id;
+                        option.textContent = student.name;
+                        option.dataset.name = student.name;
+                        dropdown.appendChild(option);
+                    });
+
+                    console.log(`Loaded ${data.students.length} students for Watcher dropdown`);
+
+                    // Check if there's a saved watcher in localStorage
+                    const savedWatcher = localStorage.getItem('watcherOfTheDay');
+                    if (savedWatcher) {
+                        const watcherData = JSON.parse(savedWatcher);
+                        // Check if it's still the same day
+                        const savedDate = new Date(watcherData.date).toDateString();
+                        const today = new Date().toDateString();
+                        if (savedDate === today) {
+                            showWatcherDisplay(watcherData.name);
+                        } else {
+                            // Clear old watcher data
+                            localStorage.removeItem('watcherOfTheDay');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching students:', error);
+                });
+        }
+
+        // Show the watcher display with the selected name
+        function showWatcherDisplay(name) {
+            const selector = document.getElementById('watcher-selector');
+            const display = document.getElementById('watcher-display');
+            const nameDisplay = document.getElementById('watcher-name-display');
+
+            selector.style.display = 'none';
+            display.style.display = 'flex';
+            nameDisplay.textContent = name;
+        }
+
+        // Hide the watcher display and show the selector
+        function hideWatcherDisplay() {
+            const selector = document.getElementById('watcher-selector');
+            const display = document.getElementById('watcher-display');
+            const dropdown = document.getElementById('watcher-dropdown');
+
+            selector.style.display = 'flex';
+            display.style.display = 'none';
+            dropdown.value = '';
+
+            // Clear from localStorage
+            localStorage.removeItem('watcherOfTheDay');
+        }
+
+        // Handle watcher selection
+        document.getElementById('watcher-dropdown').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value) {
+                const studentName = selectedOption.dataset.name;
+
+                // Save to localStorage with today's date
+                localStorage.setItem('watcherOfTheDay', JSON.stringify({
+                    id: selectedOption.value,
+                    name: studentName,
+                    date: new Date().toISOString()
+                }));
+
+                showWatcherDisplay(studentName);
+            }
+        });
+
+        // Handle clear watcher button
+        document.getElementById('clear-watcher').addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent triggering the hasUserInteracted click handler
+            hideWatcherDisplay();
+        });
+
+        // Load students when page loads
+        loadWatcherStudents();
 
     </script>
 

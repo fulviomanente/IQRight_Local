@@ -615,6 +615,49 @@ def get_audio(external_number):
         return jsonify({'error': 'Failed to generate audio'}), 500
 
 
+# Route to get students for Watcher of the Day dropdown
+@app.route('/api/students')
+@login_required
+def get_students():
+    """Returns students filtered by the teacher's class codes (IDHierarchy)"""
+    try:
+        class_codes = session.get('_classCodeList', [])
+        if not class_codes:
+            return jsonify({'students': [], 'error': 'No class codes found'})
+
+        df = offlineData.getAppUsers()
+        if df is None or df.empty:
+            return jsonify({'students': [], 'error': 'No student data available'})
+
+        # Filter students by IDHierarchy matching teacher's class codes
+        # Convert class_codes to strings for comparison
+        class_codes_str = [str(code) for code in class_codes]
+
+        # Check if IDHierarchy column exists
+        if 'IDHierarchy' in df.columns:
+            filtered_df = df[df['IDHierarchy'].astype(str).isin(class_codes_str)]
+        elif 'HierarchyLevel1' in df.columns:
+            # Fallback to HierarchyLevel1 if IDHierarchy doesn't exist
+            filtered_df = df[df['HierarchyLevel1'].astype(str).isin(class_codes_str)]
+        else:
+            logging.error("No hierarchy column found in student data")
+            return jsonify({'students': [], 'error': 'No hierarchy column found'})
+
+        # Get unique student names sorted alphabetically
+        students = filtered_df[['ChildName', 'ExternalNumber']].drop_duplicates()
+        students = students.sort_values('ChildName')
+
+        student_list = [
+            {'name': row['ChildName'], 'id': row['ExternalNumber']}
+            for _, row in students.iterrows()
+        ]
+
+        return jsonify({'students': student_list})
+    except Exception as e:
+        logging.error(f"Error getting students for watcher: {str(e)}")
+        return jsonify({'students': [], 'error': str(e)})
+
+
 # Route for logging out
 @app.route('/logout')
 @login_required
