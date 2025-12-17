@@ -39,18 +39,20 @@ load_dotenv()
 # SocketIO event handlers
 @socketio.on('connect')
 def handle_connect():
-    logging.debug(f'Client connected: {request.sid}')
+    logging.info(f'[SOCKETIO] Client connected: sid={request.sid}')
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    logging.debug(f'Client disconnected: {request.sid}')
+    logging.info(f'[SOCKETIO] Client disconnected: sid={request.sid}')
 
 @socketio.on('join')
 def on_join(data):
     user_id = data.get('user_id')
     if user_id:
         socketio.server.enter_room(request.sid, user_id)
-        logging.debug(f'User {user_id} joined their room: {user_id}')
+        logging.info(f'[SOCKETIO] User {user_id} joined room (sid={request.sid})')
+    else:
+        logging.warning(f'[SOCKETIO] Join request without user_id (sid={request.sid})')
 
 @socketio.on('release_complete')
 def handle_release_complete(data):
@@ -123,31 +125,42 @@ class Virtual_List():
     def publish_data(self, jsonObj):
         #Check if it should send it to the screen
         userInfo = {"fullName": jsonObj.get("name", "Unknown"), "location": jsonObj.get("location", "Unknown"), "externalNumber": jsonObj.get("externalNumber", "000000")}
+        logging.info(f'[PUBLISH] User {self.user_id}: Processing data: {userInfo}')
 
         # Store in memory regardless of whether we display it now
         if self.currList < len(self.virtualList):
             self.virtualList[self.currList].append(userInfo)
+            logging.info(f'[PUBLISH] User {self.user_id}: Added to virtualList[{self.currList}], now has {len(self.virtualList[self.currList])} items')
         else:
             # Ensure we have a valid index
             self.virtualList.append([])
             self.virtualList[self.currList].append(userInfo)
+            logging.info(f'[PUBLISH] User {self.user_id}: Created new list [{self.currList}], added first item')
 
         # Don't emit if a release is pending - client will request the data when ready
         if self.release_pending:
-            logging.debug(f'Not emitting data for user {self.user_id} - release pending')
+            logging.warning(f'[PUBLISH] User {self.user_id}: NOT emitting - release_pending=True. Data stored for later.')
             return
 
-        if (len(self.virtualList) < 3) or (len(self.virtualList) == 3 and len(self.virtualList[2]) == 0) :
+        # Check if screen can accept more data
+        list_count = len(self.virtualList)
+        list2_empty = len(self.virtualList[2]) == 0 if list_count > 2 else True
+        can_emit = (list_count < 3) or (list_count == 3 and list2_empty)
+        logging.info(f'[PUBLISH] User {self.user_id}: list_count={list_count}, list2_empty={list2_empty}, can_emit={can_emit}')
+
+        if can_emit:
             # Publish to the socketio service so the JS can read it and update the HTML
             try:
                 if self.user_id:
                     socketio.emit('new_data', userInfo, room=self.user_id)
-                    logging.debug(f'Emitted data to socketio for user {self.user_id}: {userInfo}')
+                    logging.info(f'[SOCKETIO-TX] SUCCESS: Emitted to room {self.user_id}: {userInfo}')
                 else:
                     socketio.emit('new_data', userInfo)
-                    logging.debug(f'Emitted data to socketio (no user ID): {userInfo}')
+                    logging.info(f'[SOCKETIO-TX] SUCCESS: Emitted broadcast (no room): {userInfo}')
             except Exception as e:
-                logging.error(f'Error emitting user info to socketio: {e}')
+                logging.error(f'[SOCKETIO-TX] FAILED: Error emitting for user {self.user_id}: {e}', exc_info=True)
+        else:
+            logging.warning(f'[PUBLISH] User {self.user_id}: NOT emitting - screen full (list_count={list_count})')
 
         self.lastCommand = ''
 
@@ -191,26 +204,25 @@ def loadJson(inputStr: str) -> dict:
 
 def on_connect(client, userdata, flags, rc, properties):
     if rc == 0:
-        logging.debug(f"MQTT CONNECTION: Connected to MQTT Broker")
+        logging.info(f"[MQTT-CONN] Connected to MQTT Broker successfully")
 
-        # Subscribe to the central command queue for all users
+        # Subscribe to the central command queue for all users with QoS 1 for reliability
         command_topic = f"IQRSend"
-        client.subscribe(command_topic)
-        logging.debug(f"MQTT CONNECTION: User {userdata.get('userName', 'unknown')} Subscribed to command topic: {command_topic}")
+        result, mid = client.subscribe(command_topic, qos=1)
+        logging.info(f"[MQTT-SUB] User {userdata.get('userName', 'unknown')} subscribed to command topic: {command_topic} (result={result}, mid={mid}, QoS=1)")
 
         # Subscribe to class-specific queues for the logged-in user (for student data)
         if userdata.get('userAuthenticated') and userdata.get('classCode'):
             topic = f"{TOPIC_PREFIX}{userdata.get('classCode')}"
-            client.subscribe(topic)
-            logging.debug(f"MQTT CONNECTION: User {userdata.get('userName', 'unknown')} Subscribed to topic: {topic}")
-            
+            result, mid = client.subscribe(topic, qos=1)
+            logging.info(f"[MQTT-SUB] User {userdata.get('userName', 'unknown')} subscribed to topic: {topic} (result={result}, mid={mid}, QoS=1)")
+
             # Also subscribe to a test topic for debugging
             test_topic = f"{TOPIC_PREFIX}test"
-            client.subscribe(test_topic)
-            logging.debug(f"MQTT CONNECTION: Subscribed to test topic: {test_topic}")
+            result, mid = client.subscribe(test_topic, qos=1)
+            logging.info(f"[MQTT-SUB] Subscribed to test topic: {test_topic} (result={result}, mid={mid}, QoS=1)")
     else:
-        logging.debug(f"MQTT CONNECTION: Failed to connect, return code %d\n", rc)
-        print()
+        logging.error(f"[MQTT-CONN] Failed to connect, return code: {rc}")
 
 def authenticate_user(username, password):
     payload = {
@@ -259,25 +271,27 @@ def authenticate_user(username, password):
         return {'authenticated': True, 'classCodes': info['listHierarchy'], 'errorMsg': None, 'changePassword': info.get('changePassword', False), 'newUser': info.get('newUser', False), 'fullName': info.get('fullName', ' ')}
 
 def on_messageScreen(client, userdata, message, tmp=None):
-    # Always log incoming messages regardless of DEBUG setting
-    logging.debug(f'Message Received on topic: {message.topic}')
+    # Always log incoming messages at INFO level for traceability
+    logging.info(f'[MQTT-RX] Topic: {message.topic}, QoS: {message.qos}, Retain: {message.retain}')
     payload_str = str(message.payload, 'UTF-8')
-    logging.debug(f'Payload: {payload_str}')
-    
+    logging.info(f'[MQTT-RX] Payload: {payload_str}')
+
     # Ensure userdata contains the user_id to identify the session
     user_id = userdata.get('userName')
     if not user_id:
-        logging.error("Message received but no user_id in userdata")
+        logging.error("[MQTT-RX] Message received but no user_id in userdata - DROPPING")
         return False
 
     # Check if this is a command message from the central command queue
     command_topic = f"IQRSend"
     if message.topic == command_topic:
+        logging.info(f'[MQTT-RX] Command message detected, broadcasting to all clients')
         # Process command message and broadcast to all clients
         return process_command_message(payload_str)
 
     # Get the memory data for this user, or create if not exists
     if user_id not in memory_data_store:
+        logging.info(f'[MQTT-RX] Creating new Virtual_List for user: {user_id}')
         memory_data_store[user_id] = Virtual_List(user_id=user_id)
 
     memory_data = memory_data_store[user_id]
@@ -285,17 +299,18 @@ def on_messageScreen(client, userdata, message, tmp=None):
     # Try to parse the payload as JSON for student data
     jsonObj = loadJson(payload_str)
     if isinstance(jsonObj, dict):
-        logging.debug(f'Valid JSON received for user {user_id}: {jsonObj}')
+        logging.info(f'[MQTT-RX] Valid JSON for user {user_id}: {jsonObj}')
         # For student queue messages, just process the data (not commands)
         if 'command' not in jsonObj:
+            logging.info(f'[MQTT-RX] Calling publish_data for user {user_id}')
             memory_data.publish_data(jsonObj)
             return True
         else:
             # Handle commands that might come from non-central queues (for backward compatibility)
-            logging.debug(f'Command received on non-command queue: {jsonObj["command"]}. Will be ignored.')
+            logging.warning(f'[MQTT-RX] Command received on non-command queue: {jsonObj["command"]}. Ignoring.')
             return True
     else:
-        logging.debug('NOT A VALID JSON OBJECT RECEIVED FROM QUEUE')
+        logging.error(f'[MQTT-RX] NOT A VALID JSON OBJECT: {payload_str}')
         return False
 
 def process_command_message(payload_str):
@@ -403,15 +418,15 @@ properties = Properties(PacketTypes.CONNECT)
 properties.SessionExpiryInterval = 30 * 60  # in seconds
 
 # Get credentials from Secret Manager
-mqttUsername = get_secret('mqttUsername').get('value', '')
-mqttpassword = get_secret('mqttpassword').get('value', '')
+mqttUsername = get_secret('mqttUsername').get("value", "IQRight")
+mqttpassword = get_secret('mqttpassword').get("value", "123456")
 
 # Dictionary to store per-user MQTT clients
 mqtt_clients = {}
 # Dictionary to store per-user memory data
 memory_data_store = {}
 
-AUTH_SERVICE_URL = get_secret('authServiceUrl')
+AUTH_SERVICE_URL = get_secret('authServiceUrl').get("value", "https://integration.iqright.app/api")
 
 # Flask-Login setup
 login_manager = LoginManager()

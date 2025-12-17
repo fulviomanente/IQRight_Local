@@ -32,6 +32,7 @@ if os.getenv('DEBUGSERVICE', 'FALSE') == 'TRUE':
 else:
     API_URL = 'https://integration.iqright.app/api/'
 if os.getenv('LOCAL', None) == 'TRUE':
+    #LORASERVICE_PATH = '/Users/fulviomanente/Documents/Code/IQRight/Local/IQRight_Local/data'
     LORASERVICE_PATH = '.'
     LORASERVICE_LOG_PATH = './LoraService.log'
     HOME_DIR = '.'

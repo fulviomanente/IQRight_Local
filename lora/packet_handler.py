@@ -468,12 +468,8 @@ class LoRaTransceiver:
         Returns:
             True if HELLO_ACK received, False if failed
         """
-        attempt = 0
-
-        while attempt < max_retries:
-
-            attempt += 1
-            logging.info(f"Sending HELLO to node {dest_node} (attempt {attempt}/{max_retries})")
+        for attempt in range(max_retries):
+            logging.info(f"Sending HELLO to node {dest_node} (attempt {attempt + 1}/{max_retries})")
 
             # Create and send HELLO
             hello_packet = self.create_hello_packet(dest_node)

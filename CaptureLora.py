@@ -46,12 +46,7 @@ else:
 CommandTopic = "IQRSend"
 
 #GET Beacon Locations
-beacon_locations_dict = beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
-
-#Load Offline Full Load File
-#df = pd.read_csv(f'{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}',
-#                 dtype=FILE_DTYPE)
-
+beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
 
 try:
     #LOGGING Setup ####################################################
@@ -88,8 +83,6 @@ client.connect(MQTT_BROKER,
                keepalive=MQTT_KEEPALIVE);
 logging.info('Connected to MQTT Server')
 
-lastCommand = None
-
 def getGrade(strGrade: str):
     if strGrade == 'First Grade' or strGrade[0:2] == '01':
         return '1st'
@@ -99,15 +92,15 @@ def getGrade(strGrade: str):
         return '3rd'
     elif strGrade == 'Fourth Grade' or strGrade[0:2] == '04':
         return '4th'
-    if strGrade == 'Fifth Grade' or strGrade[0:2] == '01':
+    elif strGrade == 'Fifth Grade' or strGrade[0:2] == '05':
         return '5th'
-    elif strGrade == 'Sixth Grade' or strGrade[0:2] == '02':
+    elif strGrade == 'Sixth Grade' or strGrade[0:2] == '06':
         return '6th'
-    elif strGrade == 'Seventh Grade' or strGrade[0:2] == '03':
+    elif strGrade == 'Seventh Grade' or strGrade[0:2] == '07':
         return '7th'
-    elif strGrade == 'Eighth Grade' or strGrade[0:2] == '04':
+    elif strGrade == 'Eighth Grade' or strGrade[0:2] == '08':
         return '8th'
-    elif strGrade[1] == 'K':
+    elif strGrade[0:1] == 'K': # Assuming 'K' for Kindergarten
         return 'Kind'
     else:
         return 'N/A'
@@ -157,7 +150,6 @@ else:
     exit(1)
 
 async def get_user_from_api(code):
-    #try:
     async with aiohttp.ClientSession() as session:
         api_url = f"{API_URL}apiGetUserInfo"  # Replace with your actual API endpoint
         payload = {"searchCode": code}
@@ -207,13 +199,6 @@ async def get_user_from_api(code):
             logging.error("API getUserAccess request failed on getting secrets")
             return None
                 
-    #except asyncio.TimeoutError:
-    #    logging.warning("API getUserAccess request timed out")
-    #    return None
-    #except aiohttp.ClientError as e:
-    #    logging.error(f"API getUserAccess request error: {e}")
-    #    return None
-
 
 async def get_user_local(beacon, code, distance, df):
     if not code:  # Return early if code is missing
@@ -222,7 +207,8 @@ async def get_user_local(beacon, code, distance, df):
 
     try:
         logging.debug(f'Attempting Student Local Lookup...')
-        matches = df.loc[df['DeviceID'] == code]
+        filtered_df = df[df['DeviceID'] == code]
+        matches = filtered_df.drop_duplicates(subset=['ChildName'])
         if matches.empty:
             logging.debug(f"Couldn't find Code: {code} locally")
             return None  # Return None if not found locally
@@ -336,81 +322,109 @@ async def getInfo(beacon, code, distance, df):
         local_task.cancel()
         return None
 
-async def handleInfo(strInfo: str, source_node: int, packet_type: PacketType):
+async def handleInfo(packet_payload_str: str, source_node: int, packet_type: PacketType):
     """
     Handle incoming info request from scanner
 
     Args:
-        strInfo: Payload string from scanner (beacon|code|distance)
+        packet_payload_str: Payload string from scanner
         source_node: Source node ID (scanner that sent request)
+        packet_type: Type of the LoRa packet
     """
-    global lastCommand
-    ret = False
-    payload = None
-    if len(strInfo) > 5:
-        if packet_type == PacketType.CMD:
-            command = strInfo.split('|')
-            if command[2] != lastCommand:
-                # Handle single command payload
-                payload = {'command': command[2]}
+    
+    if packet_type == PacketType.CMD:
+        # Command packet format: "command_name" (e.g., "break", "release", "undo", "cleanup")
+        command = packet_payload_str
+        logging.info(f"Received command '{command}' from scanner {source_node}")
+        
+        payload_to_scanner = {'command': command}
+        time.sleep(RFM9X_SEND_DELAY)
+        if sendDataScanner(payload_to_scanner, source_node, packet_type=PacketType.CMD) == False:
+            logging.error(f'FAILED to send command ACK to Scanner: {json.dumps(payload_to_scanner)}')
+        else:
+            sendObj = json.dumps(payload_to_scanner)
+            logging.info(f"Command ACK sent to scanner {source_node}: {sendObj}")
+            if publishMQTT(sendObj, topicSufix=command): # Use command as suffix for MQTT topic
+                logging.info(' Command ACK Message Sent to MQTT')
+            else:
+                logging.error('MQTT ERROR publishing command ACK')
+
+    elif packet_type == PacketType.DATA:
+        # Data packet format: "beacon|code|distance"
+        parts = packet_payload_str.split('|')
+        if len(parts) != 3:
+            logging.error(f"Invalid DATA packet format from node {source_node}: {packet_payload_str}")
+            return
+
+        beacon, payload_code, distance = parts
+        logging.info(f"Received data from scanner {source_node}: Beacon={beacon}, Code={payload_code}, Distance={distance}")
+
+        sendObj = await getInfo(beacon, payload_code, distance, df)
+        payload_to_scanner = sendObj if sendObj else None
+        
+        if payload_to_scanner:
+            total_packets = len(payload_to_scanner)
+            for idx, item in enumerate(payload_to_scanner, start=1):
                 time.sleep(RFM9X_SEND_DELAY)
-                if sendDataScanner(payload, source_node, packet_index=0, total_packets=0) == False:
-                    logging.error(f'FAILED to send to Scanner: {json.dumps(payload)}')
+                if sendDataScanner(item, source_node, packet_type=PacketType.DATA, packet_index=idx, total_packets=total_packets) == False:
+                    logging.error(f'FAILED to send data to Scanner: {json.dumps(item)}')
                 else:
-                    sendObj = json.dumps(payload)
-                    logging.info(sendObj)
-                    if publishMQTT(sendObj):
-                        logging.info(' Message Sent')
+                    sendObj_json = json.dumps(item)
+                    hierarchyID = str(item.get("hierarchyID", '00'))
+                    if publishMQTT(sendObj_json, hierarchyID):
+                        logging.debug('MQTT Data Message Sent')
                     else:
-                        logging.error('MQTT ERROR')
-        elif packet_type == PacketType.DATA:
-            #Handle Data Packets
-            beacon, payload_code, distance = strInfo.split('|')
-            sendObj = await getInfo(beacon, payload_code, distance, df)
-            payload = sendObj if sendObj else None
-            if payload:
-                total_packets = len(payload)
-                for idx, item in enumerate(payload, start=1):
-                    time.sleep(RFM9X_SEND_DELAY)
-                    if sendDataScanner(item, source_node, packet_index=idx, total_packets=total_packets) == False:
-                        logging.error(f'FAILED to send to Scanner: {json.dumps(item)}')
-                    else:
-                        sendObj = json.dumps(item)
-                        hierarchyID = str(item.get("hierarchyID", '00'))
-                        if publishMQTT(sendObj, hierarchyID):
-                            logging.debug('MQTT Message Sent')
-                        else:
-                            logging.error('MQTT ERROR')
+                        logging.error('MQTT ERROR publishing data')
+        else:
+            logging.warning(f"No data found for code {payload_code} from scanner {source_node}. Not sending response.")
+    else:
+        logging.warning(f"Unhandled packet type {packet_type} from node {source_node}")
 
-    return True
 
-def sendDataScanner(payload: dict, dest_node: int, packet_index: int = 0, total_packets: int = 0):
+def sendDataScanner(payload: dict, dest_node: int, packet_type: PacketType, packet_index: int = 0, total_packets: int = 0):
     """
-    Send data to scanner using enhanced packet protocol
+    Send data or command to scanner using enhanced packet protocol
 
     Args:
         payload: Dictionary with student info or command
         dest_node: Destination scanner node ID
+        packet_type: Type of packet to send (DATA or CMD)
         packet_index: Index in multi-packet sequence (0 if single)
         total_packets: Total packets in sequence (0 if single)
     """
     try:
-        # Build message payload
-        if 'name' in payload:
-            grade_initial = getGrade(payload['hierarchyLevel1'])[:1]
-            # Send hierarchyID instead of teacher name to save bytes
-            msg = f"{payload['name']}|{grade_initial}|{payload['hierarchyID']}"
-        else:
-            msg = f"cmd|ack|{payload['command']}"
+        msg = ""
+        if packet_type == PacketType.DATA:
+            if 'name' in payload:
+                grade_initial = getGrade(payload['hierarchyLevel1'])[:1]
+                # Send hierarchyID instead of teacher name to save bytes
+                msg = f"{payload['name']}|{grade_initial}|{payload['hierarchyID']}"
 
-        # Create packet using transceiver helper
-        packet = transceiver.create_data_packet(
-            dest_node=dest_node,
-            payload=msg.encode('utf-8'),
-            use_ack=True,
-            multi_part_index=packet_index,
-            multi_part_total=total_packets
-        )
+                # Create packet using transceiver helper
+                packet = transceiver.create_data_packet(
+                    dest_node=dest_node,
+                    payload=msg.encode('utf-8'),
+                    use_ack=True,
+                    multi_part_index=packet_index,
+                    multi_part_total=total_packets
+                )
+
+            else:
+                logging.error(f"Invalid payload for DATA packet: {payload}")
+                return False
+        elif packet_type == PacketType.CMD:
+            if 'command' in payload:
+                msg = payload['command'] # Command is the payload itself
+                # Create packet using transceiver helper
+                packet = transceiver.create_cmd_packet(dest_node=dest_node,command=msg.encode('utf-8'))
+            else:
+                logging.error(f"Invalid payload for CMD packet: {payload}")
+                return False
+        else:
+            logging.error(f"Unsupported packet type for sending: {packet_type}")
+            return False
+
+
 
         # Send with collision avoidance if enabled
         if LORA_ENABLE_CA and transceiver.rfm9x:
@@ -426,9 +440,9 @@ def sendDataScanner(payload: dict, dest_node: int, packet_index: int = 0, total_
             success = transceiver.send_packet(packet, use_ack=True)
 
         if success:
-            logging.info(f'Sent to scanner {dest_node}: {msg} [{packet_index}/{total_packets}]')
+            logging.info(f'Sent {packet_type.name} to scanner {dest_node}: {msg} [{packet_index}/{total_packets}]')
         else:
-            logging.error(f'Failed to send to scanner {dest_node}: {msg}')
+            logging.error(f'Failed to send {packet_type.name} to scanner {dest_node}: {msg}')
 
         return success
 
@@ -436,10 +450,10 @@ def sendDataScanner(payload: dict, dest_node: int, packet_index: int = 0, total_
         logging.error(f'Error in sendDataScanner: {e}')
         return False
 
-def publishMQTT(payload: str, hierarchyID: str = None):
+def publishMQTT(payload: str, topicSufix: str = None):
     count = 5
     while count > 0:
-        if sendMessageMQTT(payload, hierarchyID):
+        if sendMessageMQTT(payload, topicSufix):
             return True
         else:
             count = count -1
@@ -455,18 +469,19 @@ def publishMQTT(payload: str, hierarchyID: str = None):
     return False
 
 def sendMessageMQTT(payload: str, topicSufix: str = None):
-    logging.info(f"Sending {payload} to MQTT")
+    logging.info(f"[MQTT-TX] Sending to MQTT: {payload}")
     if topicPrefix and topicSufix:
         sendTopic = f'{Topic}{topicSufix}'
-    else:
-        sendTopic = CommandTopic
-    ret = client.publish(sendTopic, payload)
+    else: # If no topic prefix or suffix, use CommandTopic for commands, or default Topic for data
+        sendTopic = CommandTopic if "command" in payload else Topic
+
+    # Use QoS 1 for reliable delivery (at least once)
+    ret = client.publish(sendTopic, payload, qos=1)
     if ret[0] == 0:
-        logging.debug(f'Message sent to Topic: sendTopic')
-        logging.debug(f'Message ID {ret[1]}')
+        logging.info(f'[MQTT-TX] SUCCESS: Topic={sendTopic}, MsgID={ret[1]}, QoS=1')
         return True
     else:
-        logging.error(f'FAILED to sent to Topic: sendTopic. Status {ret[0]}, Error: {ret[1]}')
+        logging.error(f'[MQTT-TX] FAILED: Topic={sendTopic}, Status={ret[0]}, Error={ret[1]}')
         return False
 
 def beaconLocator(idBeacon: int):
@@ -475,6 +490,69 @@ def beaconLocator(idBeacon: int):
         return location
     else:
         return ''
+
+# Setup device status logger (separate file for device status tracking)
+device_status_logger = logging.getLogger('device_status')
+device_status_logger.setLevel(logging.INFO)
+device_status_handler = logging.handlers.RotatingFileHandler(
+    f'{HOME_DIR}/log/device_status.log',
+    maxBytes=MAX_LOG_SIZE,
+    backupCount=BACKUP_COUNT
+)
+device_status_formatter = logging.Formatter('%(asctime)s - %(message)s')
+device_status_handler.setFormatter(device_status_formatter)
+device_status_logger.addHandler(device_status_handler)
+device_status_logger.propagate = False  # Don't send to root logger
+
+
+def handle_status_packet(packet: LoRaPacket):
+    """
+    Handle STATUS packet from repeater (device health monitoring)
+
+    PiSugar 3 sends periodic status updates via I2C.
+    Format: "battery|charging|voltage|temperature|model"
+    Example: "85.5|true|3.95|25|PiSugar3"
+
+    Args:
+        packet: STATUS packet from repeater
+    """
+    try:
+        source_node = packet.source_node
+        sender_node = packet.sender_node
+        payload_str = packet.payload.decode('utf-8')
+
+        # Parse STATUS payload
+        # Format: "85.5|true|3.95|25|PiSugar3"
+        parts = payload_str.split('|')
+
+        if len(parts) >= 5:
+            battery = parts[0]
+            charging = parts[1]
+            voltage = parts[2]
+            temperature = parts[3]
+            model = parts[4]
+
+            # Log to dedicated device status log file
+            status_msg = (
+                f"Node {source_node} | "
+                f"Battery: {battery}% | "
+                f"Voltage: {voltage}V | "
+                f"Charging: {charging} | "
+                f"Temp: {temperature}°C | "
+                f"Model: {model}"
+            )
+
+            device_status_logger.info(status_msg)
+
+            # Also log to main log (condensed)
+            logging.info(f"STATUS from Node {source_node}: Battery={battery}%, Voltage={voltage}V, Charging={charging}")
+
+        else:
+            logging.warning(f"Invalid STATUS packet format from node {source_node}: {payload_str}")
+
+    except Exception as e:
+        logging.error(f"Error handling STATUS packet: {e}", exc_info=True)
+
 
 def handle_hello_packet(packet: LoRaPacket):
     """
@@ -506,7 +584,7 @@ def handle_hello_packet(packet: LoRaPacket):
         scanner_seq = int(parts[1])
         node_type = parts[2]
 
-        logging.info(f"✓ HELLO from {node_type} node {source_node}, seq={scanner_seq}")
+        logging.info(f"HELLO from {node_type} node {source_node}, seq={scanner_seq}")
 
         # Clear sequence tracking for this node (reset duplicate detection)
         cache_size_before = len(transceiver.seen_packets)
@@ -515,7 +593,7 @@ def handle_hello_packet(packet: LoRaPacket):
             if src != source_node
         }
         cache_size_after = len(transceiver.seen_packets)
-        logging.info(f"✓ Cleared sequence cache for node {source_node} (removed {cache_size_before - cache_size_after} entries)")
+        logging.info(f"Cleared sequence cache for node {source_node} (removed {cache_size_before - cache_size_after} entries)")
 
         # Send HELLO_ACK response
         logging.info(f"Creating HELLO_ACK for node {source_node}...")
@@ -526,20 +604,18 @@ def handle_hello_packet(packet: LoRaPacket):
         success = transceiver.send_packet(ack_packet, use_ack=False)
 
         if success:
-            logging.info(f"✓ HELLO_ACK sent successfully to node {source_node}")
+            logging.info(f"HELLO_ACK sent successfully to node {source_node}")
         else:
-            logging.error(f"✗ Failed to send HELLO_ACK to node {source_node}")
+            logging.error(f"Failed to send HELLO_ACK to node {source_node}")
 
         logging.info("=" * 60)
 
     except Exception as e:
-        logging.error(f"✗ Error handling HELLO packet: {e}", exc_info=True)
+        logging.error(f"Error handling HELLO packet: {e}", exc_info=True)
         logging.error("=" * 60)
 
-# Main Loop
-if os.getenv("LOCAL") == 'TRUE':
-    asyncio.run(handleInfo('102|123456789|1', 102))
-else:
+async def main_loop_async():
+    """Main asynchronous loop for receiving and processing LoRa packets."""
     while True:
         # Receive packet using enhanced packet handler
         packet = transceiver.receive_packet(timeout=RMF9X_POOLING)
@@ -549,6 +625,11 @@ else:
                 # Check for HELLO packet first
                 if packet.packet_type == PacketType.HELLO:
                     handle_hello_packet(packet)
+                    continue
+
+                # Check for STATUS packet (device health monitoring)
+                if packet.packet_type == PacketType.STATUS:
+                    handle_status_packet(packet)
                     continue
 
                 # Extract payload and source node from packet
@@ -562,7 +643,7 @@ else:
                     logging.debug(packet_text)
 
                 # Process the packet
-                asyncio.run(handleInfo(packet_text, source_node, packet.packet_type))
+                await handleInfo(packet_text, source_node, packet.packet_type)
 
             except UnicodeDecodeError as e:
                 logging.error(f'{packet.payload}: Invalid UTF-8 String')
@@ -574,6 +655,21 @@ else:
             if DEBUG:
                 logging.debug('No packet received (timeout)')
 
-        time.sleep(0.1)  # Brief sleep to prevent CPU spinning
+        await asyncio.sleep(0.1)  # Brief sleep to prevent CPU spinning
+
+# Main Loop
+if os.getenv("LOCAL") == 'TRUE':
+    # In LOCAL mode, we might want to simulate a packet or run a test
+    # For now, just log and exit as there's no hardware to listen on.
+    logging.info("Running in LOCAL mode. No LoRa hardware detected. Exiting after test call.")
+    asyncio.run(handleInfo('102|123456789|1', 102, PacketType.DATA)) # Simulate a data packet
+else:
+    try:
+        asyncio.run(main_loop_async())
+    except KeyboardInterrupt:
+        logging.info("Server shutting down...")
+    finally:
+        client.disconnect()
+        logging.info("MQTT client disconnected.")
 
 client.loop_forever();

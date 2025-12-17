@@ -15,6 +15,7 @@ class PacketType(IntEnum):
     BEACON = 0x04    # Keep-alive/discovery (future use)
     HELLO = 0x05     # Handshake: sequence number sync on startup
     HELLO_ACK = 0x06 # Acknowledgment of HELLO handshake
+    STATUS = 0x07    # Device status (battery, RTC, etc.)
 
 
 class PacketFlags(IntEnum):
