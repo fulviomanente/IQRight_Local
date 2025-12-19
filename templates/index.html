@@ -660,6 +660,40 @@
         // Load students when page loads
         loadWatcherStudents();
 
+        // ==========================================
+        // Welcome Audio on Page Load
+        // ==========================================
+        // Play welcome audio immediately to trigger browser's audio permission prompt
+        // This ensures the user sees the permission dialog when the page loads
+        // rather than when the first student name is called
+        function playWelcomeAudio() {
+            const welcomeAudio = new Audio('/static/sounds/welcome.mp3');
+            welcomeAudio.volume = 0.5; // Set a reasonable volume
+
+            welcomeAudio.play()
+                .then(() => {
+                    console.log('Welcome audio played successfully');
+                    // If welcome audio plays, user has already allowed audio
+                    hasUserInteracted = true;
+                    // Remove any autoplay message that might be showing
+                    const alertMessage = document.querySelector('.alert');
+                    if (alertMessage) {
+                        alertMessage.remove();
+                    }
+                })
+                .catch(error => {
+                    console.log('Welcome audio blocked by browser:', error.name);
+                    // Show the autoplay message to prompt user interaction
+                    showAutoplayMessage();
+                });
+        }
+
+        // Play welcome audio when page is fully loaded
+        window.addEventListener('load', function() {
+            // Small delay to ensure everything is ready
+            setTimeout(playWelcomeAudio, 500);
+        });
+
     </script>
 
     <!-- Bootstrap JS and dependencies -->

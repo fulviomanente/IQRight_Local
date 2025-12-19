@@ -43,7 +43,7 @@ elif TOPIC_PREFIX != '':
 else:
     Topic = 'IQSend'
 
-CommandTopic = "IQRSend"
+COMMAND_TOPIC = "IQRSend"
 
 #GET Beacon Locations
 beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
@@ -334,17 +334,17 @@ async def handleInfo(packet_payload_str: str, source_node: int, packet_type: Pac
     
     if packet_type == PacketType.CMD:
         # Command packet format: "command_name" (e.g., "break", "release", "undo", "cleanup")
-        command = packet_payload_str
-        logging.info(f"Received command '{command}' from scanner {source_node}")
+        command = packet_payload_str.split("|")
+        logging.info(f"Received command '{command[2]}' from scanner {source_node}")
         
-        payload_to_scanner = {'command': command}
+        payload_to_scanner = {'command': command[2]}
         time.sleep(RFM9X_SEND_DELAY)
         if sendDataScanner(payload_to_scanner, source_node, packet_type=PacketType.CMD) == False:
             logging.error(f'FAILED to send command ACK to Scanner: {json.dumps(payload_to_scanner)}')
         else:
             sendObj = json.dumps(payload_to_scanner)
             logging.info(f"Command ACK sent to scanner {source_node}: {sendObj}")
-            if publishMQTT(sendObj, topicSufix=command): # Use command as suffix for MQTT topic
+            if publishMQTT(sendObj, topicSufix="command"): # Use command as suffix for MQTT topic
                 logging.info(' Command ACK Message Sent to MQTT')
             else:
                 logging.error('MQTT ERROR publishing command ACK')
@@ -416,7 +416,7 @@ def sendDataScanner(payload: dict, dest_node: int, packet_type: PacketType, pack
             if 'command' in payload:
                 msg = payload['command'] # Command is the payload itself
                 # Create packet using transceiver helper
-                packet = transceiver.create_cmd_packet(dest_node=dest_node,command=msg.encode('utf-8'))
+                packet = transceiver.create_cmd_packet(dest_node=dest_node,command=msg)
             else:
                 logging.error(f"Invalid payload for CMD packet: {payload}")
                 return False
@@ -471,9 +471,12 @@ def publishMQTT(payload: str, topicSufix: str = None):
 def sendMessageMQTT(payload: str, topicSufix: str = None):
     logging.info(f"[MQTT-TX] Sending to MQTT: {payload}")
     if topicPrefix and topicSufix:
-        sendTopic = f'{Topic}{topicSufix}'
-    else: # If no topic prefix or suffix, use CommandTopic for commands, or default Topic for data
-        sendTopic = CommandTopic if "command" in payload else Topic
+        if topicSufix=="command":
+            sendTopic = COMMAND_TOPIC
+        else:
+            sendTopic = f'{Topic}{topicSufix}'
+    else: # If no topic prefix or suffix, use COMMAND_TOPIC for commands, or default Topic for data
+        sendTopic = Topic
 
     # Use QoS 1 for reliable delivery (at least once)
     ret = client.publish(sendTopic, payload, qos=1)

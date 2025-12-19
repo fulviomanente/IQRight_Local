@@ -362,6 +362,11 @@ def process_command_message(payload_str):
             elif command == 'clean':
                 memory_data.publish_command(jsonObj)
 
+        else:
+            logging.debug(f'Command already processed for user {user_id}')
+            logging.debug(f'Last Command: {memory_data.lastCommand}, Last Command Timestamp: {memory_data.lastCommandTimestamp}, New Command: {command}')
+            logging.debug(f'New Command: {memory_data.lastCommand != command}')
+
     return True
 
 

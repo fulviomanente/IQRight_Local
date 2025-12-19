@@ -47,6 +47,7 @@ import queue
 import logging
 import logging.handlers
 import os
+import re
 import pandas as pd
 from cryptography.fernet import Fernet
 from io import StringIO
@@ -92,6 +93,21 @@ class SerialThread(Thread):
         self.ser = serial.Serial("/dev/serial0", 115200, timeout=2)
         self.control = False
         ##########################
+
+    def clean_qr_code(self, raw_read: str, log_debug: bool = True) -> str:
+        # Show hex of raw input for debugging
+        # if log_debug:
+        #    print(f"Raw hex: {raw_read.encode().hex()}")
+        #    print(f"Raw bytes: {[hex(b) for b in raw_read.encode()]}")
+        cleaned = re.sub(r'[^0-9Pp]', '', raw_read).upper()
+        logging.info(f"cleaned str: {cleaned} ({len(cleaned)} bytes long)")
+        stripped = cleaned
+        while stripped.startswith('31'):
+            stripped = stripped[2:]
+        # if log_debug:
+        logging.info(f"After filter: {cleaned} -> After 31-strip: {stripped}")
+        return stripped
+
     def run(self):
       try:
         while True:
@@ -108,21 +124,18 @@ class SerialThread(Thread):
                 serialRead = self.ser.read(remaining)
                 #Convert bytes from serial into str
                 strRead = str(serialRead, encoding="UTF-8")
-                logging.info(f"full read ({len(strRead)} bytes): {strRead}")
-                qrCode = strRead[6:].strip()
-
-                # Remove leading "31" characters (scanner low battery bug)
-                # Will never have valid QR code starting with "31"
-                while qrCode.startswith("31"):
-                    qrCode = qrCode[2:]
-                    logging.debug(f"Removed leading '31' from QR code")
-
-                if len(qrCode) > 6:
-                    self.queue.put(qrCode)
-                    logging.info(f'PUT in the Queue: {qrCode}')
+                if len(strRead) > 6:
+                    logging.info(f"full read from scanner({len(strRead)} bytes): {strRead}")
+                    qrCode = strRead.strip()
+                    qrCode = self.clean_qr_code(qrCode)
+                    logging.info(f"Clean QRCode ({len(qrCode)} bytes): {qrCode}")
+                    if len(qrCode) > 6:
+                        self.queue.put(qrCode)
+                        logging.info(f'PUTTING in the Queue: {qrCode}')
+                    else:
+                        logging.info(f"Disregarded after cleaning: {qrCode}")
                 else:
-                    logging.info(f'Invalid String captured from Serial: {qrCode}')
-                pressed = 1
+                    logging.info(f'Invalid String captured from Serial: {strRead}')
             is_killed = self._kill.wait(1)
             if is_killed:
                 break
@@ -380,10 +393,11 @@ class App(tk.Tk):
                             if packet.multi_flags & MultiPartFlags.LAST:
                                 confirmationReceived = True
                                 break
-                            else:
-                                # Single packet
-                                confirmationReceived = True
-                                break
+                            # else: continue waiting for more packets (FIRST or MORE flag)
+                        else:
+                            # Single packet (not multi-part)
+                            confirmationReceived = True
+                            break
 
                 except UnicodeDecodeError as e:
                     logging.error(f'Invalid UTF-8 in packet payload: {e}')
@@ -473,8 +487,8 @@ class App(tk.Tk):
                     if self.lora_receiver(cmd):
                         if not cmd:  # Only add to lstCode for data, not commands
                             self.lstCode.append(payload)
-                            sending = False
-                            return True
+                        sending = False
+                        return True
 
                 # Check timeout
                 if time.time() >= startTime + serverResponseTimeout:
@@ -526,7 +540,7 @@ class App(tk.Tk):
         answer = messagebox.askyesno("Confirm", "Erase all Data?")
         if answer == True:
             self.pileCommands("cleanup")
-            if self.lora_sender(sending=True, payload='cmd:cleanup}', cmd=True):
+            if self.lora_sender(sending=True, payload='cmd:cleanup', cmd=True):
                 self.lstCode = []
                 self.sheet.delete_rows([x for x in range(0, self.sheet.get_total_rows())], deselect_all=True, redraw=True)
             else:
