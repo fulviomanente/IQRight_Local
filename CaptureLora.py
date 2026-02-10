@@ -619,6 +619,20 @@ def handle_hello_packet(packet: LoRaPacket):
 
 async def main_loop_async():
     """Main asynchronous loop for receiving and processing LoRa packets."""
+
+    # Adaptive logging state:
+    #   IDLE       - Before any HELLO handshake; log timeouts every 5 min
+    #   ACTIVE     - After HELLO received; log every timeout for close monitoring
+    #   WIND_DOWN  - 15 min with no valid packets; back to every 5 min
+    IDLE_LOG_INTERVAL = 300        # 5 minutes in seconds
+    WIND_DOWN_THRESHOLD = 900      # 15 minutes in seconds
+
+    is_active = False
+    last_valid_packet_time = None
+    last_timeout_log_time = time.time()
+
+    logging.info("Server started in IDLE mode - logging timeouts every 5 minutes until HELLO received")
+
     while True:
         # Receive packet using enhanced packet handler
         packet = transceiver.receive_packet(timeout=RMF9X_POOLING)
@@ -627,17 +641,23 @@ async def main_loop_async():
             try:
                 # Check for HELLO packet first
                 if packet.packet_type == PacketType.HELLO:
+                    if not is_active:
+                        is_active = True
+                        logging.info("=== SWITCHING TO ACTIVE MODE - monitoring all packets ===")
+                    last_valid_packet_time = time.time()
                     handle_hello_packet(packet)
                     continue
 
                 # Check for STATUS packet (device health monitoring)
                 if packet.packet_type == PacketType.STATUS:
+                    last_valid_packet_time = time.time()
                     handle_status_packet(packet)
                     continue
 
                 # Extract payload and source node from packet
                 packet_text = packet.payload.decode('utf-8')
                 source_node = packet.source_node
+                last_valid_packet_time = time.time()
 
                 if DEBUG:
                     logging.debug(f'{packet} Received')
@@ -655,8 +675,22 @@ async def main_loop_async():
                 logging.error(f'Error processing packet: {e}')
                 logging.error(f'{e.__str__()}')
         else:
-            if DEBUG:
-                logging.debug('No packet received (timeout)')
+            now = time.time()
+
+            # Check if active mode should wind down (15 min no valid packets)
+            if is_active and last_valid_packet_time and (now - last_valid_packet_time) >= WIND_DOWN_THRESHOLD:
+                is_active = False
+                logging.info(f"=== SWITCHING TO IDLE MODE - no valid packets for {WIND_DOWN_THRESHOLD // 60} minutes ===")
+
+            # In ACTIVE mode: log every timeout
+            if is_active:
+                if DEBUG:
+                    logging.debug('No packet received (timeout)')
+            # In IDLE/WIND_DOWN mode: log only every 5 minutes
+            else:
+                if (now - last_timeout_log_time) >= IDLE_LOG_INTERVAL:
+                    last_timeout_log_time = now
+                    logging.info('No packet received - server idle (next check in 5 min)')
 
         await asyncio.sleep(0.1)  # Brief sleep to prevent CPU spinning
 
