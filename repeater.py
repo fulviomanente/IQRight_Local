@@ -35,13 +35,7 @@ from utils.config import (
 )
 from utils.oled_display import get_oled_display
 
-# Import battery monitor for OLED display
-try:
-    from utils.battery_monitor import read_battery_status
-    BATTERY_MONITOR_AVAILABLE = True
-except ImportError:
-    logging.warning("Battery monitor not available")
-    BATTERY_MONITOR_AVAILABLE = False
+
 
 # Logging setup
 try:
@@ -111,10 +105,14 @@ def main():
     last_stats_time = time.time()
     last_oled_update = time.time()
     last_battery_read = time.time()
-    battery_percent = None  # Cache battery percentage
+    last_status_sent = time.time()
+    battery_percent = None  # Cache battery percentage for OLED
+    pisugar_status = None   # Cache full PiSugar status
     STATS_INTERVAL = 300  # Log stats every 5 minutes
     OLED_STATS_INTERVAL = 60  # Update OLED stats every 60 seconds
     BATTERY_READ_INTERVAL = 60  # Read battery every 60 seconds
+    STATUS_SEND_INTERVAL = 300  # Send status to server every 5 minutes
+    SHUTDOWN_HOUR = 17  # Shutdown at 5:00 PM (17:00)
 
     logging.info("Repeater ready, listening for packets...")
 
@@ -136,19 +134,71 @@ def main():
                     stats.log_stats()
                     last_stats_time = time.time()
 
-                # Periodically read battery status
-                if BATTERY_MONITOR_AVAILABLE and time.time() - last_battery_read > BATTERY_READ_INTERVAL:
+                # Periodically read PiSugar status
+                if PISUGAR_AVAILABLE and time.time() - last_battery_read > BATTERY_READ_INTERVAL:
                     try:
-                        battery_info = read_battery_status()
-                        if battery_info and battery_info.get('available'):
-                            battery_percent = battery_info.get('percent', None)
-                            logging.debug(f"Battery: {battery_percent}% ({battery_info.get('voltage')}V)")
+                        pisugar_status = read_pisugar_status()
+                        if pisugar_status and pisugar_status.get('available'):
+                            battery_percent = int(pisugar_status['battery'])
+                            charging = "charging" if pisugar_status['charging'] else "discharging"
+                            logging.debug(f"Battery: {battery_percent}% ({charging})")
                         else:
                             battery_percent = None
                         last_battery_read = time.time()
                     except Exception as e:
-                        logging.debug(f"Failed to read battery: {e}")
+                        logging.debug(f"Failed to read PiSugar: {e}")
                         battery_percent = None
+
+                # Periodically send status to server
+                if PISUGAR_AVAILABLE and pisugar_status and time.time() - last_status_sent > STATUS_SEND_INTERVAL:
+                    try:
+                        # Format status for LoRa transmission
+                        status_payload = format_status_for_lora(pisugar_status)
+
+                        # Create STATUS packet
+                        status_packet = LoRaPacket.create(
+                            packet_type=PacketType.STATUS,
+                            source_node=LORA_NODE_ID,
+                            dest_node=1,  # Server
+                            payload=status_payload.encode('utf-8'),
+                            sequence_num=transceiver.get_next_sequence()
+                        )
+
+                        # Send status to server
+                        success = transceiver.send_packet(status_packet, use_ack=False)
+
+                        if success:
+                            logging.info(f"Status sent to server: Battery={battery_percent}%")
+                        else:
+                            logging.warning("Failed to send status to server")
+
+                        last_status_sent = time.time()
+                    except Exception as e:
+                        logging.error(f"Error sending status: {e}")
+
+                # Check for scheduled shutdown (5:00 PM)
+                current_hour = datetime.now().hour
+                current_minute = datetime.now().minute
+                if current_hour == SHUTDOWN_HOUR and current_minute == 0:
+                    logging.info("Scheduled shutdown time reached (5:00 PM)")
+                    stats.log_stats()
+
+                    # Show shutdown message on OLED
+                    try:
+                        oled._clear()
+                        oled.draw.text((10, 20), "Scheduled", font=oled.font, fill=255)
+                        oled.draw.text((10, 35), "Shutdown", font=oled.font, fill=255)
+                        oled.draw.text((10, 50), "5:00 PM", font=oled.font, fill=255)
+                        oled._update()
+                        time.sleep(3)
+                        oled._turn_off()
+                    except Exception:
+                        pass
+
+                    # Shutdown the system
+                    logging.info("Initiating system shutdown")
+                    subprocess.run(["sudo", "shutdown", "-h", "now"])
+                    break  # Exit main loop
 
                 # Periodically update OLED stats
                 if time.time() - last_oled_update > OLED_STATS_INTERVAL:
