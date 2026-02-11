@@ -83,6 +83,36 @@ client.connect(MQTT_BROKER,
                keepalive=MQTT_KEEPALIVE);
 logging.info('Connected to MQTT Server')
 
+
+def on_mqtt_message(client, userdata, message):
+    """Handle incoming MQTT messages (web handshake requests)."""
+    try:
+        payload = json.loads(str(message.payload, 'UTF-8'))
+        if payload.get('type') == 'web_hello':
+            class_code = payload.get('classCode')
+            user_name = payload.get('userName', 'unknown')
+            logging.info(f"[MQTT-HANDSHAKE] web_hello from {user_name}, classCode={class_code}")
+
+            ack_payload = json.dumps({
+                "type": "web_hello_ack",
+                "classCode": class_code,
+                "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+            topic = f"{Topic}{class_code}"
+            ret = client.publish(topic, ack_payload, qos=1)
+            if ret[0] == 0:
+                logging.info(f"[MQTT-HANDSHAKE] web_hello_ack sent to {topic}")
+            else:
+                logging.error(f"[MQTT-HANDSHAKE] FAILED to send web_hello_ack to {topic}")
+    except Exception as e:
+        logging.error(f"[MQTT-HANDSHAKE] Error handling message: {e}", exc_info=True)
+
+
+client.on_message = on_mqtt_message
+client.subscribe("IQRHandshake", qos=1)
+client.loop_start()
+logging.info("[MQTT] Subscribed to IQRHandshake, loop started")
+
 def getGrade(strGrade: str):
     if strGrade == 'First Grade' or strGrade[0:2] == '01':
         return '1st'
@@ -376,7 +406,27 @@ async def handleInfo(packet_payload_str: str, source_node: int, packet_type: Pac
                     else:
                         logging.error('MQTT ERROR publishing data')
         else:
-            logging.warning(f"No data found for code {payload_code} from scanner {source_node}. Not sending response.")
+            logging.warning(f"No data found for code {payload_code} from scanner {source_node}. Sending NOT_FOUND response.")
+            # Send NOT_FOUND response so scanner doesn't timeout waiting
+            not_found_msg = f"NOT_FOUND|{payload_code}|00"
+            not_found_packet = transceiver.create_data_packet(
+                dest_node=source_node,
+                payload=not_found_msg.encode('utf-8'),
+                use_ack=True
+            )
+            time.sleep(RFM9X_SEND_DELAY)
+            if LORA_ENABLE_CA and transceiver.rfm9x:
+                data = not_found_packet.serialize()
+                success = CollisionAvoidance.send_with_ca(
+                    transceiver.rfm9x, data,
+                    max_retries=3, enable_rx_guard=True, enable_random_delay=True
+                )
+            else:
+                success = transceiver.send_packet(not_found_packet, use_ack=True)
+            if success:
+                logging.info(f"NOT_FOUND response sent to scanner {source_node} for code {payload_code}")
+            else:
+                logging.error(f"FAILED to send NOT_FOUND response to scanner {source_node} for code {payload_code}")
     else:
         logging.warning(f"Unhandled packet type {packet_type} from node {source_node}")
 
@@ -706,7 +756,6 @@ else:
     except KeyboardInterrupt:
         logging.info("Server shutting down...")
     finally:
+        client.loop_stop()
         client.disconnect()
         logging.info("MQTT client disconnected.")
-
-client.loop_forever();

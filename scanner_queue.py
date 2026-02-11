@@ -94,18 +94,50 @@ class SerialThread(Thread):
         self.control = False
         ##########################
 
+    # Pattern for a valid QR code: P followed by 7-8 digits
+    VALID_QR_PATTERN = re.compile(r'^P\d{7,8}$')
+
     def clean_qr_code(self, raw_read: str, log_debug: bool = True) -> str:
-        # Show hex of raw input for debugging
-        # if log_debug:
-        #    print(f"Raw hex: {raw_read.encode().hex()}")
-        #    print(f"Raw bytes: {[hex(b) for b in raw_read.encode()]}")
+        logging.info(f"Raw input ({len(raw_read)} bytes): {repr(raw_read)}")
+
+        # Step 1: Split on non-printable framing bytes BEFORE stripping.
+        # The scanner wraps each QR code in protocol framing (0x00, 0x03, etc.).
+        # Splitting here separates multiple reads that landed in the buffer.
+        fragments = re.split(r'[^0-9A-Za-z]+', raw_read)
+        fragments = [f for f in fragments if len(f) > 0]
+        logging.info(f"Fragments after protocol split: {fragments}")
+
+        # Step 2: Clean each fragment, strip 31-prefix, validate
+        for frag in fragments:
+            cleaned = re.sub(r'[^0-9Pp]', '', frag).upper()
+            stripped = cleaned
+            while stripped.startswith('31'):
+                stripped = stripped[2:]
+
+            if self.VALID_QR_PATTERN.match(stripped):
+                logging.info(f"Valid QR code from fragment: {stripped}")
+                return stripped
+
+        # Step 3: Fallback — full string clean (handles edge cases)
         cleaned = re.sub(r'[^0-9Pp]', '', raw_read).upper()
-        logging.info(f"cleaned str: {cleaned} ({len(cleaned)} bytes long)")
         stripped = cleaned
         while stripped.startswith('31'):
             stripped = stripped[2:]
-        # if log_debug:
-        logging.info(f"After filter: {cleaned} -> After 31-strip: {stripped}")
+
+        # If too long, it's a double-read — extract first valid code
+        if len(stripped) > 12:
+            match = re.match(r'(P\d{7,8})', stripped)
+            if match:
+                logging.warning(f"Double-read detected ({len(stripped)} chars): {stripped} -> extracting: {match.group(1)}")
+                return match.group(1)
+            logging.warning(f"Double-read but no valid pattern found: {stripped}")
+
+        # Validate final result
+        if self.VALID_QR_PATTERN.match(stripped):
+            logging.info(f"After filter: {cleaned} -> After 31-strip: {stripped}")
+            return stripped
+
+        logging.warning(f"Invalid QR after cleaning: {stripped} (from raw: {repr(raw_read[:40])})")
         return stripped
 
     def run(self):
@@ -129,11 +161,11 @@ class SerialThread(Thread):
                     qrCode = strRead.strip()
                     qrCode = self.clean_qr_code(qrCode)
                     logging.info(f"Clean QRCode ({len(qrCode)} bytes): {qrCode}")
-                    if len(qrCode) > 6:
+                    if self.VALID_QR_PATTERN.match(qrCode):
                         self.queue.put(qrCode)
                         logging.info(f'PUTTING in the Queue: {qrCode}')
                     else:
-                        logging.info(f"Disregarded after cleaning: {qrCode}")
+                        logging.warning(f"Rejected invalid QR code: {qrCode}")
                 else:
                     logging.info(f'Invalid String captured from Serial: {strRead}')
             is_killed = self._kill.wait(1)
@@ -370,6 +402,17 @@ class App(tk.Tk):
                             # Handle data packet (student info)
                             # Format: Name|Grade|HierarchyID
                         name = response[0]
+
+                        # Handle NOT_FOUND response from server
+                        if name == 'NOT_FOUND':
+                            not_found_code = response[1] if len(response) > 1 else 'unknown'
+                            logging.warning(f"[NOT_FOUND] Code {not_found_code} not found on server")
+                            self.lbl_name.config(text=f"{not_found_code}")
+                            self.lbl_status.config(text="CODE NOT FOUND", bg="orange", fg="black")
+                            self.after(3000, lambda: self.lbl_status.config(text="Ready", bg="green", fg="white"))
+                            self._last_response_not_found = True
+                            return True
+
                         level1 = response[1]
                         hierarchy_id = response[2]  # Now receiving hierarchyID (e.g., "02")
 
@@ -418,6 +461,11 @@ class App(tk.Tk):
                 level1 = student["level1"]
                 level2 = student["level2"]
                 self.sheet.insert_row([name, level1, level2], redraw=True)
+
+            # Auto-scroll to show the last inserted row
+            last_row = self.sheet.get_total_rows() - 1
+            if last_row >= 0:
+                self.sheet.see(last_row, 0)
 
             # Update status with last student
             if list_received:
@@ -485,8 +533,9 @@ class App(tk.Tk):
 
                     # Wait for response
                     if self.lora_receiver(cmd):
-                        if not cmd:  # Only add to lstCode for data, not commands
+                        if not cmd and not getattr(self, '_last_response_not_found', False):
                             self.lstCode.append(payload)
+                        self._last_response_not_found = False
                         sending = False
                         return True
 
@@ -536,35 +585,63 @@ class App(tk.Tk):
             logging.error(f"KEY_PATH: {KEY_PATH}")
             return None
 
+    def _send_critical_command(self, payload: str) -> bool:
+        """Send a critical command (break/release) with automatic retry on failure."""
+        if self.lora_sender(sending=True, payload=payload, cmd=True, serverResponseTimeout=10):
+            return True
+        # One more attempt for critical commands
+        logging.warning(f"[CMD-RETRY] First attempt failed for {payload}, retrying...")
+        self.lbl_status.config(text="Retrying command...", bg="yellow", fg="black")
+        return self.lora_sender(sending=True, payload=payload, cmd=True, serverResponseTimeout=10)
+
+    def _flash_status(self, text: str, bg: str, fg: str = "white"):
+        """Briefly flash the status bar then restore to normal after 3 seconds."""
+        self.lbl_status.config(text=text, bg=bg, fg=fg)
+        self.after(3000, lambda: self.lbl_status.config(text="Ready", bg="green", fg="white"))
+
     def screenCleanup(self):
         answer = messagebox.askyesno("Confirm", "Erase all Data?")
         if answer == True:
             self.pileCommands("cleanup")
-            if self.lora_sender(sending=True, payload='cmd:cleanup', cmd=True):
+            if self.lora_sender(sending=True, payload='cmd:cleanup', cmd=True, serverResponseTimeout=10):
                 self.lstCode = []
                 self.sheet.delete_rows([x for x in range(0, self.sheet.get_total_rows())], deselect_all=True, redraw=True)
             else:
                 self.unpileCommands()
-                
+
     def breakQueue(self):
-        self.pileCommands("break") 
-        if self.lora_sender(sending=True, payload='cmd:break', cmd=True):
+        self.pileCommands("break")
+        if self._send_critical_command('cmd:break'):
             self.sheet.insert_row(['RELEASE POINT', '', ''], redraw=True)
             self.sheet.highlight_rows(rows=[self.sheet.get_total_rows() - 1], bg='blue', fg='white', highlight_index=True,
                                  redraw=True)
             self.breakLineList.append(self.sheet.get_total_rows() - 1)
+            self.sheet.see(self.sheet.get_total_rows() - 1, 0)
+            self._flash_status("BREAK SET", "blue")
+            logging.info("[BREAK] Break confirmed by server")
         else:
             self.unpileCommands()
+            self._flash_status("BREAK FAILED - Try Again", "red")
+            logging.error("[BREAK] Break failed after retry")
 
     def releaseQueue(self):
         self.pileCommands("release")
-        if len(self.breakLineList) > 0 and self.lora_sender(sending=True, payload='cmd:release', cmd=True):
+        if len(self.breakLineList) > 0 and self._send_critical_command('cmd:release'):
             breakLineIndex = self.breakLineList[0]
-            self.sheet.delete_rows([x for x in range(0, breakLineIndex)], deselect_all=True, redraw=True)
+            # Delete all rows from top through the break line (inclusive)
+            rows_to_delete = [x for x in range(0, breakLineIndex + 1)]
+            logging.info(f"[RELEASE] Deleting rows 0-{breakLineIndex} ({len(rows_to_delete)} rows)")
+            self.sheet.delete_rows(rows_to_delete, deselect_all=True, redraw=True)
             self.breakLineList.pop(0)
-            self.breakLineList = [x - breakLineIndex for x in self.breakLineList]
+            # Adjust remaining break indices by total rows removed
+            deleted_count = breakLineIndex + 1
+            self.breakLineList = [x - deleted_count for x in self.breakLineList]
+            self._flash_status("RELEASED", "green")
+            logging.info("[RELEASE] Release confirmed by server")
         else:
             self.unpileCommands()
+            self._flash_status("RELEASE FAILED - Try Again", "red")
+            logging.error("[RELEASE] Release failed after retry")
             
 
     def undoLast(self):

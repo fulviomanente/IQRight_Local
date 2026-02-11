@@ -48,11 +48,20 @@ def handle_disconnect():
 @socketio.on('join')
 def on_join(data):
     user_id = data.get('user_id')
-    if user_id:
-        socketio.server.enter_room(request.sid, user_id)
-        logging.info(f'[SOCKETIO] User {user_id} joined room (sid={request.sid})')
-    else:
+    if not user_id:
         logging.warning(f'[SOCKETIO] Join request without user_id (sid={request.sid})')
+        return
+
+    socketio.server.enter_room(request.sid, user_id)
+    logging.info(f'[SOCKETIO] User {user_id} joined room (sid={request.sid})')
+
+    # Verify MQTT client health — recreate if dead
+    mqtt_healthy = (user_id in mqtt_clients and
+                    mqtt_clients[user_id].is_connected())
+
+    if not mqtt_healthy:
+        logging.warning(f'[MQTT-HEALTH] MQTT client dead for {user_id} on SocketIO rejoin - recreating')
+        _setup_mqtt_client(user_id)
 
 @socketio.on('release_complete')
 def handle_release_complete(data):
@@ -221,8 +230,66 @@ def on_connect(client, userdata, flags, rc, properties):
             test_topic = f"{TOPIC_PREFIX}test"
             result, mid = client.subscribe(test_topic, qos=1)
             logging.info(f"[MQTT-SUB] Subscribed to test topic: {test_topic} (result={result}, mid={mid}, QoS=1)")
+
+            # Send handshake to verify end-to-end MQTT pipeline with CaptureLora
+            handshake_payload = json.dumps({
+                "type": "web_hello",
+                "classCode": str(userdata.get('classCode')),
+                "userName": userdata.get('userName')
+            })
+            client.publish("IQRHandshake", handshake_payload, qos=1)
+            logging.info(f"[MQTT-HANDSHAKE] Sent web_hello for user {userdata.get('userName')}, classCode={userdata.get('classCode')}")
     else:
         logging.error(f"[MQTT-CONN] Failed to connect, return code: {rc}")
+
+def on_mqtt_disconnect(client, userdata, flags, rc, properties=None):
+    """Detect and log MQTT disconnections for debugging and health tracking."""
+    user_id = userdata.get('userName', 'unknown') if userdata else 'unknown'
+    if rc == 0:
+        logging.info(f"[MQTT-CONN] Clean disconnect for user {user_id}")
+    else:
+        logging.warning(f"[MQTT-CONN] Unexpected disconnect for user {user_id}, rc={rc}. Auto-reconnect will attempt.")
+
+
+def _setup_mqtt_client(user_id):
+    """Create or recreate MQTT client for a user. Called from /home and on_join."""
+    # Clean up existing client
+    if user_id in mqtt_clients:
+        try:
+            mqtt_clients[user_id].loop_stop()
+            if mqtt_clients[user_id].is_connected():
+                mqtt_clients[user_id].disconnect()
+            logging.debug(f"Cleaned up old MQTT client for {user_id}")
+        except Exception as e:
+            logging.error(f"Error cleaning up MQTT client for {user_id}: {e}")
+
+    client_id = f"IQRight_{user_id}"
+    client = mqtt.Client(client_id=client_id, transport=mytransport, protocol=mqtt.MQTTv5)
+    client.username_pw_set(mqttUsername, mqttpassword)
+    client.on_connect = on_connect
+    client.on_message = on_messageScreen
+    client.on_disconnect = on_mqtt_disconnect
+
+    class_code = session.get('_classCode', 0)
+    user_data = {
+        "userAuthenticated": True,
+        "classCode": class_code,
+        "userName": user_id
+    }
+    client.user_data_set(user_data)
+
+    client.connect(broker, port=myport,
+                   clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
+                   properties=properties, keepalive=60)
+    client.loop_start()
+    mqtt_clients[user_id] = client
+
+    # Create user-specific memory data if it doesn't exist
+    if user_id not in memory_data_store:
+        memory_data_store[user_id] = Virtual_List(user_id=user_id)
+
+    logging.info(f"[MQTT-SETUP] Client created for {user_id}, client_id={client_id}, classCode={class_code}")
+
 
 def authenticate_user(username, password):
     payload = {
@@ -271,46 +338,58 @@ def authenticate_user(username, password):
         return {'authenticated': True, 'classCodes': info['listHierarchy'], 'errorMsg': None, 'changePassword': info.get('changePassword', False), 'newUser': info.get('newUser', False), 'fullName': info.get('fullName', ' ')}
 
 def on_messageScreen(client, userdata, message, tmp=None):
-    # Always log incoming messages at INFO level for traceability
-    logging.info(f'[MQTT-RX] Topic: {message.topic}, QoS: {message.qos}, Retain: {message.retain}')
-    payload_str = str(message.payload, 'UTF-8')
-    logging.info(f'[MQTT-RX] Payload: {payload_str}')
+    try:
+        # Always log incoming messages at INFO level for traceability
+        logging.info(f'[MQTT-RX] Topic: {message.topic}, QoS: {message.qos}, Retain: {message.retain}')
+        payload_str = str(message.payload, 'UTF-8')
+        logging.info(f'[MQTT-RX] Payload: {payload_str}')
 
-    # Ensure userdata contains the user_id to identify the session
-    user_id = userdata.get('userName')
-    if not user_id:
-        logging.error("[MQTT-RX] Message received but no user_id in userdata - DROPPING")
-        return False
+        # Ensure userdata contains the user_id to identify the session
+        user_id = userdata.get('userName')
+        if not user_id:
+            logging.error("[MQTT-RX] Message received but no user_id in userdata - DROPPING")
+            return False
 
-    # Check if this is a command message from the central command queue
-    command_topic = f"IQRSend"
-    if message.topic == command_topic:
-        logging.info(f'[MQTT-RX] Command message detected, broadcasting to all clients')
-        # Process command message and broadcast to all clients
-        return process_command_message(payload_str)
+        # Check if this is a command message from the central command queue
+        command_topic = f"IQRSend"
+        if message.topic == command_topic:
+            logging.info(f'[MQTT-RX] Command message detected, broadcasting to all clients')
+            # Process command message and broadcast to all clients
+            return process_command_message(payload_str)
 
-    # Get the memory data for this user, or create if not exists
-    if user_id not in memory_data_store:
-        logging.info(f'[MQTT-RX] Creating new Virtual_List for user: {user_id}')
-        memory_data_store[user_id] = Virtual_List(user_id=user_id)
+        # Try to parse the payload as JSON
+        jsonObj = loadJson(payload_str)
 
-    memory_data = memory_data_store[user_id]
-
-    # Try to parse the payload as JSON for student data
-    jsonObj = loadJson(payload_str)
-    if isinstance(jsonObj, dict):
-        logging.info(f'[MQTT-RX] Valid JSON for user {user_id}: {jsonObj}')
-        # For student queue messages, just process the data (not commands)
-        if 'command' not in jsonObj:
-            logging.info(f'[MQTT-RX] Calling publish_data for user {user_id}')
-            memory_data.publish_data(jsonObj)
+        # Handle handshake ACK (not student data)
+        if isinstance(jsonObj, dict) and jsonObj.get('type') == 'web_hello_ack':
+            logging.info(f'[MQTT-HANDSHAKE] ACK received for user {user_id} - pipeline confirmed')
+            socketio.emit('connection_status', {'status': 'connected', 'timestamp': jsonObj.get('timestamp')}, room=user_id)
             return True
+
+        # Get the memory data for this user, or create if not exists
+        if user_id not in memory_data_store:
+            logging.info(f'[MQTT-RX] Creating new Virtual_List for user: {user_id}')
+            memory_data_store[user_id] = Virtual_List(user_id=user_id)
+
+        memory_data = memory_data_store[user_id]
+
+        if isinstance(jsonObj, dict):
+            logging.info(f'[MQTT-RX] Valid JSON for user {user_id}: {jsonObj}')
+            # For student queue messages, just process the data (not commands)
+            if 'command' not in jsonObj:
+                logging.info(f'[MQTT-RX] Calling publish_data for user {user_id}')
+                memory_data.publish_data(jsonObj)
+                return True
+            else:
+                # Handle commands that might come from non-central queues (for backward compatibility)
+                logging.warning(f'[MQTT-RX] Command received on non-command queue: {jsonObj["command"]}. Ignoring.')
+                return True
         else:
-            # Handle commands that might come from non-central queues (for backward compatibility)
-            logging.warning(f'[MQTT-RX] Command received on non-command queue: {jsonObj["command"]}. Ignoring.')
-            return True
-    else:
-        logging.error(f'[MQTT-RX] NOT A VALID JSON OBJECT: {payload_str}')
+            logging.error(f'[MQTT-RX] NOT A VALID JSON OBJECT: {payload_str}')
+            return False
+
+    except Exception as e:
+        logging.error(f'[MQTT-RX] UNHANDLED EXCEPTION in on_messageScreen: {e}', exc_info=True)
         return False
 
 def process_command_message(payload_str):
@@ -516,54 +595,8 @@ def login():
 def home():
     try:
         user_id = current_user.id
+        _setup_mqtt_client(user_id)
 
-        # Handle existing client for this user if it exists
-        if user_id in mqtt_clients and mqtt_clients[user_id].is_connected():
-            try:
-                mqtt_clients[user_id].disconnect()
-                logging.debug(f"Disconnected existing MQTT client for user {user_id} before reconnecting")
-            except Exception as disconnect_err:
-                logging.error(f"Error disconnecting MQTT client for user {user_id}: {disconnect_err}")
-
-        # Create a unique client ID for this user
-        client_id = f"IQRight_{user_id}_{int(time.time())}"
-
-        # Create a new MQTT client for this user
-        mqtt_clients[user_id] = mqtt.Client(client_id=client_id, transport=mytransport, protocol=mqtt.MQTTv5)
-        client = mqtt_clients[user_id]
-
-        # Set authentication
-        client.username_pw_set(mqttUsername, mqttpassword)
-        client.on_connect = on_connect
-        client.on_message = on_messageScreen
-        
-        # Set user data with complete information
-        user_data = {
-            "userAuthenticated": current_user.is_authenticated, 
-            'classCode': session.get('_classCode', 0),
-            'userName': user_id
-        }
-        client.user_data_set(user_data)
-        
-        # Create user-specific memory data if it doesn't exist
-        if user_id not in memory_data_store:
-            memory_data_store[user_id] = Virtual_List(user_id=user_id)
-
-        # Log connection attempt
-        logging.debug(f"Connecting to MQTT broker at {broker}:{myport} with user data: {user_data}")
-        
-        # Connect to broker
-        client.connect(broker,
-                       port=myport,
-                       clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
-                       properties=properties,
-                       keepalive=60)
-        
-        # Start loop in a background thread
-        client.loop_start()
-        
-        logging.debug(f"MQTT client connected and loop started for user {user_id}")
-        
         return render_template('index.html',
                               user_id=user_id,
                               class_codes=[str(x) for x in current_user.class_codes],
@@ -571,9 +604,9 @@ def home():
                               fullName=session['fullName'],
                               current_user=current_user)
 
-    except Exception as e: #Catch MQTT connection errors
-        logging.error(f"MQTT Connection Error in /home: {e}")
-        return render_template('mqtt_error.html')  # Render error page
+    except Exception as e:
+        logging.error(f"MQTT Connection Error in /home: {e}", exc_info=True)
+        return render_template('mqtt_error.html')
 
 #Route to retrieve and play the sound
 @app.route('/getAudio/<external_number>')

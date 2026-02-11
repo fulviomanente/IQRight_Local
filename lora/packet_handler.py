@@ -367,7 +367,7 @@ class LoRaTransceiver:
         flags = PacketFlags.ACK_REQ if use_ack else 0
 
         # Determine multi-packet flags
-        if multi_part_total == 0:
+        if multi_part_total <= 1:
             multi_flags = MultiPartFlags.ONLY
         elif multi_part_index == 1:
             multi_flags = MultiPartFlags.FIRST | MultiPartFlags.MORE

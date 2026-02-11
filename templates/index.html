@@ -256,6 +256,7 @@
         var populateRight = false;  // Flag to switch from left to right table
         let hasUserInteracted = false;
         let audioQueue = [];
+        let isPlayingAudio = false;
         let isAutoplayMessageShown = false;
 
         // Initialize data queue for handling messages during release processing
@@ -271,6 +272,11 @@
                 console.log('Joining room for user:', userId);
                 socket.emit('join', {user_id: userId});
             }
+        });
+
+        // MQTT pipeline handshake status
+        socket.on('connection_status', function(data) {
+            console.log('MQTT pipeline status:', data.status, 'at', data.timestamp);
         });
 
         // Function to process queued data items
@@ -438,13 +444,13 @@
 
                     // Show visual feedback
                     triggerBlinkingMessage(newCell1.textContent);
-                    playSound(row.getAttribute('data-external-number') + ".mp3");
+
+                    // Play sound and wait for it to finish before next row
+                    const externalNumber = row.getAttribute('data-external-number');
+                    await playSoundAsync(externalNumber + ".mp3");
 
                     // Remove the row from the right table
                     rightTableBody.deleteRow(0);
-
-                    // Wait 1 second before processing next row
-                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             } else if (hasLeftTableData && !hasRightTableData) {
                 // Only left table has data: just clear it
@@ -477,68 +483,87 @@
             document.getElementById('date-time').textContent = now.toLocaleDateString('en-US', options);
         }
 
-        // Modified playSound function
+        // Play a single audio file — returns a Promise that resolves when playback ends
+        function playSoundAsync(filename) {
+            return new Promise((resolve) => {
+                const cachedAudioUrl = localStorage.getItem(filename);
+
+                function playAudioElement(audio) {
+                    audio.onended = () => resolve();
+                    audio.onerror = () => {
+                        console.error("Audio error:", filename);
+                        resolve();
+                    };
+                    audio.play().catch(error => {
+                        console.error("Error playing sound:", error, filename);
+                        if (error.name === 'NotAllowedError') {
+                            showAutoplayMessage();
+                        }
+                        resolve();
+                    });
+                }
+
+                if (cachedAudioUrl) {
+                    console.log('Playing from Cache:', filename);
+                    const audio = new Audio(cachedAudioUrl);
+                    audio.onerror = () => {
+                        // Cached blob URL expired — remove and re-download
+                        localStorage.removeItem(filename);
+                        playSoundAsync(filename).then(resolve);
+                    };
+                    playAudioElement(audio);
+                } else {
+                    const externalNumber = filename.replace('.mp3', '');
+                    console.log('Downloading sound:', filename);
+                    fetch(`/getAudio/${externalNumber}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error('Network response was not ok');
+                            return response.blob();
+                        })
+                        .then(blob => {
+                            const audioUrl = URL.createObjectURL(blob);
+                            localStorage.setItem(filename, audioUrl);
+                            const audio = new Audio(audioUrl);
+                            playAudioElement(audio);
+                        })
+                        .catch(error => {
+                            console.error("Error downloading sound:", error, filename);
+                            resolve();
+                        });
+                }
+            });
+        }
+
+        // Sequential queue: queues sounds and plays them one after another
         function playSound(filename) {
-            const audioPath = '/static/sounds/' + filename;
+            console.log('Queueing sound:', filename);
 
-            console.log('Playing sound:', filename)
-            console.log('hasUserInteracted:', hasUserInteracted)
-
-            // If user hasn't interacted, show message and queue the audio
             if (!hasUserInteracted) {
                 showAutoplayMessage();
                 audioQueue.push(filename);
                 return;
             }
 
-            // Rest of your existing playSound function...
-            const cachedAudioUrl = localStorage.getItem(filename);
-
-            if (cachedAudioUrl) {
-                const audio = new Audio(cachedAudioUrl);
-                console.log('Playing from Cache:', filename)
-                audio.play().catch(error => {
-                    console.error("Error playing cached sound:", error, filename);
-                    localStorage.removeItem(filename);
-                    playSound(filename);
-                });
-            } else {
-                // Extract external number from filename (remove .mp3)
-                const externalNumber = filename.replace('.mp3', '');
-                console.log('Playing sound:', filename)
-                fetch(`/getAudio/${externalNumber}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.blob();
-                    })
-                    .then(blob => {
-                        const audioUrl = URL.createObjectURL(blob);
-                        const audio = new Audio(audioUrl);
-
-                        audio.play().catch(error => {
-                            console.error("Error playing downloaded sound:", error, filename);
-                            if (error.name === 'NotAllowedError') {
-                                showAutoplayMessage();
-                            }
-                        });
-
-                        // Cache the audio URL in Local Storage
-                        localStorage.setItem(filename, audioUrl);
-                    })
-                    .catch(error => {
-                        console.error("Error downloading sound:", error, filename);});
-            }
+            audioQueue.push(filename);
+            processAudioQueue();
         }
 
-        // Function to play queued sounds
-        function playQueuedSounds() {
+        async function processAudioQueue() {
+            if (isPlayingAudio) return;  // Already processing
+            isPlayingAudio = true;
+
             while (audioQueue.length > 0) {
                 const filename = audioQueue.shift();
-                console.log('Playing queued sound:', filename)
-                playSound(filename);
+                console.log('Playing sound:', filename);
+                await playSoundAsync(filename);
             }
+
+            isPlayingAudio = false;
+        }
+
+        // Function to play queued sounds (after user interaction)
+        function playQueuedSounds() {
+            processAudioQueue();
         }
 
         // Add click event listener to document
