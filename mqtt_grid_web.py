@@ -644,24 +644,12 @@ def get_audio(external_number):
             else:
                 text_to_speak = f"{student['ChildName']}, Gym Side"
 
-            # Generate audio using gTTS
+            # Generate audio using gTTS — single API call, save to disk, serve from file
             tts = gTTS(text_to_speak, lang='en')
-
-            # Save to BytesIO object and file system
-            audio_bytes = io.BytesIO()
-            tts.write_to_fp(audio_bytes)
-            audio_bytes.seek(0)
-
-            # Save to file system for future use
             tts.save(local_file_path)
             logging.debug(f"Generated and saved gTTS audio for {external_number}")
 
-            return send_file(
-                audio_bytes,
-                mimetype='audio/mpeg',
-                as_attachment=True,
-                download_name=f'{external_number}.mp3'
-            )
+            return send_file(local_file_path, mimetype='audio/mpeg')
 
     except Exception as e:
         logging.error(f"Error in audio generation pipeline for {external_number}: {str(e)}")

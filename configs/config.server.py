@@ -69,6 +69,14 @@ LORA_CA_MIN_DELAY_MS = int(os.getenv('LORA_CA_MIN_DELAY_MS', '10'))
 LORA_CA_MAX_DELAY_MS = int(os.getenv('LORA_CA_MAX_DELAY_MS', '100'))
 LORA_RX_GUARD_MS = int(os.getenv('LORA_RX_GUARD_MS', '50'))
 
+# Grade Restriction Configuration
+# Grades that are restricted during normal car line operation
+# These students will NOT be sent to the scanner unless today is an unrestricted date
+RESTRICTED_GRADES = ['7th', '8th']
+# Dates when restricted grades ARE allowed (format: 'YYYY-MM-DD')
+# Example: ['2026-02-14', '2026-05-23']
+UNRESTRICTED_DATES = []
+
 # IQRight Configuration
 IDFACILITY = 1
 BEACON_LOCATIONS = [

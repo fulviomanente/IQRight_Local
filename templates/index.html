@@ -484,53 +484,37 @@
         }
 
         // Play a single audio file — returns a Promise that resolves when playback ends
+        // Includes a timeout to prevent the queue from stalling if the server is slow
         function playSoundAsync(filename) {
             return new Promise((resolve) => {
-                const cachedAudioUrl = localStorage.getItem(filename);
-
-                function playAudioElement(audio) {
-                    audio.onended = () => resolve();
-                    audio.onerror = () => {
-                        console.error("Audio error:", filename);
-                        resolve();
-                    };
-                    audio.play().catch(error => {
-                        console.error("Error playing sound:", error, filename);
-                        if (error.name === 'NotAllowedError') {
-                            showAutoplayMessage();
-                        }
-                        resolve();
-                    });
+                let resolved = false;
+                function done() {
+                    if (!resolved) { resolved = true; resolve(); }
                 }
 
-                if (cachedAudioUrl) {
-                    console.log('Playing from Cache:', filename);
-                    const audio = new Audio(cachedAudioUrl);
-                    audio.onerror = () => {
-                        // Cached blob URL expired — remove and re-download
-                        localStorage.removeItem(filename);
-                        playSoundAsync(filename).then(resolve);
-                    };
-                    playAudioElement(audio);
-                } else {
-                    const externalNumber = filename.replace('.mp3', '');
-                    console.log('Downloading sound:', filename);
-                    fetch(`/getAudio/${externalNumber}`)
-                        .then(response => {
-                            if (!response.ok) throw new Error('Network response was not ok');
-                            return response.blob();
-                        })
-                        .then(blob => {
-                            const audioUrl = URL.createObjectURL(blob);
-                            localStorage.setItem(filename, audioUrl);
-                            const audio = new Audio(audioUrl);
-                            playAudioElement(audio);
-                        })
-                        .catch(error => {
-                            console.error("Error downloading sound:", error, filename);
-                            resolve();
-                        });
-                }
+                // Safety timeout — if audio hasn't finished in 15s, move on
+                const timeout = setTimeout(() => {
+                    console.warn("Audio timeout:", filename);
+                    done();
+                }, 15000);
+
+                const externalNumber = filename.replace('.mp3', '');
+                const audio = new Audio(`/getAudio/${externalNumber}`);
+
+                audio.onended = () => { clearTimeout(timeout); done(); };
+                audio.onerror = () => {
+                    console.error("Audio error:", filename);
+                    clearTimeout(timeout);
+                    done();
+                };
+                audio.play().catch(error => {
+                    console.error("Error playing sound:", error, filename);
+                    if (error.name === 'NotAllowedError') {
+                        showAutoplayMessage();
+                    }
+                    clearTimeout(timeout);
+                    done();
+                });
             });
         }
 

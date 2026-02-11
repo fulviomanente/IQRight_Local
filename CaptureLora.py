@@ -22,7 +22,8 @@ from utils.config import API_URL, API_TIMEOUT, DEBUG, LORASERVICE_PATH, OFFLINE_
     LOG_FILENAME, MAX_LOG_SIZE, BACKUP_COUNT, RFM9X_FREQUENCE,   \
     RFM9X_SEND_DELAY, RFM9X_TX_POWER, RFM9X_NODE, RFM9X_ACK_DELAY, RMF9X_POOLING,\
     PROJECT_ID, BEACON_LOCATIONS, IDFACILITY, \
-    LORA_NODE_ID, LORA_FREQUENCY, LORA_TX_POWER, LORA_ENABLE_CA
+    LORA_NODE_ID, LORA_FREQUENCY, LORA_TX_POWER, LORA_ENABLE_CA, \
+    RESTRICTED_GRADES, UNRESTRICTED_DATES
 
 # Import enhanced LoRa packet handler
 from lora import LoRaTransceiver, LoRaPacket, PacketType, NodeType, MultiPartFlags, CollisionAvoidance
@@ -113,6 +114,11 @@ client.subscribe("IQRHandshake", qos=1)
 client.loop_start()
 logging.info("[MQTT] Subscribed to IQRHandshake, loop started")
 
+# Per-scanner response cache for deduplication
+# Key: (source_node, code) → Value: list of result dicts (the payload_to_scanner)
+# Prevents double-publish to MQTT when scanner retries after timeout
+scanner_response_cache = {}
+
 def getGrade(strGrade: str):
     if strGrade == 'First Grade' or strGrade[0:2] == '01':
         return '1st'
@@ -134,6 +140,41 @@ def getGrade(strGrade: str):
         return 'Kind'
     else:
         return 'N/A'
+
+
+def is_grade_restricted(grade_raw: str) -> bool:
+    """Check if a grade should be filtered out today based on RESTRICTED_GRADES config."""
+    if not RESTRICTED_GRADES:
+        return False
+    today = datetime.now().strftime('%Y-%m-%d')
+    if today in UNRESTRICTED_DATES:
+        return False
+    grade = getGrade(grade_raw)
+    return grade in RESTRICTED_GRADES
+
+
+def filter_restricted_grades(results: list) -> list:
+    """Remove restricted grade students from results. Returns filtered list."""
+    if not RESTRICTED_GRADES:
+        return results
+    today = datetime.now().strftime('%Y-%m-%d')
+    if today in UNRESTRICTED_DATES:
+        logging.info(f"[GRADE-FILTER] Today ({today}) is an unrestricted date - allowing all grades")
+        return results
+
+    filtered = []
+    removed = []
+    for item in results:
+        grade_raw = item.get('hierarchyLevel1', '')
+        if is_grade_restricted(grade_raw):
+            removed.append(f"{item.get('name', '?')} ({getGrade(grade_raw)})")
+        else:
+            filtered.append(item)
+
+    if removed:
+        logging.info(f"[GRADE-FILTER] Filtered out {len(removed)} restricted student(s): {', '.join(removed)}")
+
+    return filtered
 
 
 def openFile(filename: str, keyfilename: str ='offline.key'):
@@ -367,7 +408,15 @@ async def handleInfo(packet_payload_str: str, source_node: int, packet_type: Pac
         command = packet_payload_str.split("|")
         logging.info(f"Received command '{command[2]}' from scanner {source_node}")
         
-        payload_to_scanner = {'command': command[2]}
+        # Clear dedup cache for this scanner on cleanup (fresh session)
+        cmd_name = command[2]
+        if cmd_name == 'cleanup':
+            cleared = {k for k in scanner_response_cache if k[0] == source_node}
+            for k in cleared:
+                del scanner_response_cache[k]
+            logging.info(f"[DEDUP] Cleared cache for scanner {source_node} on cleanup ({len(cleared)} entries)")
+
+        payload_to_scanner = {'command': cmd_name}
         time.sleep(RFM9X_SEND_DELAY)
         if sendDataScanner(payload_to_scanner, source_node, packet_type=PacketType.CMD) == False:
             logging.error(f'FAILED to send command ACK to Scanner: {json.dumps(payload_to_scanner)}')
@@ -389,22 +438,64 @@ async def handleInfo(packet_payload_str: str, source_node: int, packet_type: Pac
         beacon, payload_code, distance = parts
         logging.info(f"Received data from scanner {source_node}: Beacon={beacon}, Code={payload_code}, Distance={distance}")
 
-        sendObj = await getInfo(beacon, payload_code, distance, df)
-        payload_to_scanner = sendObj if sendObj else None
-        
+        # Check dedup cache — if scanner is retrying after timeout, re-send cached response without MQTT
+        cache_key = (source_node, payload_code)
+        is_duplicate = cache_key in scanner_response_cache
+
+        if is_duplicate:
+            payload_to_scanner = scanner_response_cache[cache_key]
+            logging.warning(f"[DEDUP] Duplicate code {payload_code} from scanner {source_node} - re-sending cached response, skipping MQTT")
+        else:
+            sendObj = await getInfo(beacon, payload_code, distance, df)
+            if sendObj:
+                # Filter restricted grades (7th/8th by default, unless unrestricted date)
+                original_count = len(sendObj)
+                sendObj = filter_restricted_grades(sendObj)
+                if not sendObj and original_count > 0:
+                    # All students were restricted grades — send RESTRICTED response
+                    logging.info(f"[GRADE-FILTER] All {original_count} student(s) for code {payload_code} are restricted grades")
+                    restricted_msg = f"RESTRICTED|{payload_code}|00"
+                    restricted_packet = transceiver.create_data_packet(
+                        dest_node=source_node,
+                        payload=restricted_msg.encode('utf-8'),
+                        use_ack=True
+                    )
+                    time.sleep(RFM9X_SEND_DELAY)
+                    if LORA_ENABLE_CA and transceiver.rfm9x:
+                        data = restricted_packet.serialize()
+                        success = CollisionAvoidance.send_with_ca(
+                            transceiver.rfm9x, data,
+                            max_retries=3, enable_rx_guard=True, enable_random_delay=True
+                        )
+                    else:
+                        success = transceiver.send_packet(restricted_packet, use_ack=True)
+                    if success:
+                        logging.info(f"RESTRICTED response sent to scanner {source_node} for code {payload_code}")
+                    else:
+                        logging.error(f"FAILED to send RESTRICTED response to scanner {source_node}")
+                    return
+            payload_to_scanner = sendObj if sendObj else None
+
         if payload_to_scanner:
+            # Cache the response for future dedup
+            if not is_duplicate:
+                scanner_response_cache[cache_key] = payload_to_scanner
+
             total_packets = len(payload_to_scanner)
             for idx, item in enumerate(payload_to_scanner, start=1):
                 time.sleep(RFM9X_SEND_DELAY)
                 if sendDataScanner(item, source_node, packet_type=PacketType.DATA, packet_index=idx, total_packets=total_packets) == False:
                     logging.error(f'FAILED to send data to Scanner: {json.dumps(item)}')
                 else:
-                    sendObj_json = json.dumps(item)
-                    hierarchyID = str(item.get("hierarchyID", '00'))
-                    if publishMQTT(sendObj_json, hierarchyID):
-                        logging.debug('MQTT Data Message Sent')
+                    if not is_duplicate:
+                        sendObj_json = json.dumps(item)
+                        hierarchyID = str(item.get("hierarchyID", '00'))
+                        if publishMQTT(sendObj_json, hierarchyID):
+                            logging.debug('MQTT Data Message Sent')
+                        else:
+                            logging.error('MQTT ERROR publishing data')
                     else:
-                        logging.error('MQTT ERROR publishing data')
+                        logging.info(f"[DEDUP] Skipped MQTT publish for duplicate {payload_code}")
         else:
             logging.warning(f"No data found for code {payload_code} from scanner {source_node}. Sending NOT_FOUND response.")
             # Send NOT_FOUND response so scanner doesn't timeout waiting
@@ -638,6 +729,13 @@ def handle_hello_packet(packet: LoRaPacket):
         node_type = parts[2]
 
         logging.info(f"HELLO from {node_type} node {source_node}, seq={scanner_seq}")
+
+        # Clear response dedup cache for this node (scanner rebooted)
+        cleared = {k for k in scanner_response_cache if k[0] == source_node}
+        for k in cleared:
+            del scanner_response_cache[k]
+        if cleared:
+            logging.info(f"[DEDUP] Cleared cache for node {source_node} on HELLO ({len(cleared)} entries)")
 
         # Clear sequence tracking for this node (reset duplicate detection)
         cache_size_before = len(transceiver.seen_packets)

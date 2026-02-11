@@ -413,6 +413,16 @@ class App(tk.Tk):
                             self._last_response_not_found = True
                             return True
 
+                        # Handle RESTRICTED response from server (7th/8th grade filtered)
+                        if name == 'RESTRICTED':
+                            restricted_code = response[1] if len(response) > 1 else 'unknown'
+                            logging.warning(f"[RESTRICTED] Code {restricted_code} is restricted grade - not in car line")
+                            self.lbl_name.config(text=f"{restricted_code}")
+                            self.lbl_status.config(text="NOT IN CAR LINE", bg="orange", fg="black")
+                            self.after(3000, lambda: self.lbl_status.config(text="Ready", bg="green", fg="white"))
+                            self._last_response_not_found = True
+                            return True
+
                         level1 = response[1]
                         hierarchy_id = response[2]  # Now receiving hierarchyID (e.g., "02")
 
@@ -605,7 +615,7 @@ class App(tk.Tk):
             self.pileCommands("cleanup")
             if self.lora_sender(sending=True, payload='cmd:cleanup', cmd=True, serverResponseTimeout=10):
                 self.lstCode = []
-                self.sheet.delete_rows([x for x in range(0, self.sheet.get_total_rows())], deselect_all=True, redraw=True)
+                self.sheet.delete_rows([x for x in range(0, self.sheet.get_total_rows())], redraw=True)
             else:
                 self.unpileCommands()
 
@@ -625,29 +635,33 @@ class App(tk.Tk):
             logging.error("[BREAK] Break failed after retry")
 
     def releaseQueue(self):
-        self.pileCommands("release")
-        if len(self.breakLineList) > 0 and self._send_critical_command('cmd:release'):
-            breakLineIndex = self.breakLineList[0]
-            # Delete all rows from top through the break line (inclusive)
-            rows_to_delete = [x for x in range(0, breakLineIndex + 1)]
-            logging.info(f"[RELEASE] Deleting rows 0-{breakLineIndex} ({len(rows_to_delete)} rows)")
-            self.sheet.delete_rows(rows_to_delete, deselect_all=True, redraw=True)
-            self.breakLineList.pop(0)
-            # Adjust remaining break indices by total rows removed
-            deleted_count = breakLineIndex + 1
-            self.breakLineList = [x - deleted_count for x in self.breakLineList]
-            self._flash_status("RELEASED", "green")
-            logging.info("[RELEASE] Release confirmed by server")
-        else:
-            self.unpileCommands()
-            self._flash_status("RELEASE FAILED - Try Again", "red")
-            logging.error("[RELEASE] Release failed after retry")
-            
+        try:
+            self.pileCommands("release")
+            if len(self.breakLineList) > 0 and self._send_critical_command('cmd:release'):
+                breakLineIndex = self.breakLineList[0]
+                # Delete all rows from top through the break line (inclusive)
+                rows_to_delete = [x for x in range(0, breakLineIndex + 1)]
+                logging.info(f"[RELEASE] Deleting rows 0-{breakLineIndex} ({len(rows_to_delete)} rows)")
+                self.sheet.delete_rows(rows_to_delete, redraw=True)
+                self.breakLineList.pop(0)
+                # Adjust remaining break indices by total rows removed
+                deleted_count = breakLineIndex + 1
+                self.breakLineList = [x - deleted_count for x in self.breakLineList]
+                self._flash_status("RELEASED", "green")
+                logging.info("[RELEASE] Release confirmed by server")
+            else:
+                self.unpileCommands()
+                self._flash_status("RELEASE FAILED - Try Again", "red")
+                logging.error("[RELEASE] Release failed after retry")
+
+        except Exception as e:
+            logging.error("[RELEASE] Release failed with exception")
+            logging.error(e)
 
     def undoLast(self):
         self.pileCommands("undo")
         self.lora_sender(sending=True, payload='cmd:undo')
-        self.sheet.delete_row(self.sheet.get_total_rows() - 1, deselect_all=True, redraw=True)
+        self.sheet.delete_row(self.sheet.get_total_rows() - 1, redraw=True)
         
 
     def quitScanner(self):
