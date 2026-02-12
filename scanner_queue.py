@@ -382,11 +382,11 @@ class App(tk.Tk):
 
             if packet is not None:
                 # Received a packet!
-                logging.info(f'response from Server: {packet}')
+                logging.info(f'[RX] Response from Server: {packet}')
 
                 try:
                     strPayload = packet.payload.decode('utf-8')
-                    logging.info(f'Payload: {strPayload}')
+                    logging.info(f'[RX] Payload: {strPayload}')
                     response = strPayload.split("|")
                     logging.info("??".join(response))
                     if cmd:
@@ -461,7 +461,7 @@ class App(tk.Tk):
 
             # Check timeout
             if time.time() >= startTime + 5:
-                logging.debug('TIMEOUT: Waiting for packet from Server')
+                logging.warning('[RX] TIMEOUT waiting for response from Server')
                 return False
 
         # Display all received students
@@ -504,7 +504,6 @@ class App(tk.Tk):
 
                 # Build message: "scanner_id|payload|distance"
                 msg = f"{self.scanner_node_id}|{payload}|1"
-                logging.info(f"ready to send ({cont}): {msg}")
 
                 # Create packet based on type
                 if cmd:
@@ -521,6 +520,8 @@ class App(tk.Tk):
                         use_ack=True
                     )
 
+                logging.info(f"[TX] Sending ({cont}): {msg} | seq={packet.sequence_num}")
+
                 # Send with collision avoidance if enabled
                 if LORA_ENABLE_CA and self.transceiver.rfm9x:
                     data = packet.serialize()
@@ -535,10 +536,10 @@ class App(tk.Tk):
                     success = self.transceiver.send_packet(packet, use_ack=True)
 
                 if not success:
-                    logging.info(f"error sending on Lora")
+                    logging.warning(f"[TX] LoRa send failed ({cont}): {payload} | seq={packet.sequence_num}")
                     self.lbl_status.config(text=f"Error sending to Server - {cont}", bg="red")
                 else:
-                    logging.info(f"Send executed")
+                    logging.info(f"[TX] Send OK ({cont}): {payload} | seq={packet.sequence_num}")
                     self.lbl_status.config(text=f"Info sent to Server - {cont}", bg="green")
 
                     # Wait for response
@@ -551,6 +552,7 @@ class App(tk.Tk):
 
                 # Check timeout
                 if time.time() >= startTime + serverResponseTimeout:
+                    logging.warning(f"[TX] FAILED after {cont} attempts: {payload} | timeout={serverResponseTimeout}s")
                     self.lbl_status.config(text=f"Ack not received - {cont}", bg="red")
                     return False
         except Exception as e:
