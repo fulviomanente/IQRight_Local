@@ -654,8 +654,9 @@ def handle_status_packet(packet: LoRaPacket):
     Handle STATUS packet from repeater (device health monitoring)
 
     PiSugar 3 sends periodic status updates via I2C.
-    Format: "battery|charging|voltage|temperature|model"
+    Format: "battery|charging|voltage|temperature|model[|event]"
     Example: "85.5|true|3.95|25|PiSugar3"
+    With event: "85.5|true|3.95|25|PiSugar3|STARTUP"
 
     Args:
         packet: STATUS packet from repeater
@@ -666,7 +667,6 @@ def handle_status_packet(packet: LoRaPacket):
         payload_str = packet.payload.decode('utf-8')
 
         # Parse STATUS payload
-        # Format: "85.5|true|3.95|25|PiSugar3"
         parts = payload_str.split('|')
 
         if len(parts) >= 5:
@@ -675,10 +675,12 @@ def handle_status_packet(packet: LoRaPacket):
             voltage = parts[2]
             temperature = parts[3]
             model = parts[4]
+            event = parts[5] if len(parts) >= 6 else None
 
-            # Log to dedicated device status log file
+            # Build log message
+            event_label = f" [{event}]" if event else ""
             status_msg = (
-                f"Node {source_node} | "
+                f"Node {source_node}{event_label} | "
                 f"Battery: {battery}% | "
                 f"Voltage: {voltage}V | "
                 f"Charging: {charging} | "
@@ -688,8 +690,13 @@ def handle_status_packet(packet: LoRaPacket):
 
             device_status_logger.info(status_msg)
 
-            # Also log to main log (condensed)
-            logging.info(f"STATUS from Node {source_node}: Battery={battery}%, Voltage={voltage}V, Charging={charging}")
+            # Main log — highlight startup/shutdown events
+            if event == "STARTUP":
+                logging.info(f">>> REPEATER {source_node} STARTED - Battery={battery}%, Voltage={voltage}V, Charging={charging}")
+            elif event == "SHUTDOWN":
+                logging.info(f"<<< REPEATER {source_node} SHUTTING DOWN - Battery={battery}%, Voltage={voltage}V, Charging={charging}")
+            else:
+                logging.info(f"STATUS from Node {source_node}: Battery={battery}%, Voltage={voltage}V, Charging={charging}")
 
         else:
             logging.warning(f"Invalid STATUS packet format from node {source_node}: {payload_str}")

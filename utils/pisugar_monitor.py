@@ -189,29 +189,33 @@ def read_pisugar_status() -> Dict[str, Any]:
     return status
 
 
-def format_status_for_lora(status: Dict[str, Any]) -> str:
+def format_status_for_lora(status: Dict[str, Any], event: str = None) -> str:
     """
     Format PiSugar status for LoRa transmission
 
-    Format: "battery|charging|voltage|temperature|model"
+    Format: "battery|charging|voltage|temperature|model[|event]"
     Example: "85.5|true|3.95|25|PiSugar3"
+    With event: "85.5|true|3.95|25|PiSugar3|STARTUP"
 
     Args:
         status: Status dictionary from read_pisugar_status()
+        event: Optional event type (STARTUP, SHUTDOWN, or None for periodic)
 
     Returns:
         Formatted string for LoRa payload
     """
     if not status['available']:
-        return "unavailable|false|0.0|0|unknown"
+        base = "unavailable|false|0.0|0|unknown"
+        return f"{base}|{event}" if event else base
 
-    return (
+    base = (
         f"{status['battery']:.1f}|"
         f"{str(status['charging']).lower()}|"
         f"{status['voltage']:.2f}|"
         f"{status['temperature']}|"
         f"{status['model']}"
     )
+    return f"{base}|{event}" if event else base
 
 
 def get_battery_percent(status: Dict[str, Any] = None) -> Optional[int]:

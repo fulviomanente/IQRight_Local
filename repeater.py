@@ -23,6 +23,8 @@ Usage:
 import logging
 import logging.handlers
 import time
+import subprocess
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -34,6 +36,20 @@ from utils.config import (
     LOG_FILENAME, MAX_LOG_SIZE, BACKUP_COUNT, DEBUG, HOME_DIR
 )
 from utils.oled_display import get_oled_display
+
+# PiSugar battery monitor (optional - not available on all hardware)
+try:
+    from utils.pisugar_monitor import read_pisugar_status, format_status_for_lora
+    # Test if hardware is actually present
+    _test = read_pisugar_status()
+    PISUGAR_AVAILABLE = _test['available']
+    if PISUGAR_AVAILABLE:
+        logging.info(f"PiSugar detected: Battery={_test['battery']:.1f}%, Voltage={_test['voltage']:.2f}V")
+    else:
+        logging.info(f"PiSugar module loaded but hardware not found: {_test.get('error', '')}")
+except ImportError:
+    PISUGAR_AVAILABLE = False
+    logging.info("PiSugar monitor not available (smbus not installed)")
 
 
 
@@ -111,14 +127,45 @@ def main():
     STATS_INTERVAL = 300  # Log stats every 5 minutes
     OLED_STATS_INTERVAL = 60  # Update OLED stats every 60 seconds
     BATTERY_READ_INTERVAL = 60  # Read battery every 60 seconds
-    STATUS_SEND_INTERVAL = 300  # Send status to server every 5 minutes
+    STATUS_SEND_INTERVAL = 600  # Send status to server every 10 minutes
     SHUTDOWN_HOUR = 17  # Shutdown at 5:00 PM (17:00)
+
+    def send_status(event=None):
+        """Send a STATUS packet to the server. Optional event: STARTUP, SHUTDOWN, or None for periodic."""
+        if not PISUGAR_AVAILABLE:
+            return
+        try:
+            status = read_pisugar_status()
+            if not status['available']:
+                return
+            nonlocal battery_percent, pisugar_status
+            pisugar_status = status
+            battery_percent = int(status['battery'])
+            status_payload = format_status_for_lora(status, event=event)
+            status_packet = LoRaPacket.create(
+                packet_type=PacketType.STATUS,
+                source_node=LORA_NODE_ID,
+                dest_node=1,
+                payload=status_payload.encode('utf-8'),
+                sequence_num=transceiver.get_next_sequence()
+            )
+            success = transceiver.send_packet(status_packet, use_ack=False)
+            label = f" ({event})" if event else ""
+            if success:
+                logging.info(f"Status{label} sent to server: Battery={battery_percent}%, Voltage={status['voltage']:.2f}V")
+            else:
+                logging.warning(f"Failed to send status{label} to server")
+        except Exception as e:
+            logging.error(f"Error sending status: {e}")
 
     logging.info("Repeater ready, listening for packets...")
 
     # Show ready status on OLED
     time.sleep(2)  # Wait for startup message to display
     oled.show_ready(LORA_NODE_ID, device_type="Repeater")
+
+    # Send STARTUP status to server
+    send_status(event="STARTUP")
 
     try:
         while True:
@@ -150,37 +197,16 @@ def main():
                         battery_percent = None
 
                 # Periodically send status to server
-                if PISUGAR_AVAILABLE and pisugar_status and time.time() - last_status_sent > STATUS_SEND_INTERVAL:
-                    try:
-                        # Format status for LoRa transmission
-                        status_payload = format_status_for_lora(pisugar_status)
-
-                        # Create STATUS packet
-                        status_packet = LoRaPacket.create(
-                            packet_type=PacketType.STATUS,
-                            source_node=LORA_NODE_ID,
-                            dest_node=1,  # Server
-                            payload=status_payload.encode('utf-8'),
-                            sequence_num=transceiver.get_next_sequence()
-                        )
-
-                        # Send status to server
-                        success = transceiver.send_packet(status_packet, use_ack=False)
-
-                        if success:
-                            logging.info(f"Status sent to server: Battery={battery_percent}%")
-                        else:
-                            logging.warning("Failed to send status to server")
-
-                        last_status_sent = time.time()
-                    except Exception as e:
-                        logging.error(f"Error sending status: {e}")
+                if PISUGAR_AVAILABLE and time.time() - last_status_sent > STATUS_SEND_INTERVAL:
+                    send_status()
+                    last_status_sent = time.time()
 
                 # Check for scheduled shutdown (5:00 PM)
                 current_hour = datetime.now().hour
                 current_minute = datetime.now().minute
                 if current_hour == SHUTDOWN_HOUR and current_minute == 0:
                     logging.info("Scheduled shutdown time reached (5:00 PM)")
+                    send_status(event="SHUTDOWN")
                     stats.log_stats()
 
                     # Show shutdown message on OLED
@@ -303,7 +329,8 @@ def main():
             time.sleep(0.05)
 
     except KeyboardInterrupt:
-        logging.info("Repeater shutting down...")
+        logging.info("Repeater shutting down (manual stop)...")
+        send_status(event="SHUTDOWN")
         stats.log_stats()
         try:
             oled.shutdown()

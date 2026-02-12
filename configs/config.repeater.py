@@ -4,7 +4,7 @@ import os
 PROJECT_ID = 'iqright'
 SECRET_KEY = 'iqrightapp_secret'
 SECURITY_PASSWORD_SALT = 'iqrightapp_salt'
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'FALSE') == 'TRUE'
 
 # LOGGING Configuration
 LOG_FILENAME = "IQRight_Repeater.debug"
