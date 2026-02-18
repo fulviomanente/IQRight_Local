@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -24,11 +23,58 @@
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">Login</button>
                 </form>
-                {% with messages = get_flashed_messages() %}
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
                   {% if messages %}
-                    <div class="alert alert-danger mt-3">{{ messages[0] }}</div>
+                    {% for category, message in messages %}
+                      <div class="alert {{ 'alert-success' if category == 'success' else 'alert-danger' }} mt-3">
+                        {{ message }}
+                      </div>
+                    {% endfor %}
                   {% endif %}
                 {% endwith %}
+
+                <div class="text-center mt-3">
+                    <a href="#" data-toggle="collapse" data-target="#resetSection" class="btn btn-link btn-sm text-muted">Forgot Password?</a>
+                    <span class="text-muted">|</span>
+                    <a href="#" data-toggle="collapse" data-target="#changeSection" class="btn btn-link btn-sm text-muted">Change Password</a>
+                </div>
+
+                <!-- Reset Password Section -->
+                <div id="resetSection" class="collapse mt-3">
+                    <div class="card card-body">
+                        <h6 class="mb-3">Reset Password</h6>
+                        <p class="text-muted small">A new password will be sent to your email.</p>
+                        <form method="POST" action="{{ url_for('reset_password') }}">
+                            <div class="form-group">
+                                <input type="text" class="form-control" name="username" placeholder="Username" required>
+                            </div>
+                            <button type="submit" class="btn btn-warning btn-block btn-sm">Send Reset Email</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Change Password Section -->
+                <div id="changeSection" class="collapse mt-3">
+                    <div class="card card-body">
+                        <h6 class="mb-3">Change Password</h6>
+                        <form method="POST" action="{{ url_for('change_password_login') }}">
+                            <div class="form-group">
+                                <input type="text" class="form-control" name="username" placeholder="Username" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="password" class="form-control" name="current_password" placeholder="Current Password" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="password" class="form-control" name="new_password" placeholder="New Password" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="password" class="form-control" name="confirm_password" placeholder="Confirm New Password" required>
+                            </div>
+                            <button type="submit" class="btn btn-info btn-block btn-sm">Change Password</button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

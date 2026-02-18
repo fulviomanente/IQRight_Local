@@ -79,7 +79,7 @@ python3 utils/credential_setup.py --add mqttUsername
 python3 utils/credential_setup.py --add mqttPassword
 ```
 
-**Full Guide**: See [CREDENTIALS_SETUP.md](../docs/CREDENTIALS_SETUP.md)
+**Full Guide**: See [CREDENTIALS_SETUP.md](../docs/How_Tos/CREDENTIALS_SETUP.md)
 
 ### 3. Run Applications
 
@@ -134,7 +134,7 @@ Edit `utils/config.py` for:
 |------------------------------------------------------------------------|-----------------------------------------------|
 | [MESHTASTIC_SETUP.md](../docs/MESHTASTIC_SETUP.md)                     | Complete installation and configuration guide |
 | [MESHTASTIC_TROUBLESHOOTING.md](../docs/MESHTASTIC_TROUBLESHOOTING.md) | Quick reference for setup commands            |
-| [CREDENTIALS_SETUP.md](../docs/CREDENTIALS_SETUP.md)                   | Security and credential management guide      |
+| [CREDENTIALS_SETUP.md](../docs/How_Tos/CREDENTIALS_SETUP.md)                   | Security and credential management guide      |
 
 ## Architecture
 

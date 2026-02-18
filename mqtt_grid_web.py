@@ -525,7 +525,63 @@ def load_user(user_id):
 #######################################################################################
 ##################### FLASK URL ROUTE METHODS #########################################
 
-# Route for ChangePassword page
+# Route for password reset (from login page, no login required)
+@app.route("/reset-password", methods=['POST'])
+def reset_password():
+    username = request.form.get('username', '').strip()
+    if not username:
+        flash('Please enter your username.', 'error')
+        return redirect(url_for('login'))
+
+    payload = {'userName': username}
+    status_code, response = api_request("POST", 'apiUpdatePasswordReset', payload)
+
+    if status_code == 200:
+        flash('A new password has been sent to your email.', 'success')
+    elif status_code == 500:
+        flash('School server is offline. Please try again later or contact your administrator.', 'error')
+    else:
+        flash('Could not reset password. Please verify your username and try again.', 'error')
+
+    return redirect(url_for('login'))
+
+# Route for password change (from login page, no login required)
+@app.route("/change-password-login", methods=['POST'])
+def change_password_login():
+    username = request.form.get('username', '').strip()
+    current_password = request.form.get('current_password', '')
+    new_password = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+
+    if not all([username, current_password, new_password, confirm_password]):
+        flash('All fields are required.', 'error')
+        return redirect(url_for('login'))
+
+    if new_password != confirm_password:
+        flash('New passwords do not match.', 'error')
+        return redirect(url_for('login'))
+
+    payload = {
+        "userName": username,
+        "currentPassword": current_password,
+        "newPassword": new_password
+    }
+    status_code, response = api_request("POST", 'apiUpdateUserPassword', payload)
+
+    if status_code == 200:
+        flash('Password changed successfully. Please login with your new password.', 'success')
+    elif status_code == 500:
+        flash('School server is offline. Password change is not available offline.', 'error')
+    else:
+        try:
+            msg = json.loads(response.get('message', '{}')).get('message', 'Could not change password.')
+        except (json.JSONDecodeError, AttributeError):
+            msg = 'Could not change password. Please check your current password and try again.'
+        flash(msg, 'error')
+
+    return redirect(url_for('login'))
+
+# Route for ChangePassword page (when already logged in)
 @app.route("/change-password", methods=['GET', 'POST'])
 @login_required
 def change_password():
