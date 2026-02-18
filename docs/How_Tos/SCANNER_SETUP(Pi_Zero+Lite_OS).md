@@ -55,6 +55,20 @@ source .venv/bin/activate
 pip install tksheet pyserial python-dotenv cryptography pandas
 ```
 
+Install the ftp client
+
+```bash
+sudo apt install ftp
+```
+
+Download Scanner files to the Pi:
+
+
+Install requirements
+```bash
+pip install -r requirements.scanner.txt
+```
+
 Plus the LoRa/GPIO libraries per your existing `requirements.scanner.txt`.
 
 ### 4. Test manually

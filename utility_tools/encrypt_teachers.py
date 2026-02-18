@@ -70,7 +70,7 @@ def encrypt_teachers_file(input_csv: str, output_iqr: str = None, key_path: str 
     # Load CSV
     print(f"\n1. Reading CSV: {input_csv}")
     try:
-        df = pd.read_csv(input_csv, dtype={'IDHierarchy': int, 'TeacherName': str})
+        df = pd.read_csv(input_csv, dtype={'IDHierarchy': int, 'TeacherName': str, 'ClassCode': str})
     except FileNotFoundError:
         print(f"✗ Error: File not found: {input_csv}")
         return False
@@ -83,7 +83,7 @@ def encrypt_teachers_file(input_csv: str, output_iqr: str = None, key_path: str 
     print(df.head().to_string(index=False))
 
     # Validate required columns
-    required_cols = ['IDHierarchy', 'TeacherName']
+    required_cols = ['IDHierarchy', 'TeacherName', 'ClassCode']
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
         print(f"✗ Error: Missing required columns: {missing_cols}")

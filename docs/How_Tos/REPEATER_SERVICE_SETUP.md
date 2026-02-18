@@ -521,7 +521,7 @@ Battery monitoring using INA219 power sensor is **fully implemented**:
 ### Documentation
 
 For complete INA219 setup, wiring diagrams, calibration, and troubleshooting:
-- **See**: [BATTERY_MONITORING_INA219.md](BATTERY_MONITORING_INA219.md)
+- **See**: [BATTERY_MONITORING_INA219.md](../BATTERY_MONITORING_INA219.md)
 
 ## Security Considerations
 
@@ -581,11 +581,11 @@ sudo systemctl restart systemd-journald
 
 ## See Also
 
-- [BATTERY_MONITORING_INA219.md](BATTERY_MONITORING_INA219.md) - INA219 battery monitoring setup
-- [OLED_SETUP.md](OLED_SETUP.md) - Repeater OLED display setup
-- [OLED_IMPLEMENTATION_SUMMARY.md](OLED_IMPLEMENTATION_SUMMARY.md) - OLED implementation details
-- [CLAUDE.md](../CLAUDE.md) - Project overview
-- [QUICKSTART.md](QUICKSTART.md) - Quick start guide
+- [BATTERY_MONITORING_INA219.md](../BATTERY_MONITORING_INA219.md) - INA219 battery monitoring setup
+- [OLED_SETUP.md](../OLED_SETUP.md) - Repeater OLED display setup
+- [OLED_IMPLEMENTATION_SUMMARY.md](../OLED_IMPLEMENTATION_SUMMARY.md) - OLED implementation details
+- [CLAUDE.md](../../CLAUDE.md) - Project overview
+- [QUICKSTART.md](../QUICKSTART.md) - Quick start guide
 
 ## Support
 

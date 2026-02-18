@@ -453,7 +453,7 @@ Access: `http://repeater-ip:5001/api/battery`
 
 ## Related Documentation
 
-- [REPEATER_SERVICE_SETUP.md](REPEATER_SERVICE_SETUP.md) - Service setup guide
+- [REPEATER_SERVICE_SETUP.md](How_Tos/REPEATER_SERVICE_SETUP.md) - Service setup guide
 - [OLED_SETUP.md](OLED_SETUP.md) - OLED display setup
 - [CLAUDE.md](../CLAUDE.md) - Project overview
 

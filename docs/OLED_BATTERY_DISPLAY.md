@@ -366,7 +366,7 @@ if battery_percent is not None:
 - [BATTERY_MONITORING_INA219.md](BATTERY_MONITORING_INA219.md) - Complete INA219 setup
 - [OLED_SETUP.md](OLED_SETUP.md) - OLED hardware setup
 - [OLED_IMPLEMENTATION_SUMMARY.md](OLED_IMPLEMENTATION_SUMMARY.md) - Implementation details
-- [REPEATER_SERVICE_SETUP.md](REPEATER_SERVICE_SETUP.md) - Service configuration
+- [REPEATER_SERVICE_SETUP.md](How_Tos/REPEATER_SERVICE_SETUP.md) - Service configuration
 
 ## Version History
 
