@@ -23,7 +23,8 @@ from utils.config import API_URL, API_TIMEOUT, DEBUG, LORASERVICE_PATH, OFFLINE_
     RFM9X_SEND_DELAY, RFM9X_TX_POWER, RFM9X_NODE, RFM9X_ACK_DELAY, RMF9X_POOLING,\
     PROJECT_ID, BEACON_LOCATIONS, IDFACILITY, \
     LORA_NODE_ID, LORA_FREQUENCY, LORA_TX_POWER, LORA_ENABLE_CA, \
-    RESTRICTED_GRADES, UNRESTRICTED_DATES
+    RESTRICTED_GRADES, UNRESTRICTED_DATES, \
+    API_ENABLED, LOOKUP_TIMEOUT
 
 # Import enhanced LoRa packet handler
 from lora import LoRaTransceiver, LoRaPacket, PacketType, NodeType, MultiPartFlags, CollisionAvoidance
@@ -45,9 +46,6 @@ else:
     Topic = 'IQSend'
 
 COMMAND_TOPIC = "IQRSend"
-
-#GET Beacon Locations
-beacon_locations_dict = {beacon_info["beacon"]: beacon_info for beacon_info in BEACON_LOCATIONS}
 
 try:
     #LOGGING Setup ####################################################
@@ -83,6 +81,7 @@ client.connect(MQTT_BROKER,
                properties=properties,
                keepalive=MQTT_KEEPALIVE);
 logging.info('Connected to MQTT Server')
+logging.info(f"Lookup mode: {'API + Local' if API_ENABLED else 'LOCAL ONLY'} | Timeout: {LOOKUP_TIMEOUT}s | API Timeout: {API_TIMEOUT}s")
 
 
 def on_mqtt_message(client, userdata, message):
@@ -298,6 +297,7 @@ async def get_user_local(beacon, code, distance, df):
                     "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                     "externalNumber": row['ExternalNumber'],
                     "location": beaconLocator(beacon),
+                    "classCode": row['ClassCode'],
                     "source": "local"
                 }
                 results.append(result)
@@ -309,22 +309,26 @@ async def get_user_local(beacon, code, distance, df):
 
 async def getInfo(beacon, code, distance, df):
     """
-    Get student info from API or local database (whichever responds first)
+    Get student info from API and/or local database.
 
-    Strategy:
-    1. Start both API and local lookups in parallel
-    2. Wait for first result with 2-second timeout
-    3. Prefer API result if it completes first and has data
-    4. Fall back to local if API times out or returns None
+    Controlled by config:
+        API_ENABLED=TRUE  → Race API + local in parallel (original behavior)
+        API_ENABLED=FALSE → Local-only lookup (fastest, no network dependency)
+        LOOKUP_TIMEOUT    → Overall timeout in seconds (default 2.0)
     """
+    # Local-only mode — skip API entirely
+    if not API_ENABLED:
+        logging.debug("API disabled - local-only lookup")
+        return await get_user_local(beacon, code, distance, df)
+
+    # Dual mode — race API and local in parallel
     api_task = asyncio.create_task(get_user_from_api(code))
     local_task = asyncio.create_task(get_user_local(beacon, code, distance, df))
 
     try:
-        # Wait for the first task to complete, with overall 2-second timeout
         done, pending = await asyncio.wait(
             [api_task, local_task],
-            timeout=2.0,
+            timeout=LOOKUP_TIMEOUT,
             return_when=asyncio.FIRST_COMPLETED
         )
 
@@ -332,17 +336,13 @@ async def getInfo(beacon, code, distance, df):
         if api_task in done:
             api_result = await api_task
             if api_result:
-                # API returned data - use it
                 if not isinstance(api_result, list):
                     api_result = [api_result]
                 for result in api_result:
                     result["source"] = "api"
                 logging.debug("Using API results (completed first)")
-
-                # Cancel local task if still running
                 if local_task in pending:
                     local_task.cancel()
-
                 return api_result
 
         # Check if local completed first or API returned None
@@ -350,20 +350,15 @@ async def getInfo(beacon, code, distance, df):
             local_result = await local_task
             if local_result:
                 logging.debug("Using local results")
-
-                # Cancel API task if still running
                 if api_task in pending:
                     api_task.cancel()
-
                 return local_result
 
-        # If we get here, timeout occurred or both returned None
-        # Wait for any pending tasks to complete
+        # Timeout — wait a bit more for any pending tasks
         if pending:
-            logging.warning("Timeout reached, waiting for remaining tasks...")
+            logging.warning(f"Lookup timeout ({LOOKUP_TIMEOUT}s), waiting for remaining tasks...")
             remaining_done, remaining_pending = await asyncio.wait(pending, timeout=0.5)
 
-            # Check results from remaining tasks
             for task in remaining_done:
                 result = await task
                 if result:
@@ -377,18 +372,20 @@ async def getInfo(beacon, code, distance, df):
                         logging.debug("Using local results (after timeout)")
                     return result
 
+            # Cancel anything still running
+            for task in remaining_pending:
+                task.cancel()
+
         logging.warning("No results from API or local lookup")
         return None
 
     except asyncio.CancelledError:
         logging.warning("getInfo was cancelled")
-        # Cancel both tasks
         api_task.cancel()
         local_task.cancel()
         return None
     except Exception as ex:
         logging.error(f'Error in getInfo: {ex}')
-        # Cancel both tasks on error
         api_task.cancel()
         local_task.cancel()
         return None
@@ -417,7 +414,6 @@ async def handleInfo(packet_payload_str: str, source_node: int, packet_type: Pac
             logging.info(f"[DEDUP] Cleared cache for scanner {source_node} on cleanup ({len(cleared)} entries)")
 
         payload_to_scanner = {'command': cmd_name}
-        time.sleep(RFM9X_SEND_DELAY)
         if sendDataScanner(payload_to_scanner, source_node, packet_type=PacketType.CMD) == False:
             logging.error(f'FAILED to send command ACK to Scanner: {json.dumps(payload_to_scanner)}')
         else:
@@ -537,9 +533,8 @@ def sendDataScanner(payload: dict, dest_node: int, packet_type: PacketType, pack
         msg = ""
         if packet_type == PacketType.DATA:
             if 'name' in payload:
-                grade_initial = getGrade(payload['hierarchyLevel1'])[:1]
-                # Send hierarchyID instead of teacher name to save bytes
-                msg = f"{payload['name']}|{grade_initial}|{payload['hierarchyID']}"
+                # Send name and classCode only — scanner displays classCode directly (e.g., "4W")
+                msg = f"{payload['name']}|{payload['classCode']}"
 
                 # Create packet using transceiver helper
                 packet = transceiver.create_data_packet(
@@ -567,8 +562,11 @@ def sendDataScanner(payload: dict, dest_node: int, packet_type: PacketType, pack
 
 
 
-        # Send with collision avoidance if enabled
-        if LORA_ENABLE_CA and transceiver.rfm9x:
+        # CMD ACKs send directly (like HELLO_ACK) — scanner is already listening
+        # DATA packets use collision avoidance for multi-packet spacing
+        if packet_type == PacketType.CMD:
+            success = transceiver.send_packet(packet, use_ack=False)
+        elif LORA_ENABLE_CA and transceiver.rfm9x:
             data = packet.serialize()
             success = CollisionAvoidance.send_with_ca(
                 transceiver.rfm9x,
@@ -629,8 +627,8 @@ def sendMessageMQTT(payload: str, topicSufix: str = None):
         return False
 
 def beaconLocator(idBeacon: int):
-    if idBeacon in beacon_locations_dict:
-        location = beacon_locations_dict[idBeacon]["location"]
+    if idBeacon in BEACON_LOCATIONS:
+        location = BEACON_LOCATIONS[idBeacon]["location"]
         return location
     else:
         return ''

@@ -48,9 +48,6 @@ import logging
 import logging.handlers
 import os
 import re
-import pandas as pd
-from cryptography.fernet import Fernet
-from io import StringIO
 from utils.config import LORA_FREQUENCY, LORA_TX_POWER, LORA_ENABLE_CA
 
 
@@ -59,11 +56,6 @@ if os.getenv("LOCAL", "FALSE") != "TRUE":
     import RPi.GPIO as GPIO
     # Import enhanced LoRa packet handler
     from lora import LoRaTransceiver, LoRaPacket, PacketType, NodeType, MultiPartFlags, CollisionAvoidance
-    TEACHERS_DATA_PATH = '/home/iqright/data/teachers.iqr'
-    KEY_PATH = '/home/iqright/offline.key'
-else:
-    TEACHERS_DATA_PATH = './teachers.iqr'
-    KEY_PATH = './offline.key'
 
 
 debug = True
@@ -196,6 +188,7 @@ class App(tk.Tk):
             self.transceiver = None
         ##########################
         self.lstCode = []
+        self.car_number = 0
         self.breakLineList: list = []
         self.lastCommand = None
         self.previousCommand = None
@@ -219,44 +212,42 @@ class App(tk.Tk):
         self.lbl_status.pack()
 
         bottomFrame = tk.Frame(height=550, bg="white")
-        self.sheet = Sheet(bottomFrame, headers=['Name', 'Grade', 'Teacher'], empty_vertical=0,
+        self.sheet = Sheet(bottomFrame, headers=['Car', 'Name', 'Class'], empty_vertical=0,
                       height=550, width=screenWidth, font=("Arial", 14, "normal"), header_font=("Arial", 14, "normal"))
-        self.sheet.column_width(0, 180)
-        self.sheet.column_width(1, 80)
-        self.sheet.column_width(2, 160)
+        self.sheet.column_width(0, 50)
+        self.sheet.column_width(1, 280)
+        self.sheet.column_width(2, 90)
         self.sheet.pack(fill=tk.X)
         # sheet.grid(row=2, column=0, padx=10, pady=10, columnspan=2)
 
         barFrame = tk.Frame(height=60, bg="white", width=480)
 
         # Create buttons with references (for enable/disable)
-        self.btn_break = tk.Button(master=barFrame, text="Break", font=("Arial", 16), height=12, fg="blue",
+        self.btn_break = tk.Button(master=barFrame, text="Break", font=("Arial", 16), height=4, fg="blue",
                                    command=self.breakQueue)
-        self.btn_break.pack(fill='both', expand=True, side=tk.LEFT)
+        self.btn_break.pack(fill='x', expand=True, side=tk.LEFT)
 
-        self.btn_release = tk.Button(master=barFrame, text="Release", height=12, font=("Arial", 16), fg="blue",
+        self.btn_release = tk.Button(master=barFrame, text="Release", height=4, font=("Arial", 16), fg="blue",
                                      command=self.releaseQueue)
-        self.btn_release.pack(fill='both', expand=True, side=tk.LEFT)
+        self.btn_release.pack(fill='x', expand=True, side=tk.LEFT)
 
-        self.btn_undo = tk.Button(master=barFrame, text="Undo", height=12, font=("Arial", 16), fg="blue",
+        self.btn_undo = tk.Button(master=barFrame, text="Undo", height=4, font=("Arial", 16), fg="blue",
                                   command=self.undoLast)
-        self.btn_undo.pack(fill='both', expand=True, side=tk.LEFT)
+        self.btn_undo.pack(fill='x', expand=True, side=tk.LEFT)
 
-        self.btn_refresh = tk.Button(master=barFrame, text="Reset", height=12, font=("Arial", 16), fg="blue",
+        self.btn_refresh = tk.Button(master=barFrame, text="Reset", height=4, font=("Arial", 16), fg="blue",
                                      command=self.retry_hello_handshake)
-        self.btn_refresh.pack(fill='both', expand=True, side=tk.LEFT)
+        self.btn_refresh.pack(fill='x', expand=True, side=tk.LEFT)
 
-        self.btn_quit = tk.Button(master=barFrame, text="Quit", height=12, font=("Arial", 16), fg="blue",
+        self.btn_quit = tk.Button(master=barFrame, text="Quit", height=4, font=("Arial", 16), fg="blue",
                                   command=self.quitScanner)
-        self.btn_quit.pack(fill='both', expand=True, side=tk.LEFT)
+        self.btn_quit.pack(fill='x', expand=True, side=tk.LEFT)
 
         idTable: int = 1
         upperFrame.pack(fill=tk.X)
         bottomFrame.pack(fill=tk.X)
         barFrame.pack(fill=tk.X)
 
-        # Load teachers mapping at startup
-        self.teachers_mapping = self._load_teachers_mapping()
 
         # Start serial thread if not LOCAL mode
         if os.getenv("LOCAL", "FALSE") != "TRUE":
@@ -324,6 +315,7 @@ class App(tk.Tk):
         # btn_refresh and btn_quit remain enabled
 
         logging.error("Scanner in error state - user must retry handshake or quit")
+        self.update()
 
     def retry_hello_handshake(self):
         """
@@ -392,6 +384,7 @@ class App(tk.Tk):
                     if cmd:
                             # Handle command acknowledgment
                         if response[1] == 'ack' and response[2] == self.lastCommand:
+                            self.lbl_name.config(text="Ready to Scan", bg="blue", fg="white")
                             self.lbl_status.config(text='CMD Confirmed ')
                             logging.info('SERVER ACK TRUE')
                             return True
@@ -400,14 +393,14 @@ class App(tk.Tk):
                             return False
                     else:
                             # Handle data packet (student info)
-                            # Format: Name|Grade|HierarchyID
+                            # Format: Name|ClassCode
                         name = response[0]
 
                         # Handle NOT_FOUND response from server
                         if name == 'NOT_FOUND':
                             not_found_code = response[1] if len(response) > 1 else 'unknown'
                             logging.warning(f"[NOT_FOUND] Code {not_found_code} not found on server")
-                            self.lbl_name.config(text=f"{not_found_code}")
+                            self.lbl_name.config(text=f"{not_found_code}", bg="blue", fg="white")
                             self.lbl_status.config(text="CODE NOT FOUND", bg="orange", fg="black")
                             self.after(3000, lambda: self.lbl_status.config(text="Ready", bg="green", fg="white"))
                             self._last_response_not_found = True
@@ -417,25 +410,15 @@ class App(tk.Tk):
                         if name == 'RESTRICTED':
                             restricted_code = response[1] if len(response) > 1 else 'unknown'
                             logging.warning(f"[RESTRICTED] Code {restricted_code} is restricted grade - not in car line")
-                            self.lbl_name.config(text=f"{restricted_code}")
+                            self.lbl_name.config(text=f"{restricted_code}", bg="blue", fg="white")
                             self.lbl_status.config(text="NOT IN CAR LINE", bg="orange", fg="black")
                             self.after(3000, lambda: self.lbl_status.config(text="Ready", bg="green", fg="white"))
                             self._last_response_not_found = True
                             return True
 
-                        level1 = response[1]
-                        hierarchy_id = response[2]  # Now receiving hierarchyID (e.g., "02")
+                        class_code = response[1]  # ClassCode (e.g., "4W" = 4th Grade, Mrs Webb)
 
-                        # Lookup teacher name from hierarchyID
-                        if self.teachers_mapping and hierarchy_id in self.teachers_mapping:
-                            teacher_name = self.teachers_mapping[hierarchy_id]
-                        else:
-                            # Fallback to displaying hierarchy ID if mapping not available
-                            teacher_name = f"Teacher ID {hierarchy_id}"
-                            if not self.teachers_mapping:
-                                logging.warning("Teachers mapping not loaded, displaying hierarchy ID")
-
-                        list_received.append({"name": name, "level1": level1, "level2": teacher_name})
+                        list_received.append({"name": name, "classCode": class_code})
 
                         # Check if multi-packet sequence
                         if packet.is_multi_part():
@@ -466,11 +449,9 @@ class App(tk.Tk):
 
         # Display all received students
         if confirmationReceived:
+            self.car_number += 1
             for student in list_received:
-                name = student["name"]
-                level1 = student["level1"]
-                level2 = student["level2"]
-                self.sheet.insert_row([name, level1, level2], redraw=True)
+                self.sheet.insert_row([self.car_number, student["name"], student["classCode"]], redraw=True)
 
             # Auto-scroll to show the last inserted row
             last_row = self.sheet.get_total_rows() - 1
@@ -480,7 +461,7 @@ class App(tk.Tk):
             # Update status with last student
             if list_received:
                 last = list_received[-1]
-                self.lbl_name.config(text=f"{last['name']} - {last['level1']}")
+                self.lbl_name.config(text=f"{last['name']} - {last['classCode']}", bg="blue", fg="white")
                 self.lbl_status.config(text=f"Queue Confirmed ({len(list_received)} students)")
             return True
 
@@ -499,6 +480,10 @@ class App(tk.Tk):
         try:
             startTime = time.time()
             cont = 0
+            # Show waiting indicator
+            self.lbl_name.config(text="Waiting for Server...", bg="yellow", fg="black")
+            self.update_idletasks()
+
             while sending:
                 cont += 1
 
@@ -553,49 +538,14 @@ class App(tk.Tk):
                 # Check timeout
                 if time.time() >= startTime + serverResponseTimeout:
                     logging.warning(f"[TX] FAILED after {cont} attempts: {payload} | timeout={serverResponseTimeout}s")
+                    self.lbl_name.config(text="No Response", bg="red", fg="white")
                     self.lbl_status.config(text=f"Ack not received - {cont}", bg="red")
                     return False
         except Exception as e:
             logging.error(f"Error sending to Server: {e}")
+            self.lbl_name.config(text="Communication Error", bg="red", fg="white")
             return False
 
-    def _load_teachers_mapping(self):
-        """Load and decrypt teachers mapping file"""
-        try:
-            if not os.path.exists(TEACHERS_DATA_PATH):
-                logging.warning(f"Teachers file not found: {TEACHERS_DATA_PATH}")
-                logging.warning("Scanner will display hierarchy IDs instead of teacher names")
-                return None
-
-            if not os.path.exists(KEY_PATH):
-                logging.error(f"Encryption key not found: {KEY_PATH}")
-                return None
-
-            # Load key
-            with open(KEY_PATH, 'rb') as key_file:
-                key = key_file.read()
-            f = Fernet(key)
-
-            # Decrypt teachers file
-            with open(TEACHERS_DATA_PATH, 'rb') as encrypted_file:
-                encrypted_data = encrypted_file.read()
-
-            decrypted_data = f.decrypt(encrypted_data)
-
-            # Parse CSV
-            df = pd.read_csv(StringIO(decrypted_data.decode('utf-8')), dtype={'IDHierarchy': int, 'TeacherName': str})
-
-            # Create dictionary for fast lookup: {hierarchyID: teacherName}
-            teachers_dict = {f"{row['IDHierarchy']:02d}": row['TeacherName'] for _, row in df.iterrows()}
-
-            logging.info(f"Loaded {len(teachers_dict)} teacher mappings from {TEACHERS_DATA_PATH}")
-            return teachers_dict
-
-        except Exception as e:
-            logging.error(f"Error loading teachers mapping: {e}", exc_info=True)
-            logging.error(f"TEACHERS_DATA_PATH: {TEACHERS_DATA_PATH}")
-            logging.error(f"KEY_PATH: {KEY_PATH}")
-            return None
 
     def _send_critical_command(self, payload: str) -> bool:
         """Send a critical command (break/release) with automatic retry on failure."""
@@ -617,6 +567,7 @@ class App(tk.Tk):
             self.pileCommands("cleanup")
             if self.lora_sender(sending=True, payload='cmd:cleanup', cmd=True, serverResponseTimeout=10):
                 self.lstCode = []
+                self.car_number = 0
                 self.sheet.delete_rows([x for x in range(0, self.sheet.get_total_rows())], redraw=True)
             else:
                 self.unpileCommands()
@@ -624,7 +575,7 @@ class App(tk.Tk):
     def breakQueue(self):
         self.pileCommands("break")
         if self._send_critical_command('cmd:break'):
-            self.sheet.insert_row(['RELEASE POINT', '', ''], redraw=True)
+            self.sheet.insert_row(['', 'RELEASE POINT', ''], redraw=True)
             self.sheet.highlight_rows(rows=[self.sheet.get_total_rows() - 1], bg='blue', fg='white', highlight_index=True,
                                  redraw=True)
             self.breakLineList.append(self.sheet.get_total_rows() - 1)
@@ -668,35 +619,33 @@ class App(tk.Tk):
 
     def quitScanner(self):
         try:
+            logging.info("Scanner shutdown requested - powering off")
             self.thread.kill()
             self.destroy()
-            quit()
         except Exception as e:
-           logging.info("Shutdown error")
-           logging.info(e)
+            logging.info(f"Shutdown cleanup error: {e}")
+        finally:
+            os.system('sudo shutdown -h now')
 
     def process_serial(self):
-        value = True
-        while self.queue.qsize():
-            try:
-                qrCode = self.queue.get()
-                logging.info(f'Read from Queue: {qrCode} value = {value}')
-                self.lbl_status.config(text=f"{qrCode}")
-                if value:
-                    if qrCode in self.lstCode:
-                        self.lbl_name.config(text=f"{qrCode}")
-                        self.lbl_status.config(text=f"Duplicate QRCode")
-                    else:
-                        self.lbl_name.config(text=f"{qrCode}")
-                        self.lbl_status.config(text=f"Sending to IQRight Server")
-                        logging.info(f"QRCode {qrCode}")
-                        sending = True
-                        self.lora_sender(sending=sending, payload=qrCode)
-                value = False
-            except queue.Empty:
-                logging.info("EMPTY QUEUE")
-                pass
-        self.after(100, self.process_serial)
+        try:
+            if self.queue.qsize():
+                qrCode = self.queue.get_nowait()
+                logging.info(f'Read from Queue: {qrCode}')
+                if qrCode in self.lstCode:
+                    self.lbl_name.config(text=f"{qrCode}", bg="blue", fg="white")
+                    self.lbl_status.config(text=f"Duplicate QRCode")
+                    logging.info(f"[QUEUE] Duplicate skipped: {qrCode}")
+                else:
+                    logging.info(f"[QUEUE] Processing: {qrCode}")
+                    self.lora_sender(sending=True, payload=qrCode)
+        except queue.Empty:
+            pass
+        except Exception as e:
+            logging.error(f"[QUEUE] Error processing item: {e}", exc_info=True)
+        finally:
+            # ALWAYS reschedule — never let the polling loop die
+            self.after(100, self.process_serial)
 
     def pileCommands(self, command: str):
         logging.info(f"PileCommands current: {command}, previous: {self.previousCommand}")

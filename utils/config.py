@@ -23,10 +23,12 @@ FILE_DTYPE = {'ChildID': int, 'IDUser': int, 'FirstName': str, 'LastName': str, 
                      , 'HierarchyLevel1': str, 'HierarchyLevel1Type': str, 'HierarchyLevel1Desc': str \
                      , 'HierarchyLevel2': str, 'HierarchyLevel2Type': str, 'HierarchyLevel2Desc': str \
                      , 'StartDate': str, 'ExpireDate': str, 'IDApprovalStatus': int, 'ApprovalStatus': str
-                     , 'MainContact': int, 'Relationship': str, 'IDHierarchy': int}
+                     , 'MainContact': int, 'Relationship': str, 'IDHierarchy': int, 'ClassCode': str}
 
 #API Configuration
-API_TIMEOUT = 10.0
+API_ENABLED = os.getenv('API_ENABLED', 'FALSE') == 'TRUE'
+API_TIMEOUT = float(os.getenv('API_TIMEOUT', '10.0'))
+LOOKUP_TIMEOUT = float(os.getenv('LOOKUP_TIMEOUT', '2.0'))
 if os.getenv('DEBUGSERVICE', 'FALSE') == 'TRUE':
     API_URL = 'http://127.0.0.1:5001/api/'
 else:
@@ -92,8 +94,9 @@ UNRESTRICTED_DATES = []
 
 #IQRight Configuration
 IDFACILITY = 1
-BEACON_LOCATIONS = [
-    {"idBeacon": 102, "beacon": "QR Reader", "location": "Gym Side"},
-    {"idBeacon": 2, "beacon": "QR Reader", "location": "East Side"},
-    {"idBeacon": 3, "beacon": "BLE Reader","location": "Main Entrance"}]
+BEACON_LOCATIONS = {
+    102: {"device": "QR Reader", "location": "Gym Side"},
+    103: {"device": "QR Reader", "location": "Gym Side"},
+    2: {"device": "QR Reader", "location": "East Side"},
+    3: {"device": "BLE Reader","location": "Main Entrance"}}
 
