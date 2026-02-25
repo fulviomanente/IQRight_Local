@@ -29,10 +29,12 @@ from utils.api_client import api_request, get_secret
 app = Flask(__name__)
 app.secret_key = '1QrightS3cr3tKey'  # Secret key for session management
 app.config.from_pyfile('utils/config.py')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 app.config['BABEL_DEFAULT_LOCALE'] = 'en'
 babel = Babel(app)
 socketio = SocketIO(app, cors_allowed_origins="*")  # Allow cross-origin for all domains
 offlineData = OfflineData()
+offlineData.start_scheduled_refresh()
 
 load_dotenv()
 
@@ -62,6 +64,10 @@ def on_join(data):
     if not mqtt_healthy:
         logging.warning(f'[MQTT-HEALTH] MQTT client dead for {user_id} on SocketIO rejoin - recreating')
         _setup_mqtt_client(user_id)
+
+    # Replay buffered messages now that the client is actually in the room
+    class_code = session.get('_classCode', 0)
+    _replay_buffer_for_user(user_id, class_code)
 
 @socketio.on('release_complete')
 def handle_release_complete(data):
@@ -305,8 +311,13 @@ def authenticate_user(username, password):
     if info['message']:
         #IF THERE IS NO CONNECTIVITY TRY TO LOGIN OFFLINE
         if returnCode > 400:
-            errorMsg = info['message']
-            info = offlineData.findUser(userName=username)
+            logging.info(f"API unreachable (code {returnCode}), attempting offline login for {username}")
+            info = offlineData.findUser(userName=username, password=password)
+            if info:
+                logging.info(f"Offline login successful for {username}")
+                errorMsg = None
+            else:
+                errorMsg = 'Offline login failed. Verify your credentials or connect to the internet to login.'
         else:
             if info:
                 if returnCode == 200:
@@ -335,6 +346,9 @@ def authenticate_user(username, password):
     if errorMsg:
         return {'authenticated': False, 'classCodes': [], 'errorMsg': errorMsg, 'changePassword': False, 'newUser': False, 'fullName': ''}
     else:
+        # Cache password hash on successful online login for future offline use
+        if returnCode == 200:
+            offlineData.cache_user_password(username, password)
         return {'authenticated': True, 'classCodes': info['listHierarchy'], 'errorMsg': None, 'changePassword': info.get('changePassword', False), 'newUser': info.get('newUser', False), 'fullName': info.get('fullName', ' ')}
 
 def on_messageScreen(client, userdata, message, tmp=None):
@@ -510,6 +524,118 @@ mqtt_clients = {}
 # Dictionary to store per-user memory data
 memory_data_store = {}
 
+# ---------------------------------------------------------------
+# Global MQTT message buffer
+# A single MQTT client subscribes to ALL known class topics at startup.
+# Messages that arrive before a teacher logs in are buffered per-topic.
+# When a teacher logs in, pending messages for their class code are
+# replayed through their Virtual_List so nothing is lost.
+# ---------------------------------------------------------------
+_message_buffer = {}  # {topic: [payload_str, ...]}
+_buffer_lock = __import__('threading').Lock()
+_active_class_codes = set()  # class codes with a logged-in teacher
+
+def _load_all_class_topics():
+    """Load all class code topics from the student data."""
+    try:
+        df = offlineData.getAppUsers()
+        if df is not None and 'IDHierarchy' in df.columns:
+            class_codes = df['IDHierarchy'].dropna().unique()
+            topics = [f"{TOPIC_PREFIX}{int(code):02d}" for code in class_codes]
+            logging.info(f"[MQTT-BUFFER] Loaded {len(topics)} class topics from student data")
+            return topics
+        else:
+            logging.warning("[MQTT-BUFFER] No IDHierarchy column found, using empty topic list")
+            return []
+    except Exception as e:
+        logging.error(f"[MQTT-BUFFER] Error loading class topics: {e}")
+        return []
+
+def _on_buffer_connect(client, userdata, flags, rc, properties):
+    """Global buffer client — subscribe to all known class topics on connect."""
+    if rc == 0:
+        topics = _load_all_class_topics()
+        for topic in topics:
+            client.subscribe(topic, qos=1)
+        client.subscribe("IQRSend", qos=1)
+        logging.info(f"[MQTT-BUFFER] Global buffer client connected, subscribed to {len(topics)} class topics + IQRSend")
+    else:
+        logging.error(f"[MQTT-BUFFER] Failed to connect, rc={rc}")
+
+def _on_buffer_message(client, userdata, message, tmp=None):
+    """Buffer messages only for topics without a logged-in teacher."""
+    try:
+        topic = message.topic
+        payload_str = str(message.payload, 'UTF-8')
+
+        # Skip handshake messages
+        jsonObj = loadJson(payload_str)
+        if isinstance(jsonObj, dict) and jsonObj.get('type') in ('web_hello', 'web_hello_ack'):
+            return
+
+        # Extract class code from topic
+        if topic.startswith(TOPIC_PREFIX):
+            class_code = topic[len(TOPIC_PREFIX):]
+            # Don't buffer if a teacher is already logged in for this class
+            if class_code in _active_class_codes:
+                return
+
+        # Commands: don't buffer if any teacher is logged in
+        if topic == "IQRSend" and _active_class_codes:
+            return
+
+        with _buffer_lock:
+            if topic not in _message_buffer:
+                _message_buffer[topic] = []
+            _message_buffer[topic].append(payload_str)
+
+        logging.info(f"[MQTT-BUFFER] Buffered message on {topic} ({len(_message_buffer[topic])} pending)")
+    except Exception as e:
+        logging.error(f"[MQTT-BUFFER] Error buffering message: {e}")
+
+def _replay_buffer_for_user(user_id, class_code):
+    """Replay buffered messages for a class code through the user's Virtual_List."""
+    topic = f"{TOPIC_PREFIX}{class_code}"
+    command_topic = "IQRSend"
+
+    # Mark this class code as active (stop buffering for it)
+    _active_class_codes.add(str(class_code))
+
+    with _buffer_lock:
+        command_messages = _message_buffer.pop(command_topic, [])
+        data_messages = _message_buffer.pop(topic, [])
+
+    if not command_messages and not data_messages:
+        return
+
+    logging.info(f"[MQTT-BUFFER] Replaying {len(command_messages)} commands + {len(data_messages)} data messages for user {user_id} (topic {topic})")
+
+    if user_id not in memory_data_store:
+        memory_data_store[user_id] = Virtual_List(user_id=user_id)
+    memory_data = memory_data_store[user_id]
+
+    # Replay commands first (break/release/clean)
+    for payload_str in command_messages:
+        jsonObj = loadJson(payload_str)
+        if isinstance(jsonObj, dict) and 'command' in jsonObj:
+            process_command_message(payload_str)
+
+    # Replay student data
+    for payload_str in data_messages:
+        jsonObj = loadJson(payload_str)
+        if isinstance(jsonObj, dict) and 'command' not in jsonObj:
+            memory_data.publish_data(jsonObj)
+
+# Start the global buffer client
+_buffer_client = mqtt.Client(client_id="IQRight_Buffer", transport=mytransport, protocol=mqtt.MQTTv5)
+_buffer_client.username_pw_set(mqttUsername, mqttpassword)
+_buffer_client.on_connect = _on_buffer_connect
+_buffer_client.on_message = _on_buffer_message
+_buffer_client.connect(broker, port=myport,
+                       clean_start=True,
+                       properties=properties, keepalive=60)
+_buffer_client.loop_start()
+
 AUTH_SERVICE_URL = get_secret('authServiceUrl').get("value", "https://integration.iqright.app/api")
 
 # Flask-Login setup
@@ -614,7 +740,8 @@ def login():
             classCodes = [int(x['IDHierarchy']) for x in response['classCodes']]
             mainClassCode = int(classCodes[0]) if classCodes else 0
             user = User(username, classCodes if classCodes else [0])
-            login_user(user, duration = 600)
+            login_user(user)
+            session.permanent = True
             session['_newUser'] = response.get('newUser')
             session['fullName'] = response.get('fullName')
             session['_classCode'] = mainClassCode
@@ -782,6 +909,9 @@ def logout():
             # Clean up memory data
             if user_id in memory_data_store:
                 del memory_data_store[user_id]
+
+            # Resume buffering for this class code (no active listener anymore)
+            _active_class_codes.discard(str(class_code))
 
             logging.debug(f"Cleaned up MQTT resources for user {user_id}")
     except Exception as e: # Catch MQTT connection errors

@@ -115,7 +115,7 @@ logging.info("[MQTT] Subscribed to IQRHandshake, loop started")
 scanner_response_cache = {}
 
 offlineData = OfflineData()
-df = offlineData.getAppUsers()
+offlineData.start_scheduled_refresh()
 
 def getGrade(strGrade: str):
     if strGrade == 'First Grade' or strGrade[0:2] == '01':
@@ -223,13 +223,14 @@ async def get_user_from_api(code):
             return None
                 
 
-async def get_user_local(beacon, code, distance, df):
+async def get_user_local(beacon, code, distance):
     if not code:  # Return early if code is missing
         logging.error(f'Empty string sent for conversion into MQTT Object')
         return None
 
     try:
         logging.debug(f'Attempting Student Local Lookup...')
+        df = offlineData.getAppUsers()
         filtered_df = df[df['DeviceID'] == code]
         matches = filtered_df.drop_duplicates(subset=['ChildName'])
         if matches.empty:
@@ -260,7 +261,7 @@ async def get_user_local(beacon, code, distance, df):
         return None
 
 
-async def getInfo(beacon, code, distance, df):
+async def getInfo(beacon, code, distance):
     """
     Get student info from API and/or local database.
 
@@ -272,11 +273,11 @@ async def getInfo(beacon, code, distance, df):
     # Local-only mode — skip API entirely
     if not API_ENABLED:
         logging.debug("API disabled - local-only lookup")
-        return await get_user_local(beacon, code, distance, df)
+        return await get_user_local(beacon, code, distance)
 
     # Dual mode — race API and local in parallel
     api_task = asyncio.create_task(get_user_from_api(code))
-    local_task = asyncio.create_task(get_user_local(beacon, code, distance, df))
+    local_task = asyncio.create_task(get_user_local(beacon, code, distance))
 
     try:
         done, pending = await asyncio.wait(
@@ -395,7 +396,7 @@ async def handleInfo(packet_payload_str: str, source_node: int, packet_type: Pac
             payload_to_scanner = scanner_response_cache[cache_key]
             logging.warning(f"[DEDUP] Duplicate code {payload_code} from scanner {source_node} - re-sending cached response, skipping MQTT")
         else:
-            sendObj = await getInfo(beacon, payload_code, distance, df)
+            sendObj = await getInfo(beacon, payload_code, distance)
             if sendObj:
                 # Filter restricted grades (7th/8th by default, unless unrestricted date)
                 original_count = len(sendObj)
@@ -579,12 +580,14 @@ def sendMessageMQTT(payload: str, topicSufix: str = None):
         logging.error(f'[MQTT-TX] FAILED: Topic={sendTopic}, Status={ret[0]}, Error={ret[1]}')
         return False
 
-def beaconLocator(idBeacon: int):
-    if idBeacon in BEACON_LOCATIONS:
-        location = BEACON_LOCATIONS[idBeacon]["location"]
-        return location
-    else:
+def beaconLocator(idBeacon):
+    try:
+        idBeacon = int(idBeacon)
+    except (ValueError, TypeError):
         return ''
+    if idBeacon in BEACON_LOCATIONS:
+        return BEACON_LOCATIONS[idBeacon]["location"]
+    return ''
 
 # Setup device status logger (separate file for device status tracking)
 device_status_logger = logging.getLogger('device_status')

@@ -1,6 +1,8 @@
 import os
+import hashlib
 import logging
 import logging.handlers
+import threading
 from datetime import datetime, timedelta
 import pandas as pd
 from io import StringIO
@@ -32,9 +34,12 @@ class OfflineData:
         self.offline_user_filename = self._filepath / OFFLINE_USERS_FILENAME
 
         self._local_file_versions = self._filepath / LOCAL_FILE_VERSIONS
+        self._password_cache_file = self._filepath / 'password_cache.json'
         self._emptyVersions = {OFFLINE_FULL_LOAD_FILENAME: {'version': 'new'}, OFFLINE_USERS_FILENAME: {'version': 'new'}}
         self._localFileVersions = self._load_file_versions()
         self._allUsersDF = self.loadAppUsers()
+        self.getOfflineUsers()
+        self._refresh_timer = None
 
     def _load_file_versions(self) -> dict:
         """Loads the stored file versions from local JSON."""
@@ -70,8 +75,6 @@ class OfflineData:
                 method="POST",
                 url='apiGetFileVersion',
                 data={'filename': filename})
-
-            logging.error("called apigetFileVersion")
 
             if status_code != 200:
                 logging.error(f"--Error checking file version: {response.get('message')}")
@@ -231,17 +234,63 @@ class OfflineData:
             logging.error(f"Error getting offline users: {str(e)}")
             return None
 
-    def findUser(self, userName):
-        """Finds user in offline data."""
+    def _hash_password(self, password: str, salt: str) -> str:
+        """Create a SHA-256 hash of the password with a user-specific salt."""
+        return hashlib.sha256(f"{salt}:{password}".encode('utf-8')).hexdigest()
+
+    def _load_password_cache(self) -> dict:
+        """Load the local password cache from disk."""
+        try:
+            if os.path.exists(self._password_cache_file):
+                with open(self._password_cache_file, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            logging.error(f"Error loading password cache: {str(e)}")
+        return {}
+
+    def _save_password_cache(self, cache: dict):
+        """Save the local password cache to disk."""
+        try:
+            with open(self._password_cache_file, 'w') as f:
+                json.dump(cache, f)
+        except Exception as e:
+            logging.error(f"Error saving password cache: {str(e)}")
+
+    def cache_user_password(self, userName: str, password: str):
+        """Cache a password hash after successful online authentication."""
+        try:
+            cache = self._load_password_cache()
+            cache[userName] = self._hash_password(password, userName)
+            self._save_password_cache(cache)
+            logging.debug(f"Cached password for offline login: {userName}")
+        except Exception as e:
+            logging.error(f"Error caching password for {userName}: {str(e)}")
+
+    def validate_cached_password(self, userName: str, password: str) -> bool:
+        """Validate a password against the locally cached hash."""
+        cache = self._load_password_cache()
+        if userName not in cache:
+            logging.warning(f"No cached password for {userName} — user has never logged in online")
+            return False
+        return cache[userName] == self._hash_password(password, userName)
+
+    def findUser(self, userName, password: str = None):
+        """Finds user in offline data and validates password against cached hash."""
         try:
             userDF = self.getOfflineUsers()
             if self.offlineUserAvailable:
                 matches = userDF[userDF['UserId'] == userName]
                 if not matches.empty:
                     info = matches.iloc[0].to_dict()
+
+                    # Validate password against locally cached hash
+                    if password is not None:
+                        if not self.validate_cached_password(userName, password):
+                            return None
+
                     info['listFacilities'] = [{'idFacility': int(IDFACILITY)}]
                     info['listHierarchy'] = [{'IDHierarchy': str(x)} for x in str(info['IDHierarchy']).split('|')]
-                    info['fullName'] = info.get('firstName', '') + ' ' + info.get('lastName', '')
+                    info['fullName'] = info.get('FirstName', '') + ' ' + info.get('LastName', '')
                     info['roles'] = info['Role']
                     return info
             return None
@@ -286,3 +335,98 @@ class OfflineData:
         except Exception as e:
             logging.error(f"Error getting app users: {str(e)}")
             return None
+
+    def refreshAllData(self):
+        """
+        Check versions and re-download both data files if newer versions exist.
+        Reloads the in-memory DataFrames on success.
+        If download fails or the new file is empty, keeps using the previous data.
+        """
+        logging.info("[REFRESH] Starting scheduled data refresh...")
+
+        # --- Refresh full_load.iqr (app users / student data) ---
+        try:
+            needNew, fileVersion = self.check_file_version(self.offline_filename)
+            if needNew:
+                logging.info(f"[REFRESH] New version available for {OFFLINE_FULL_LOAD_FILENAME}: {fileVersion}")
+                result = self.download_and_read_csv(
+                    url="apiGetLocalUserFile",
+                    filename=self.offline_filename,
+                    fileVersion=fileVersion
+                )
+                if result and result[0] and result[1] is not None and not result[1].empty:
+                    new_df = result[1]
+                    new_df['ExternalNumber'] = new_df['ExternalNumber'].astype(str)
+                    self._allUsersDF = new_df
+                    logging.info(f"[REFRESH] {OFFLINE_FULL_LOAD_FILENAME} updated and reloaded ({len(new_df)} records)")
+                else:
+                    logging.warning(f"[REFRESH] {OFFLINE_FULL_LOAD_FILENAME} download returned empty — keeping previous data")
+            else:
+                logging.info(f"[REFRESH] {OFFLINE_FULL_LOAD_FILENAME} is up to date (version {fileVersion})")
+        except Exception as e:
+            logging.error(f"[REFRESH] Error refreshing {OFFLINE_FULL_LOAD_FILENAME}: {str(e)} — keeping previous data")
+
+        # --- Refresh offline_users.iqr ---
+        try:
+            needNew, fileVersion = self.check_file_version(self.offline_user_filename)
+            if needNew:
+                logging.info(f"[REFRESH] New version available for {OFFLINE_USERS_FILENAME}: {fileVersion}")
+                # Temporarily allow re-download by resetting the flag
+                prev_available = self.offlineUserAvailable
+                prev_df = self._offlineUsersDF if hasattr(self, '_offlineUsersDF') else None
+                self.offlineUserAvailable = False
+
+                result = self.download_and_read_csv(
+                    url="apiGetLocalOfflineUserFile",
+                    filename=self.offline_user_filename,
+                    fileVersion=fileVersion
+                )
+                if result and result[0] and result[1] is not None and not result[1].empty:
+                    self._offlineUsersDF = result[1]
+                    self.offlineUserAvailable = True
+                    logging.info(f"[REFRESH] {OFFLINE_USERS_FILENAME} updated and reloaded ({len(result[1])} records)")
+                else:
+                    logging.warning(f"[REFRESH] {OFFLINE_USERS_FILENAME} download returned empty — keeping previous data")
+                    self.offlineUserAvailable = prev_available
+                    if prev_df is not None:
+                        self._offlineUsersDF = prev_df
+            else:
+                logging.info(f"[REFRESH] {OFFLINE_USERS_FILENAME} is up to date (version {fileVersion})")
+        except Exception as e:
+            logging.error(f"[REFRESH] Error refreshing {OFFLINE_USERS_FILENAME}: {str(e)} — keeping previous data")
+
+        logging.info("[REFRESH] Scheduled data refresh complete")
+
+    def _schedule_next_refresh(self):
+        """Schedule the next refresh at 1:30 PM on the next weekday."""
+        now = datetime.now()
+        target_time = now.replace(hour=13, minute=30, second=0, microsecond=0)
+
+        # If it's already past 1:30 PM today, schedule for tomorrow
+        if now >= target_time:
+            target_time += timedelta(days=1)
+
+        # Skip weekends (Saturday=5, Sunday=6)
+        while target_time.weekday() >= 5:
+            target_time += timedelta(days=1)
+
+        delay_seconds = (target_time - now).total_seconds()
+        logging.info(f"[REFRESH] Next scheduled refresh at {target_time.strftime('%Y-%m-%d %H:%M')} ({delay_seconds / 3600:.1f} hours)")
+
+        self._refresh_timer = threading.Timer(delay_seconds, self._run_scheduled_refresh)
+        self._refresh_timer.daemon = True
+        self._refresh_timer.start()
+
+    def _run_scheduled_refresh(self):
+        """Execute the refresh and schedule the next one."""
+        try:
+            self.refreshAllData()
+        except Exception as e:
+            logging.error(f"[REFRESH] Unhandled error in scheduled refresh: {str(e)}")
+        finally:
+            self._schedule_next_refresh()
+
+    def start_scheduled_refresh(self):
+        """Start the weekday 1:30 PM refresh schedule."""
+        logging.info("[REFRESH] Starting scheduled data refresh (weekdays at 1:30 PM)")
+        self._schedule_next_refresh()
