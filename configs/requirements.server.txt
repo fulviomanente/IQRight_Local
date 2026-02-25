@@ -2,23 +2,70 @@
 # Node Type: Server (Node ID: 1)
 # Applications: CaptureLora.py, mqtt_grid_web.py
 
-# Core dependencies
-python-dotenv>=1.0.0
-pandas>=2.0.0
-cryptography>=41.0.0
-
-# MQTT
-paho-mqtt>=1.6.1
-
-# Async HTTP for API calls
-aiohttp>=3.9.0
-
-# LoRa hardware (Raspberry Pi only)
-adafruit-circuitpython-rfm9x>=2.2.0
-adafruit-blinka>=8.0.0
-
-# Web server (for mqtt_grid_web.py)
-flask>=3.0.0
-
-# Google Cloud Secret Manager (optional)
-google-cloud-secret-manager>=2.16.0
+aiohappyeyeballs==2.6.1
+aiohttp==3.11.12
+aiosignal==1.4.0
+attrs==25.3.0
+babel==2.17.0
+beautifulsoup4==4.14.2
+bidict==0.22.1
+blinker==1.9.0
+cachetools==5.5.2
+certifi==2024.8.30
+cffi==2.0.0
+charset-normalizer==3.4.0
+click==8.1.7
+cryptography==43.0.1
+dnspython==2.8.0
+eventlet==0.40.3
+Flask==3.0.3
+flask-babel==4.0.0
+Flask-Login==0.6.3
+Flask-SocketIO==5.3.6
+Flask-WTF==1.2.2
+frozenlist==1.7.0
+google==3.0.0
+google-api-core==2.17.1
+google-auth==2.28.2
+google-cloud-secret-manager==2.16.4
+googleapis-common-protos==1.70.0
+greenlet==3.2.4
+grpc-google-iam-v1==0.14.2
+grpcio==1.75.1
+grpcio-status==1.62.3
+gTTS==2.5.3
+gunicorn==23.0.0
+h11==0.16.0
+idna==3.10
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+multidict==6.6.4
+numpy==2.3.3
+packaging==25.0
+paho-mqtt==2.1.0
+pandas==2.3.3
+propcache==0.3.2
+proto-plus==1.26.1
+protobuf==4.25.3
+pyasn1==0.6.1
+pyasn1_modules==0.4.2
+pycparser==2.23
+pydub==0.25.1
+python-dateutil==2.9.0.post0
+python-dotenv==1.0.1
+python-engineio==4.9.0
+python-socketio==5.11.1
+pytz==2024.2
+requests==2.32.3
+rsa==4.9.1
+simple-websocket==1.1.0
+six==1.16.0
+soupsieve==2.8
+typing_extensions==4.15.0
+tzdata==2024.2
+urllib3==2.2.3
+Werkzeug==3.0.1
+wsproto==1.2.0
+WTForms==3.1.2
+yarl==1.20.1

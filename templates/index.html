@@ -8,9 +8,12 @@
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
     <style>
-        /* Compact mode: shrink everything for big screens running 150% browser zoom */
-        body.compact {
+        /* Compact mode: default for screens running 150% browser zoom */
+        body {
             zoom: 0.77;
+        }
+        body.expanded {
+            zoom: 1;
         }
 
         /* Style for the header */
@@ -255,10 +258,10 @@
     </div>
 
     <script>
-        // Compact mode for big screens with 150% browser zoom
-        // Usage: add ?compact=1 to the URL
-        if (new URLSearchParams(window.location.search).get('compact') === '1') {
-            document.body.classList.add('compact');
+        // Compact is the default (most users run 150% browser zoom)
+        // Usage: add ?expand=1 to the URL for full size
+        if (new URLSearchParams(window.location.search).get('expand') === '1') {
+            document.body.classList.add('expanded');
         }
 
         var socket = io.connect('http://' + document.domain + ':' + location.port);

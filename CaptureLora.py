@@ -5,29 +5,25 @@ import logging.handlers
 import os
 import json
 from datetime import datetime
-import pandas as pd
 import asyncio
 from utils.api_client import get_secret
 import aiohttp
 from dotenv import load_dotenv
 from aiohttp import BasicAuth
-from cryptography.fernet import Fernet
-from io import StringIO
 
 load_dotenv()
 
 #Import Config
-from utils.config import API_URL, API_TIMEOUT, DEBUG, LORASERVICE_PATH, OFFLINE_FULL_LOAD_FILENAME, HOME_DIR, FILE_DTYPE, \
-    TOPIC, TOPIC_PREFIX, MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, MQTT_TRANSPORT, MQTT_VERSION, MQTT_KEEPALIVE,   \
-    LOG_FILENAME, MAX_LOG_SIZE, BACKUP_COUNT, RFM9X_FREQUENCE,   \
-    RFM9X_SEND_DELAY, RFM9X_TX_POWER, RFM9X_NODE, RFM9X_ACK_DELAY, RMF9X_POOLING,\
-    PROJECT_ID, BEACON_LOCATIONS, IDFACILITY, \
+from utils.config import API_URL, API_TIMEOUT, DEBUG, HOME_DIR, \
+    TOPIC, TOPIC_PREFIX, MQTT_BROKER, MQTT_PORT,  MQTT_TRANSPORT,  MQTT_KEEPALIVE,   \
+    LOG_FILENAME, MAX_LOG_SIZE, BACKUP_COUNT, RFM9X_SEND_DELAY, RMF9X_POOLING, BEACON_LOCATIONS, IDFACILITY, \
     LORA_NODE_ID, LORA_FREQUENCY, LORA_TX_POWER, LORA_ENABLE_CA, \
     RESTRICTED_GRADES, UNRESTRICTED_DATES, \
     API_ENABLED, LOOKUP_TIMEOUT
+from utils.offline_data import OfflineData
 
 # Import enhanced LoRa packet handler
-from lora import LoRaTransceiver, LoRaPacket, PacketType, NodeType, MultiPartFlags, CollisionAvoidance
+from lora import LoRaTransceiver, LoRaPacket, PacketType, NodeType, CollisionAvoidance
     
 
 #Import MQ Libraries
@@ -118,6 +114,9 @@ logging.info("[MQTT] Subscribed to IQRHandshake, loop started")
 # Prevents double-publish to MQTT when scanner retries after timeout
 scanner_response_cache = {}
 
+offlineData = OfflineData()
+df = offlineData.getAppUsers()
+
 def getGrade(strGrade: str):
     if strGrade == 'First Grade' or strGrade[0:2] == '01':
         return '1st'
@@ -140,7 +139,6 @@ def getGrade(strGrade: str):
     else:
         return 'N/A'
 
-
 def is_grade_restricted(grade_raw: str) -> bool:
     """Check if a grade should be filtered out today based on RESTRICTED_GRADES config."""
     if not RESTRICTED_GRADES:
@@ -150,7 +148,6 @@ def is_grade_restricted(grade_raw: str) -> bool:
         return False
     grade = getGrade(grade_raw)
     return grade in RESTRICTED_GRADES
-
 
 def filter_restricted_grades(results: list) -> list:
     """Remove restricted grade students from results. Returns filtered list."""
@@ -174,50 +171,6 @@ def filter_restricted_grades(results: list) -> list:
         logging.info(f"[GRADE-FILTER] Filtered out {len(removed)} restricted student(s): {', '.join(removed)}")
 
     return filtered
-
-
-def openFile(filename: str, keyfilename: str ='offline.key'):
-    """Opens and decrypts a file."""
-    try:
-        keyfilename = (LORASERVICE_PATH + '/' + keyfilename) if keyfilename else None
-        if os.path.exists(filename):
-            if keyfilename:
-                return True, decrypt_file(datafile=filename, filename=keyfilename)
-            else:
-                return True, decrypt_file(datafile=filename)
-        else:
-            logging.critical(f"No local CSV file found at {filename}. Terminating.")
-            return False, None
-    except Exception as e:
-        logging.error(f"Error opening file {filename}: {str(e)}")
-        return False, None
-
-def decrypt_file(datafile, filename: str ='offline.key'):
-    """Decrypts a file containing an encrypted Pandas DataFrame."""
-    try:
-        with open(filename, 'rb') as key_file:
-            key = key_file.read()
-        f = Fernet(key)
-        with open(datafile, 'rb') as encrypted_file:
-            encrypted_data = encrypted_file.read()
-        decrypted_data = f.decrypt(encrypted_data)
-        df = pd.read_csv(StringIO(decrypted_data.decode('utf-8')))
-        return df
-    except FileNotFoundError as e:
-        logging.error(f"File not found error: {str(e)}")
-        return None
-    except Exception as e:
-        logging.error(f"Error decrypting file {datafile}: {str(e)}")
-        return None
-
-
-if os.path.exists(f"{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}"):
-    status, df = openFile(filename=f"{LORASERVICE_PATH}/{OFFLINE_FULL_LOAD_FILENAME}")
-    logging.info(f"{status}")
-    logging.info(f"{df.size}")
-else:
-    logging.error("UNABLE TO OPEN USER FILE, EXITING")
-    exit(1)
 
 async def get_user_from_api(code):
     async with aiohttp.ClientSession() as session:

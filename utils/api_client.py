@@ -5,13 +5,18 @@ import requests
 from google.cloud import secretmanager
 from utils.config import API_URL, PROJECT_ID, LORASERVICE_PATH
 from cryptography.fernet import Fernet
+from pathlib import Path
 
-DATA_PATH = f"{LORASERVICE_PATH}/data"
-DEFAULT_CREDENTIALS = f'{DATA_PATH}/credentials.iqr'
-DEFAULT_KEY = f'{DATA_PATH}/credentials.key'
-#Function to retrieve secrets from Google Cloud Secret Manager, inputs are secret and expect value and output is the secret
+BASEPATH = Path(LORASERVICE_PATH)
+DATA_PATH = BASEPATH / 'data'
 
-def get_from_local(self, secret_name: str):
+DEFAULT_CREDENTIALS = DATA_PATH / 'credentials.iqr'
+DEFAULT_KEY = DATA_PATH / 'credentials.key'
+
+# In-memory cache for secrets (loaded once, reused for the lifetime of the process)
+_secret_cache = {}
+
+def get_from_local(secret_name: str):
     try:
         if os.path.exists(DEFAULT_KEY):
             """Get secret from local encrypted storage"""
@@ -50,6 +55,11 @@ def get_from_local(self, secret_name: str):
 
 def get_secret(secret, expected: str = None, compare: bool = False):
     secret_name = secret
+
+    # Return cached value if available (skip GCP + file I/O on repeat calls)
+    if secret_name in _secret_cache and not compare:
+        return _secret_cache[secret_name]
+
     secretValue: str = None
     result: bool = False
     try:
@@ -70,10 +80,13 @@ def get_secret(secret, expected: str = None, compare: bool = False):
         # Fallback to local encrypted storage
         local_secret = get_from_local(secret_name)
         if local_secret:
-            response = {'value': result, 'result': True}
+            response = {'value': local_secret, 'result': True}
         else:
             response = {'value': None, 'result': False}
     finally:
+        # Cache successful lookups (value is not None)
+        if response.get('value') is not None and not compare:
+            _secret_cache[secret_name] = response
         return response
 
 def api_request(method, url, data, content: bool = False, bearer: str = None, is_file: bool = False):
