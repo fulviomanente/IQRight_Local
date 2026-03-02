@@ -251,7 +251,7 @@ def on_connect(client, userdata, flags, rc, properties):
 def on_mqtt_disconnect(client, userdata, flags, rc, properties=None):
     """Detect and log MQTT disconnections for debugging and health tracking."""
     user_id = userdata.get('userName', 'unknown') if userdata else 'unknown'
-    if rc == 0:
+    if rc == 0 or rc is None:
         logging.info(f"[MQTT-CONN] Clean disconnect for user {user_id}")
     else:
         logging.warning(f"[MQTT-CONN] Unexpected disconnect for user {user_id}, rc={rc}. Auto-reconnect will attempt.")

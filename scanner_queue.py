@@ -213,10 +213,11 @@ class App(tk.Tk):
 
         bottomFrame = tk.Frame(height=550, bg="white")
         self.sheet = Sheet(bottomFrame, headers=['Car', 'Name', 'Class'], empty_vertical=0,
-                      height=550, width=screenWidth, font=("Arial", 14, "normal"), header_font=("Arial", 14, "normal"))
-        self.sheet.column_width(0, 50)
-        self.sheet.column_width(1, 280)
-        self.sheet.column_width(2, 90)
+                      height=550, width=screenWidth, font=("Arial", 18, "normal"), header_font=("Arial", 18, "normal"),
+                      show_row_index=False)
+        self.sheet.column_width(0, 60)
+        self.sheet.column_width(1, 310)
+        self.sheet.column_width(2, 100)
         self.sheet.pack(fill=tk.X)
         # sheet.grid(row=2, column=0, padx=10, pady=10, columnspan=2)
 
@@ -368,7 +369,6 @@ class App(tk.Tk):
         while True:
             # Look for a new packet using enhanced protocol
             logging.debug('Waiting for packet from Server')
-            time.sleep(0.3)
 
             packet = self.transceiver.receive_packet(timeout=0.5)
 
