@@ -36,6 +36,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")  # Allow cross-origin for all
 offlineData = OfflineData()
 offlineData.start_scheduled_refresh()
 
+
 load_dotenv()
 
 # SocketIO event handlers
@@ -922,3 +923,4 @@ def logout():
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
+

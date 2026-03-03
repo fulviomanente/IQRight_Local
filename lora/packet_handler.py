@@ -342,7 +342,7 @@ class LoRaTransceiver:
                 # Remove oldest half
                 self.seen_packets = set(list(self.seen_packets)[500:])
 
-        logging.info(f"Received {packet}")
+        logging.debug(f"Received {packet}")
         return packet
 
     def get_next_sequence(self) -> int:
