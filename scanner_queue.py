@@ -58,16 +58,30 @@ if os.getenv("LOCAL", "FALSE") != "TRUE":
     from lora import LoRaTransceiver, LoRaPacket, PacketType, NodeType, MultiPartFlags, CollisionAvoidance
 
 
-debug = True
+debug = False
 
 #LOGGING Setup
-log_filename = "IQRight_Scanner.debug"
+log_filename = "logs/IQRight_Scanner.debug"
+os.makedirs("logs", exist_ok=True)
 max_log_size = 20 * 1024 * 1024 #20Mb
 backup_count = 10
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
-handler.setFormatter(log_formatter)
-logging.getLogger().addHandler(handler)
+
+# Daily rotation at midnight, fallback to size-based rotation
+daily_handler = logging.handlers.TimedRotatingFileHandler(
+    log_filename, when='midnight', interval=1, backupCount=backup_count
+)
+daily_handler.setFormatter(log_formatter)
+daily_handler.suffix = "%Y-%m-%d"
+
+# Size-based rotation as safety net (20MB max)
+size_handler = logging.handlers.RotatingFileHandler(
+    log_filename, maxBytes=max_log_size, backupCount=backup_count
+)
+size_handler.setFormatter(log_formatter)
+
+logging.getLogger().addHandler(daily_handler)
+logging.getLogger().addHandler(size_handler)
 logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
 
@@ -87,17 +101,17 @@ class SerialThread(Thread):
         ##########################
 
     # Pattern for a valid QR code: P followed by 7-8 digits
-    VALID_QR_PATTERN = re.compile(r'^P\d{7,8}$')
+    VALID_QR_PATTERN = re.compile(r'^P\d{7,9}$')
 
     def clean_qr_code(self, raw_read: str, log_debug: bool = True) -> str:
-        logging.info(f"Raw input ({len(raw_read)} bytes): {repr(raw_read)}")
+        logging.debug(f"Raw input ({len(raw_read)} bytes): {repr(raw_read)}")
 
         # Step 1: Split on non-printable framing bytes BEFORE stripping.
         # The scanner wraps each QR code in protocol framing (0x00, 0x03, etc.).
         # Splitting here separates multiple reads that landed in the buffer.
         fragments = re.split(r'[^0-9A-Za-z]+', raw_read)
         fragments = [f for f in fragments if len(f) > 0]
-        logging.info(f"Fragments after protocol split: {fragments}")
+        logging.debug(f"Fragments after protocol split: {fragments}")
 
         # Step 2: Clean each fragment, strip 31-prefix, validate
         for frag in fragments:
@@ -107,7 +121,7 @@ class SerialThread(Thread):
                 stripped = stripped[2:]
 
             if self.VALID_QR_PATTERN.match(stripped):
-                logging.info(f"Valid QR code from fragment: {stripped}")
+                logging.debug(f"Valid QR code from fragment: {stripped}")
                 return stripped
 
         # Step 3: Fallback — full string clean (handles edge cases)
@@ -118,7 +132,7 @@ class SerialThread(Thread):
 
         # If too long, it's a double-read — extract first valid code
         if len(stripped) > 12:
-            match = re.match(r'(P\d{7,8})', stripped)
+            match = re.match(r'(P\d{7,9})', stripped)
             if match:
                 logging.warning(f"Double-read detected ({len(stripped)} chars): {stripped} -> extracting: {match.group(1)}")
                 return match.group(1)
@@ -137,12 +151,12 @@ class SerialThread(Thread):
         while True:
             pressed = GPIO.input(self.inPin)
             if pressed == 0:
-                logging.info('Write Serial')
+                logging.debug('Write Serial')
                 self.ser.write(bytes.fromhex("7E000801000201ABCD"))
                 time.sleep(0.1)
-                logging.info('Read Serial Blank')
+                logging.debug('Read Serial Blank')
                 blankReturn = self.ser.read()
-                logging.info(f'blank read: {blankReturn}')
+                logging.debug(f'blank read: {blankReturn}')
                 time.sleep(1.3)
                 remaining = self.ser.inWaiting()
                 serialRead = self.ser.read(remaining)
@@ -368,7 +382,7 @@ class App(tk.Tk):
 
         while True:
             # Look for a new packet using enhanced protocol
-            logging.debug('Waiting for packet from Server')
+            logging.info('Waiting for packet from Server')
 
             packet = self.transceiver.receive_packet(timeout=0.5)
 
@@ -380,7 +394,7 @@ class App(tk.Tk):
                     strPayload = packet.payload.decode('utf-8')
                     logging.info(f'[RX] Payload: {strPayload}')
                     response = strPayload.split("|")
-                    logging.info("??".join(response))
+                    logging.debug("??".join(response))
                     if cmd:
                             # Handle command acknowledgment
                         if response[1] == 'ack' and response[2] == self.lastCommand:
@@ -423,7 +437,7 @@ class App(tk.Tk):
                         # Check if multi-packet sequence
                         if packet.is_multi_part():
                             expected_count = packet.multi_part_total
-                            logging.debug(f"Received packet {packet.multi_part_index}/{packet.multi_part_total}")
+                            logging.info(f"Received packet {packet.multi_part_index}/{packet.multi_part_total}")
 
                             # Check if last packet in sequence
                             if packet.multi_flags & MultiPartFlags.LAST:
