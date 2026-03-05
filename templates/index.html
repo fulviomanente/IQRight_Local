@@ -291,6 +291,12 @@
             console.log('MQTT pipeline status:', data.status, 'at', data.timestamp);
         });
 
+        // Auto-logout after session expires on the server
+        socket.on('session_expired', function(data) {
+            alert('Your session has expired. Please log in again.');
+            window.location.href = '/login';
+        });
+
         // Function to process queued data items
         function processQueuedData() {
             if (!window.dataQueue || window.dataQueue.length === 0)

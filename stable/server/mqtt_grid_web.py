@@ -36,7 +36,6 @@ socketio = SocketIO(app, cors_allowed_origins="*")  # Allow cross-origin for all
 offlineData = OfflineData()
 offlineData.start_scheduled_refresh()
 
-
 load_dotenv()
 
 # SocketIO event handlers
@@ -857,11 +856,11 @@ def home():
         _setup_mqtt_client(user_id)
 
         return render_template('index.html',
-                              user_id=user_id,
-                              class_codes=[str(x) for x in current_user.class_codes],
-                              newUser=session['_newUser'],
-                              fullName=session['fullName'],
-                              current_user=current_user)
+                               user_id=user_id,
+                               class_codes=[str(x) for x in current_user.class_codes],
+                               newUser=session['_newUser'],
+                               fullName=session['fullName'],
+                               current_user=current_user)
 
     except Exception as e:
         logging.error(f"MQTT Connection Error in /home: {e}", exc_info=True)
@@ -1002,4 +1001,3 @@ def logout():
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
-

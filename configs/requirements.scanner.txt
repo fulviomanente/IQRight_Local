@@ -10,6 +10,10 @@ cryptography>=41.0.0
 # GUI (Tkinter is built-in on most systems)
 tksheet>=7.0.0
 
+# Fuzzy name search (scanner_search.py)
+metaphone>=0.6
+rapidfuzz>=3.0.0
+
 # LoRa hardware (Raspberry Pi only)
 adafruit-circuitpython-rfm9x>=2.2.0
 adafruit-blinka>=8.0.0

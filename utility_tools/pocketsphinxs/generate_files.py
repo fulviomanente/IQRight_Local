@@ -4,23 +4,27 @@ generate_pocketsphinx_files.py
 
 Reads a CSV file with columns: first, last (full names)
 Deduplicates individual name tokens, generates:
-  - names.dict      (pronunciation dictionary for PocketSphinx)
-  - names.gram      (JSGF grammar file for PocketSphinx)
-  - names_review.txt (human-readable review file for manual tweaking)
 
-Uses CMU Pronouncing Dictionary (via 'pronouncing' package) for known words,
+- names.dict      (pronunciation dictionary for PocketSphinx)
+- names.gram      (JSGF grammar file for PocketSphinx)
+- names_review.txt (human-readable review file for manual tweaking)
+
+Uses CMU Pronouncing Dictionary (raw text file) for known words,
 falls back to English phoneme rules for unknown names.
 
-Install:
-    pip install pronouncing
+NO EXTERNAL DEPENDENCIES - pure Python 3.
+
+Setup (one time):
+wget https://raw.githubusercontent.com/cmusphinx/cmudict/master/cmudict-0.7b -O cmudict.txt
 
 Usage:
-    python3 generate_pocketsphinx_files.py names.csv
+python3 generate_pocketsphinx_files.py names.csv
+python3 generate_pocketsphinx_files.py names.csv –cmudict /path/to/cmudict.txt
 
 CSV format:
-    first,last
-    Maria,Garcia
-    Jose Luis,Rodriguez
+first,last
+Maria,Garcia
+Jose Luis,Rodriguez
 """
 
 import csv
@@ -29,33 +33,58 @@ import os
 import re
 from collections import OrderedDict
 
-try:
-    import pronouncing
-except ImportError:
-    print("Error: 'pronouncing' package required.")
-    print("Install: pip install pronouncing")
-    sys.exit(1)
-
-
-# ---------------------------------------------------------------------------
-# 1. CMU Dictionary Lookup
-# ---------------------------------------------------------------------------
-def lookup_cmu(word):
+# —————————————————————————
+# 1. Load CMU Dictionary from raw text file
+# —————————————————————————
+def load_cmudict(filepath):
     """
-    Look up a word in CMU Pronouncing Dictionary.
+    Load CMU Pronouncing Dictionary from the raw cmudict-0.7b text file.
+    Returns dict: word -> list of phoneme strings (first pronunciation only).
+    """
+    if not os.path.exists(filepath):
+        print(f"Error: CMU dictionary not found: {filepath}")
+        print(f"Download it with:")
+        print(f"  wget https://raw.githubusercontent.com/cmusphinx/cmudict/master/cmudict-0.7b -O cmudict.txt")
+        sys.exit(1)
+
+    cmu = {}
+    with open(filepath, 'r', encoding='latin-1') as f:
+        for line in f:
+            # Skip comments
+            if line.startswith(';;;'):
+                continue
+            parts = line.strip().split()
+            if len(parts) < 2:
+                continue
+
+            word = parts[0].lower()
+
+            # Skip alternate pronunciations like WORD(2), WORD(3)
+            if '(' in word:
+                continue
+
+            phones = parts[1:]
+            cmu[word] = phones
+
+    return cmu
+
+
+def lookup_cmu(word, cmu):
+    """
+    Look up a word in the loaded CMU dictionary.
     Returns list of phonemes (without stress markers) or None.
     """
-    phones_list = pronouncing.phones_for_word(word.lower())
-    if phones_list:
-        phones = phones_list[0]
-        cleaned = re.sub(r'\d', '', phones)
-        return cleaned.split()
+    word_lower = word.lower()
+    if word_lower in cmu:
+        phones = cmu[word_lower]
+        # Strip stress digits from vowels (e.g., AH0 -> AH)
+        cleaned = [re.sub(r'\d', '', p) for p in phones]
+        return cleaned
     return None
 
-
-# ---------------------------------------------------------------------------
+# —————————————————————————
 # 2. Rule-Based English Phoneme Generator (for names not in CMU)
-# ---------------------------------------------------------------------------
+# —————————————————————————
 def english_g2p(word):
     """
     Rule-based grapheme-to-phoneme conversion optimized for
@@ -185,9 +214,10 @@ def english_g2p(word):
     return phones
 
 
-# ---------------------------------------------------------------------------
+# —————————————————————————
 # 3. Parse CSV and deduplicate
-# ---------------------------------------------------------------------------
+# —————————————————————————
+
 def parse_csv(filepath):
     """Read CSV, return full_names, unique first tokens, unique last tokens."""
     full_names = []
@@ -228,17 +258,18 @@ def parse_csv(filepath):
 
     return full_names, sorted(first_names), sorted(last_names)
 
-
-# ---------------------------------------------------------------------------
+# —————————————————————————
 # 4. Generate pronunciation dictionary
-# ---------------------------------------------------------------------------
-def generate_dict(unique_tokens, output_path):
+# —————————————————————————
+
+def generate_dict(unique_tokens, cmu, output_path):
+    """Generate a PocketSphinx .dict file."""
     entries = OrderedDict()
     cmu_hits = 0
     rule_hits = 0
 
     for token in sorted(unique_tokens):
-        phones = lookup_cmu(token)
+        phones = lookup_cmu(token, cmu)
         if phones:
             entries[token] = ' '.join(phones)
             cmu_hits += 1
@@ -259,10 +290,12 @@ def generate_dict(unique_tokens, output_path):
     return entries
 
 
-# ---------------------------------------------------------------------------
+# —————————————————————————
 # 5. Generate JSGF grammar file
-# ---------------------------------------------------------------------------
+# —————————————————————————
+
 def generate_grammar(unique_firsts, unique_lasts, full_names, output_path):
+    """Generate a JSGF grammar file for PocketSphinx."""
     first_patterns = set()
     last_patterns = set()
 
@@ -286,11 +319,12 @@ def generate_grammar(unique_firsts, unique_lasts, full_names, output_path):
     print(f"  Actual names in list:        {len(full_names)}")
     print(f"  Written to: {output_path}")
 
-
-# ---------------------------------------------------------------------------
+# —————————————————————————
 # 6. Generate review file
-# ---------------------------------------------------------------------------
-def generate_review_file(entries, output_path):
+# —————————————————————————
+
+def generate_review_file(entries, cmu, output_path):
+    """Generate a human-readable review file for manual pronunciation tweaking."""
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write("=" * 65 + "\n")
         f.write("  PRONUNCIATION REVIEW FILE\n")
@@ -307,35 +341,50 @@ def generate_review_file(entries, output_path):
         f.write(f"  {'-'*20}    {'-'*6}    {'-'*30}\n")
 
         for word, phones in sorted(entries.items()):
-            source = "CMU" if lookup_cmu(word) else "RULES"
+            source = "CMU" if lookup_cmu(word, cmu) else "RULES"
             f.write(f"  {word:20s}    {source:6s}    {phones}\n")
 
     print(f"  Review file: {output_path}")
 
-
-# ---------------------------------------------------------------------------
+# —————————————————————————
 # Main
-# ---------------------------------------------------------------------------
+# —————————————————————————
+
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python3 generate_pocketsphinx_files.py <names.csv>")
+        print("Usage: python3 generate_pocketsphinx_files.py <names.csv> [–cmudict path]")
         print()
         print("CSV format:")
         print("  first,last")
         print("  Maria,Garcia")
         print("  Jose Luis,Rodriguez")
+        print()
+        print("Setup (one time):")
+        print("  wget https://raw.githubusercontent.com/cmusphinx/cmudict/master/cmudict-0.7b -O cmudict.txt")
         sys.exit(1)
 
     csv_path = sys.argv[1]
     if not os.path.exists(csv_path):
         print(f"Error: File not found: {csv_path}"); sys.exit(1)
 
+    # Allow custom cmudict path via --cmudict flag
+    cmudict_path = "cmudict.txt"
+    if '--cmudict' in sys.argv:
+        idx = sys.argv.index('--cmudict')
+        if idx + 1 < len(sys.argv):
+            cmudict_path = sys.argv[idx + 1]
+
     out_dir = os.path.dirname(os.path.abspath(csv_path))
     dict_path = os.path.join(out_dir, "names.dict")
     gram_path = os.path.join(out_dir, "names.gram")
     review_path = os.path.join(out_dir, "names_review.txt")
 
-    print(f"Reading: {csv_path}")
+    # Load CMU dictionary
+    print(f"Loading CMU dictionary: {cmudict_path}")
+    cmu = load_cmudict(cmudict_path)
+    print(f"  Loaded {len(cmu)} words")
+
+    print(f"\nReading: {csv_path}")
     full_names, unique_firsts, unique_lasts = parse_csv(csv_path)
     print(f"  Total entries:         {len(full_names)}")
     print(f"  Unique first tokens:   {len(unique_firsts)}")
@@ -344,9 +393,9 @@ def main():
     all_tokens = sorted(set(unique_firsts + unique_lasts))
     print(f"  Total unique tokens:   {len(all_tokens)}")
 
-    entries = generate_dict(all_tokens, dict_path)
+    entries = generate_dict(all_tokens, cmu, dict_path)
     generate_grammar(unique_firsts, unique_lasts, full_names, gram_path)
-    generate_review_file(entries, review_path)
+    generate_review_file(entries, cmu, review_path)
 
     print("\n" + "=" * 60)
     print("  DONE! Next steps:")
@@ -355,11 +404,6 @@ def main():
     print(f"  2. Edit {dict_path} for corrections")
     print(f"  3. Test with PocketSphinx:")
     print(f"     pocketsphinx_continuous -jsgf {gram_path} -dict {dict_path}")
-    print()
-    print(f"  Raspberry Pi Zero setup:")
-    print(f"     sudo apt install pocketsphinx pocketsphinx-en-us")
-    print(f"     pip3 install pocketsphinx pronouncing")
-
 
 if __name__ == '__main__':
     main()

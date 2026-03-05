@@ -12,9 +12,12 @@
 #   - Auto-start on boot (with crash recovery)
 #   - Silent boot + splash screen
 #
+# IMPORTANT: This script is designed to be run with sudo.
+# All file ownership is set to TARGET_USER (derived from INSTALL_DIR).
+#
 # Usage:
 #   scp this script to the Pi, then:
-#   chmod +x setup_scanner.sh && ./setup_scanner.sh
+#   chmod +x setup_scanner.sh && sudo ./setup_scanner.sh
 #
 # Environment variables (optional overrides):
 #   FTP_HOST      - FTP server IP (default: 192.168.7.151)
@@ -42,6 +45,13 @@ FTP_USER="${FTP_USER:-fulviomanente}"
 FTP_PASS="${FTP_PASS:-1234}"
 INSTALL_DIR="${INSTALL_DIR:-/home/iqright}"
 BUNDLE_FILE="scanner_bundle.tar.gz"
+
+# Detect the target user who will own the files and run the scanner.
+# When run with sudo, $(whoami) is root — we need the actual user.
+TARGET_USER=$(basename "$INSTALL_DIR")
+TARGET_GROUP="$TARGET_USER"
+TARGET_HOME=$(getent passwd "$TARGET_USER" 2>/dev/null | cut -d: -f6)
+TARGET_HOME="${TARGET_HOME:-$INSTALL_DIR}"
 
 # Print helpers
 print_header() {
@@ -72,6 +82,12 @@ print_info() {
     echo -e "  ${CYAN}ℹ $1${NC}"
 }
 
+# Fix ownership of INSTALL_DIR to TARGET_USER.
+# Called after every step that creates/modifies files.
+fix_ownership() {
+    chown -R "${TARGET_USER}:${TARGET_GROUP}" "$INSTALL_DIR"
+}
+
 TOTAL_STEPS=10
 
 # ------------------------------------------------------------------
@@ -80,10 +96,10 @@ TOTAL_STEPS=10
 install_system_packages() {
     print_step 1 "Installing system packages"
 
-    sudo apt update -qq
+    apt update -qq
 
     PACKAGES="xserver-xorg-core xserver-xorg-legacy xinit x11-xserver-utils xinput xfonts-base fonts-dejavu-core python3-tk python3-pip python3-venv ftp fbi"
-    sudo apt install -y $PACKAGES
+    apt install -y $PACKAGES
 
     print_success "System packages installed"
 }
@@ -129,8 +145,7 @@ extract_bundle() {
     print_step 3 "Extracting scanner bundle to ${INSTALL_DIR}"
 
     # Create install dir if needed
-    sudo mkdir -p "$INSTALL_DIR"
-    sudo chown "$(whoami):$(whoami)" "$INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR"
 
     # Extract — tarball contains scanner_bundle/ at top level, strip it
     tar xzf "${DOWNLOAD_DIR}/${BUNDLE_FILE}" -C "$INSTALL_DIR" --strip-components=1
@@ -138,19 +153,36 @@ extract_bundle() {
     # Cleanup download
     rm -rf "$DOWNLOAD_DIR"
 
-    # Ensure log directory exists
+    # Ensure required directories exist
     mkdir -p "${INSTALL_DIR}/log"
+    mkdir -p "${INSTALL_DIR}/data"
 
     # Copy scanner config as active config
     if [ -f "${INSTALL_DIR}/utils/config.scanner.py" ]; then
         cp "${INSTALL_DIR}/utils/config.scanner.py" "${INSTALL_DIR}/utils/config.py"
-        print_success "Config installed: utils/config.scanner.py → utils/config.py"
+        print_success "Config installed: utils/config.scanner.py -> utils/config.py"
     else
         print_error "config.scanner.py not found in bundle"
         exit 1
     fi
 
-    print_success "Scanner files extracted to ${INSTALL_DIR}"
+    fix_ownership
+
+    # Verify critical files from bundle
+    CRITICAL_FILES="scanner_search.py run_scanner.py build_cython.py lora/__init__.py lora/packet_handler.py utils/__init__.py utils/config.py utils/matching_engine.py data/students.csv"
+    MISSING=0
+    for f in $CRITICAL_FILES; do
+        if [ ! -f "${INSTALL_DIR}/$f" ]; then
+            print_error "Missing from bundle: $f"
+            MISSING=$((MISSING + 1))
+        fi
+    done
+    if [ "$MISSING" -gt 0 ]; then
+        print_error "$MISSING critical file(s) missing from bundle — aborting"
+        exit 1
+    fi
+
+    print_success "Scanner files extracted and verified (${INSTALL_DIR})"
 }
 
 # ------------------------------------------------------------------
@@ -180,6 +212,7 @@ setup_python() {
     fi
 
     deactivate
+    fix_ownership
 }
 
 # ------------------------------------------------------------------
@@ -187,45 +220,83 @@ setup_python() {
 # ------------------------------------------------------------------
 compile_source() {
     print_step 5 "Compiling source code to native extensions"
-    print_info "This takes 10-30 minutes on first setup..."
+    print_info "This takes 10-30 minutes on Pi Zero..."
 
     cd "$INSTALL_DIR"
     source .venv/bin/activate
 
     # Install Cython and build tools
     pip install cython > /dev/null 2>&1
-    sudo apt install -y python3-dev gcc > /dev/null 2>&1
+    apt install -y python3-dev gcc > /dev/null 2>&1
     print_success "Build tools installed"
 
     # Compile all .py files to .so
-    if [ -f "build_cython.py" ]; then
-        python build_cython.py build_ext --inplace 2>&1 | tail -5
-        COMPILE_STATUS=$?
-
-        if [ $COMPILE_STATUS -eq 0 ]; then
-            print_success "Compilation complete"
-
-            # Remove Python source files (keep __init__.py and launcher)
-            find . -maxdepth 1 -name "*.py" ! -name "run_scanner.py" ! -name "__init__.py" \
-                ! -name "build_cython.py" -delete
-            find ./lora -name "*.py" ! -name "__init__.py" -delete
-            find ./utils -name "*.py" ! -name "__init__.py" -delete
-
-            # Remove intermediate .c files
-            find . -name "*.c" -delete
-
-            # Remove build directory
-            rm -rf build/
-
-            print_success "Source files removed — only compiled .so files remain"
-        else
-            print_warning "Compilation failed — keeping .py source files"
-        fi
-    else
+    if [ ! -f "build_cython.py" ]; then
         print_warning "build_cython.py not found — skipping compilation"
+        deactivate
+        return
     fi
 
+    # Use pipefail so we capture the python exit code, not tail's
+    set +e
+    COMPILE_OUTPUT=$(python build_cython.py build_ext --inplace 2>&1)
+    COMPILE_STATUS=$?
+    set -e
+
+    echo "$COMPILE_OUTPUT" | tail -10
+
+    if [ $COMPILE_STATUS -ne 0 ]; then
+        print_warning "Compilation failed (exit code $COMPILE_STATUS) — keeping .py source files"
+        deactivate
+        fix_ownership
+        return
+    fi
+
+    # Verify .so files were actually created before deleting source
+    SO_COUNT=$(find . -name "*.so" -not -path "./.venv/*" | wc -l)
+    if [ "$SO_COUNT" -eq 0 ]; then
+        print_warning "No .so files produced — keeping .py source files"
+        deactivate
+        fix_ownership
+        return
+    fi
+
+    print_success "Compilation complete ($SO_COUNT .so files created)"
+
+    # Verify each .py has a corresponding .so before deleting
+    DELETED=0
+    KEPT=0
+    for pyfile in $(find . -name "*.py" -not -path "./.venv/*" -not -path "./configs/*" -not -path "./data/*" -not -path "./log/*"); do
+        basename=$(basename "$pyfile")
+
+        # Never delete these files
+        if [ "$basename" = "__init__.py" ] || [ "$basename" = "run_scanner.py" ] || [ "$basename" = "build_cython.py" ]; then
+            continue
+        fi
+
+        # Check if a corresponding .so exists in the same directory
+        pydir=$(dirname "$pyfile")
+        pyname="${basename%.py}"
+        # Cython .so names include the Python version: scanner_search.cpython-311-aarch64-linux-gnu.so
+        SO_MATCH=$(find "$pydir" -maxdepth 1 -name "${pyname}.cpython-*.so" -o -name "${pyname}.so" 2>/dev/null | head -1)
+
+        if [ -n "$SO_MATCH" ]; then
+            rm "$pyfile"
+            DELETED=$((DELETED + 1))
+        else
+            print_warning "No .so found for $pyfile — keeping source"
+            KEPT=$((KEPT + 1))
+        fi
+    done
+
+    # Remove intermediate .c files and build directory
+    find . -name "*.c" -not -path "./.venv/*" -delete 2>/dev/null || true
+    rm -rf build/
+
+    print_success "Removed $DELETED source files ($KEPT kept without .so)"
+
     deactivate
+    fix_ownership
 }
 
 # ------------------------------------------------------------------
@@ -263,6 +334,8 @@ LORA_TTL=3
 LORA_ENABLE_CA=TRUE
 EOF
 
+    chown "${TARGET_USER}:${TARGET_GROUP}" "${INSTALL_DIR}/.env"
+
     print_success "Node configured: Scanner ID ${NODE_ID}"
     print_success ".env created at ${INSTALL_DIR}/.env"
 }
@@ -273,25 +346,25 @@ EOF
 configure_autologin() {
     print_step 7 "Configuring console auto-login and permissions"
 
-    sudo raspi-config nonint do_boot_behaviour B2
+    raspi-config nonint do_boot_behaviour B2
     print_success "Console auto-login enabled"
 
     # Allow console user to start X server
-    echo -e "allowed_users=anybody\nneeds_root_rights=yes" | sudo tee /etc/X11/Xwrapper.config > /dev/null
+    echo -e "allowed_users=anybody\nneeds_root_rights=yes" | tee /etc/X11/Xwrapper.config > /dev/null
     print_success "X server permissions configured"
 
     # Rotate display and touchscreen for vertical orientation
-    sudo mkdir -p /etc/X11/xorg.conf.d
+    mkdir -p /etc/X11/xorg.conf.d
 
-    sudo tee /etc/X11/xorg.conf.d/10-monitor.conf > /dev/null << 'XEOF'
+    tee /etc/X11/xorg.conf.d/10-monitor.conf > /dev/null << 'XEOF'
 Section "Monitor"
     Identifier "HDMI-1"
     Option "Rotate" "left"
 EndSection
 XEOF
-    print_success "Display rotation configured (90° CCW)"
+    print_success "Display rotation configured (90 CCW)"
 
-    sudo tee /etc/X11/xorg.conf.d/40-libinput.conf > /dev/null << 'XEOF'
+    tee /etc/X11/xorg.conf.d/40-libinput.conf > /dev/null << 'XEOF'
 Section "InputClass"
     Identifier "libinput touchscreen catchall"
     MatchIsTouchscreen "on"
@@ -303,13 +376,12 @@ XEOF
     print_success "Touchscreen rotation configured"
 
     # User needs tty/video/input groups to run X without root
-    CURRENT_USER=$(whoami)
-    sudo usermod -aG tty,video,input "$CURRENT_USER"
-    print_success "Added ${CURRENT_USER} to tty, video, input groups"
+    usermod -aG tty,video,input "$TARGET_USER"
+    print_success "Added ${TARGET_USER} to tty, video, input groups"
 
     # Allow passwordless sudo for shutdown (Quit button powers off the Pi)
-    echo "${CURRENT_USER} ALL=(ALL) NOPASSWD: /sbin/shutdown" | sudo tee /etc/sudoers.d/scanner-shutdown > /dev/null
-    sudo chmod 440 /etc/sudoers.d/scanner-shutdown
+    echo "${TARGET_USER} ALL=(ALL) NOPASSWD: /sbin/shutdown" | tee /etc/sudoers.d/scanner-shutdown > /dev/null
+    chmod 440 /etc/sudoers.d/scanner-shutdown
     print_success "Passwordless shutdown configured"
 }
 
@@ -319,7 +391,7 @@ XEOF
 create_startup_script() {
     print_step 8 "Creating startup script"
 
-    cat > "${HOME}/start_scanner.sh" << EOF
+    cat > "${TARGET_HOME}/start_scanner.sh" << EOF
 #!/bin/bash
 cd ${INSTALL_DIR}
 
@@ -333,11 +405,15 @@ source .venv/bin/activate
 # Wait for X server to be ready
 sleep 2
 
-exec python3 run_scanner.py
+# Log startup attempt
+echo "\$(date) - Starting scanner" >> log/startup.log
+
+exec python3 run_scanner.py 2>> log/startup_errors.log
 EOF
 
-    chmod +x "${HOME}/start_scanner.sh"
-    print_success "Created ~/start_scanner.sh"
+    chmod +x "${TARGET_HOME}/start_scanner.sh"
+    chown "${TARGET_USER}:${TARGET_GROUP}" "${TARGET_HOME}/start_scanner.sh"
+    print_success "Created ${TARGET_HOME}/start_scanner.sh"
 }
 
 # ------------------------------------------------------------------
@@ -346,12 +422,12 @@ EOF
 configure_autostart() {
     print_step 9 "Configuring auto-start on boot"
 
-    PROFILE="${HOME}/.bash_profile"
+    PROFILE="${TARGET_HOME}/.bash_profile"
     MARKER="# IQRight Scanner Auto-Start"
 
     # Check if already configured
     if [ -f "$PROFILE" ] && grep -q "$MARKER" "$PROFILE"; then
-        print_warning "Auto-start already configured in ~/.bash_profile"
+        print_warning "Auto-start already configured in ${PROFILE}"
         return
     fi
 
@@ -375,7 +451,8 @@ if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
 fi
 EOF
 
-    print_success "Auto-start configured in ~/.bash_profile (with crash recovery)"
+    chown "${TARGET_USER}:${TARGET_GROUP}" "$PROFILE"
+    print_success "Auto-start configured in ${PROFILE} (with crash recovery)"
 }
 
 # ------------------------------------------------------------------
@@ -386,7 +463,7 @@ configure_boot_splash() {
 
     # Remove Pi branding from boot
     if ! grep -q "disable_splash=1" /boot/firmware/config.txt 2>/dev/null; then
-        echo "disable_splash=1" | sudo tee -a /boot/firmware/config.txt > /dev/null
+        echo "disable_splash=1" | tee -a /boot/firmware/config.txt > /dev/null
     fi
     print_success "Rainbow splash disabled"
 
@@ -394,7 +471,7 @@ configure_boot_splash() {
     CMDLINE="/boot/firmware/cmdline.txt"
     for param in "logo.nologo" "quiet" "loglevel=0" "vt.global_cursor_default=0"; do
         if ! grep -q "$param" "$CMDLINE" 2>/dev/null; then
-            sudo sed -i "s/$/ ${param}/" "$CMDLINE"
+            sed -i "s/$/ ${param}/" "$CMDLINE"
         fi
     done
     print_success "Silent boot configured"
@@ -422,7 +499,7 @@ img.save('$SPLASH')
     fi
 
     # Create systemd service for splash screen
-    sudo tee /etc/systemd/system/splash.service > /dev/null << 'SVCEOF'
+    tee /etc/systemd/system/splash.service > /dev/null << 'SVCEOF'
 [Unit]
 Description=IQRight boot splash
 DefaultDependencies=no
@@ -438,8 +515,108 @@ TTYPath=/dev/tty1
 WantedBy=sysinit.target
 SVCEOF
 
-    sudo systemctl enable splash.service > /dev/null 2>&1
+    systemctl enable splash.service > /dev/null 2>&1
     print_success "Boot splash service enabled"
+}
+
+# ------------------------------------------------------------------
+# Final verification: ensure everything is in place
+# ------------------------------------------------------------------
+verify_installation() {
+    print_header "Verifying Installation"
+
+    ERRORS=0
+
+    # Check critical files exist (either .py or .so)
+    for mod in scanner_search lora/packet_handler lora/node_types lora/collision_avoidance utils/matching_engine utils/config; do
+        PY="${INSTALL_DIR}/${mod}.py"
+        # .so name varies by platform: module.cpython-3XX-arch.so
+        SO_MATCH=$(find "${INSTALL_DIR}" -path "*/${mod##*/}.cpython-*.so" -o -path "*/${mod##*/}.so" 2>/dev/null | head -1)
+
+        if [ -f "$PY" ] || [ -n "$SO_MATCH" ]; then
+            print_success "$mod ($([ -f "$PY" ] && echo '.py' || echo '.so'))"
+        else
+            print_error "$mod — MISSING (no .py or .so found)"
+            ERRORS=$((ERRORS + 1))
+        fi
+    done
+
+    # Check __init__.py files (never compiled)
+    for init in lora/__init__.py utils/__init__.py; do
+        if [ -f "${INSTALL_DIR}/$init" ]; then
+            print_success "$init"
+        else
+            print_error "$init — MISSING"
+            ERRORS=$((ERRORS + 1))
+        fi
+    done
+
+    # Check launcher
+    if [ -f "${INSTALL_DIR}/run_scanner.py" ]; then
+        print_success "run_scanner.py"
+    else
+        print_error "run_scanner.py — MISSING"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # Check data files
+    for datafile in data/students.csv; do
+        if [ -f "${INSTALL_DIR}/$datafile" ]; then
+            print_success "$datafile"
+        else
+            print_error "$datafile — MISSING"
+            ERRORS=$((ERRORS + 1))
+        fi
+    done
+
+    # Check .env
+    if [ -f "${INSTALL_DIR}/.env" ]; then
+        print_success ".env"
+    else
+        print_error ".env — MISSING"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # Check venv
+    if [ -f "${INSTALL_DIR}/.venv/bin/python3" ]; then
+        print_success ".venv/bin/python3"
+    else
+        print_error ".venv — MISSING or broken"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # Check startup files
+    if [ -f "${TARGET_HOME}/start_scanner.sh" ]; then
+        print_success "${TARGET_HOME}/start_scanner.sh"
+    else
+        print_error "${TARGET_HOME}/start_scanner.sh — MISSING"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    if [ -f "${TARGET_HOME}/.bash_profile" ]; then
+        print_success "${TARGET_HOME}/.bash_profile"
+    else
+        print_error "${TARGET_HOME}/.bash_profile — MISSING"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # Check ownership
+    OWNER=$(stat -c '%U' "${INSTALL_DIR}" 2>/dev/null || stat -f '%Su' "${INSTALL_DIR}" 2>/dev/null)
+    if [ "$OWNER" = "$TARGET_USER" ]; then
+        print_success "Ownership: ${TARGET_USER}"
+    else
+        print_error "Ownership: ${OWNER} (expected ${TARGET_USER})"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    echo ""
+    if [ "$ERRORS" -gt 0 ]; then
+        print_error "${ERRORS} problem(s) found — review errors above"
+        return 1
+    else
+        print_success "All checks passed"
+        return 0
+    fi
 }
 
 # ------------------------------------------------------------------
@@ -448,8 +625,22 @@ SVCEOF
 main() {
     print_header "IQRight Scanner - Pi Zero W Setup"
 
+    # Warn if not running as root
+    if [ "$(id -u)" -ne 0 ]; then
+        print_error "This script must be run as root (sudo ./setup_scanner.sh)"
+        exit 1
+    fi
+
+    # Verify target user exists
+    if ! id "$TARGET_USER" &>/dev/null; then
+        print_error "Target user '${TARGET_USER}' does not exist. Create it first or set INSTALL_DIR."
+        exit 1
+    fi
+
     echo -e "  ${CYAN}FTP Server:${NC}    ${FTP_HOST}:${FTP_PORT}"
     echo -e "  ${CYAN}Install Dir:${NC}   ${INSTALL_DIR}"
+    echo -e "  ${CYAN}Target User:${NC}   ${TARGET_USER}"
+    echo -e "  ${CYAN}Target Home:${NC}   ${TARGET_HOME}"
     echo ""
 
     # Check we're on a Pi
@@ -483,6 +674,14 @@ main() {
     configure_autostart
     echo ""
     configure_boot_splash
+    echo ""
+
+    # Final ownership pass (catches anything missed)
+    fix_ownership
+    chown "${TARGET_USER}:${TARGET_GROUP}" "${TARGET_HOME}/start_scanner.sh" "${TARGET_HOME}/.bash_profile" 2>/dev/null || true
+
+    # Verify everything
+    verify_installation
 
     # Summary
     print_header "Setup Complete!"
@@ -491,14 +690,15 @@ main() {
     echo -e "  ${GREEN}Node ID: $(grep LORA_NODE_ID ${INSTALL_DIR}/.env | cut -d= -f2)${NC}"
     echo ""
     echo -e "  ${CYAN}What happens now:${NC}"
-    echo -e "    • On reboot, the scanner will auto-start on the display"
-    echo -e "    • SSH remains available for troubleshooting"
-    echo -e "    • If the app crashes, it auto-restarts after 3 seconds"
+    echo -e "    - On reboot, the scanner will auto-start on the display"
+    echo -e "    - SSH remains available for troubleshooting"
+    echo -e "    - If the app crashes, it auto-restarts after 3 seconds"
+    echo -e "    - Startup errors logged to: ${INSTALL_DIR}/log/startup_errors.log"
     echo ""
     echo -e "  ${CYAN}To test manually:${NC}"
     echo -e "    cd ${INSTALL_DIR}"
     echo -e "    source .venv/bin/activate"
-    echo -e "    xinit ~/start_scanner.sh -- :0"
+    echo -e "    xinit ${TARGET_HOME}/start_scanner.sh -- :0"
     echo ""
     echo -e "  ${CYAN}To update scanner files later:${NC}"
     echo -e "    Run this script again — it will overwrite the application files."
@@ -507,7 +707,7 @@ main() {
     echo ""
     read -p "  Reboot now? (y/N): " REBOOT
     if [[ "$REBOOT" =~ ^[Yy]$ ]]; then
-        sudo reboot
+        reboot
     fi
 }
 
