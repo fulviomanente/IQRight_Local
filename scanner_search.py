@@ -660,7 +660,7 @@ class App(tk.Tk):
                     logging.info(f"[QUEUE] Duplicate skipped: {qrCode}")
                 else:
                     logging.info(f"[QUEUE] Processing: {qrCode}")
-                    self.lora_sender(sending=True, payload=qrCode)
+                    self._submit_with_retry(qrCode)
         except queue.Empty:
             pass
         except Exception as e:
@@ -686,6 +686,21 @@ class App(tk.Tk):
 
         SearchOverlay(self, self.matcher, self._on_student_selected)
 
+    def _submit_with_retry(self, payload: str):
+        """Submit a code to the server, prompting to retry on timeout."""
+        while True:
+            if self.lora_sender(sending=True, payload=payload):
+                return True
+            # Timeout — ask user if they want to resubmit
+            retry = messagebox.askyesno("No Response",
+                                        f"Server did not respond.\nResubmit {payload}?")
+            if not retry:
+                logging.info(f"[RETRY] User declined resubmit for {payload}")
+                self.lbl_name.config(text="Ready to Scan", bg="blue", fg="white")
+                self.lbl_status.config(text="Ready", bg="green", fg="white")
+                return False
+            logging.info(f"[RETRY] User requested resubmit for {payload}")
+
     def _on_student_selected(self, device_id: str, student_name: str):
         """Called when a student is selected from search. Submits their DeviceID like a QR scan."""
         logging.info(f"[SEARCH] Student selected: {student_name} -> {device_id}")
@@ -695,7 +710,7 @@ class App(tk.Tk):
             logging.info(f"[SEARCH] Duplicate skipped: {device_id}")
         else:
             logging.info(f"[SEARCH] Submitting: {device_id}")
-            self.lora_sender(sending=True, payload=device_id)
+            self._submit_with_retry(device_id)
 
     def pileCommands(self, command: str):
         logging.info(f"PileCommands current: {command}, previous: {self.previousCommand}")
