@@ -33,6 +33,10 @@ class LoRaPacket:
     timestamp: int
     payload: bytes
 
+    # Radio metrics (populated on receive, not transmitted)
+    rssi: Optional[int] = None    # Signal strength in dBm
+    snr: Optional[float] = None   # Signal-to-noise ratio in dB
+
     # Constants
     MAGIC = 0x4951  # "IQ" in hex
     VERSION = 1
@@ -233,10 +237,16 @@ class LoRaPacket:
         if self.is_multi_part():
             multi_str = f" [{self.multi_part_index}/{self.multi_part_total}]"
 
+        signal_str = ""
+        if self.rssi is not None:
+            signal_str = f", RSSI={self.rssi}dBm"
+            if self.snr is not None:
+                signal_str += f", SNR={self.snr}dB"
+
         return (f"LoRaPacket(type={self.packet_type.name}, "
                 f"src={self.source_node}, dst={self.dest_node}, "
                 f"seq={self.sequence_num}, ttl={self.ttl}{multi_str}, "
-                f"age={self.get_age_ms()}ms)")
+                f"age={self.get_age_ms()}ms{signal_str})")
 
 
 class LoRaTransceiver:
@@ -322,6 +332,10 @@ class LoRaTransceiver:
         if packet is None:
             logging.warning("Failed to deserialize packet")
             return None
+
+        # Capture radio signal metrics from the hardware
+        packet.rssi = getattr(self.rfm9x, 'last_rssi', None)
+        packet.snr = getattr(self.rfm9x, 'last_snr', None)
 
         # Validate and track
         should_process, reason = packet.should_process(

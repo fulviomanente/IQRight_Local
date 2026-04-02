@@ -619,11 +619,11 @@ select *from FileVersion
  
 #File Download Query 03-02-2026
                             
-#Select u2.IDUser as ChildID, u.IDUser,  u.FirstName, u.LastName, u.IDApprovalStatus as AppIDApprovalStatus, ast.Description as AppApprovalStatus,
-#u.DeviceID, u.Phone, concat(u2.FirstName, ' ',u2.LastName) as ChildName, u2.ExternalNumber, u2.HierarchyLevel1, u2.HierarchyLevel1Type, h1.Description as HierarchyLevel1Desc,
-#u2.HierarchyLevel2, u2.HierarchyLevel2Type, h2.Description as HierarchyLevel2Desc, au.StartDate, au.ExpireDate, au.IDApprovalStatus, ast2.Description as ApprovalStatus, 
-#au.MainContact, au.Relationship, u2.IDHierarchy, ExternalCode as ClassCode 
-select u2.FirstName, u2.LastName
+Select u2.IDUser as ChildID, u.IDUser,  u.FirstName, u.LastName, u.IDApprovalStatus as AppIDApprovalStatus, ast.Description as AppApprovalStatus,
+u.DeviceID, u.Phone, concat(u2.FirstName, ' ',u2.LastName) as ChildName, u2.ExternalNumber, u2.HierarchyLevel1, u2.HierarchyLevel1Type, h1.Description as HierarchyLevel1Desc,
+u2.HierarchyLevel2, u2.HierarchyLevel2Type, h2.Description as HierarchyLevel2Desc, au.StartDate, au.ExpireDate, au.IDApprovalStatus, ast2.Description as ApprovalStatus, 
+au.MainContact, au.Relationship, u2.IDHierarchy, ExternalCode as ClassCode 
+#select distinct u2.FirstName, u2.LastName, concat('P', u2.ExternalNumber) as DeviceID, h.ExternalCode as Grade
 from User u 
 inner join assoc_User_Self au USE INDEX (idx_assoc_User_Self_ParentChild_IDs) on au.ParentIDUser=u.IDUser 
 inner join User u2 on u2.IDUser = au.ChildIDUser 
@@ -633,17 +633,19 @@ inner join HierarchyType h1 on h1.IDHierarchyType=u2.HierarchyLevel1Type
 inner join HierarchyType h2 on h2.IDHierarchyType=u2.HierarchyLevel2Type 
 inner join Hierarchy h on h.IDHIerarchy=u2.IDHierarchy 
 where u.DeleteTimestamp is NULL and u.IDUserType = 2
-and u2.IDUser in (13163, 13165)
-.LastName = 'OCarrol'
-#and u2.ExternalNumber like '%6500777%'
-#and u.DeviceID = 'P24610672'
+#and u2.IDUser in (13163, 13165)
+and u2.LastName = 'Clark'
+#and u2.ExternalNumber like '%25010672%'
+#and u.DeviceID = 'P25010672'
 
 select *from User where ExternalNumber = '13163058'
+
+select *from Hierarchy
 
 IDUser = 11739
 33410871
 
-select *from User where IDUser = 13164
+select *from User where IDUser = 11309
 24610672
 
 delete from assoc_User_Self where ParentIDUser = 13173 and ChildIDUser in (11277, 11457, 11759, 12257, 12647, 12712) 

@@ -205,6 +205,7 @@ class App(tk.Tk):
         self.lstCode = []
         self.car_number = 0
         self.breakLineList: list = []
+        self.lastReleaseRow = 0  # Track where the last release ended for graying
         self.lastCommand = None
         self.previousCommand = None
         self.matcher = None  # Lazy-loaded on first search
@@ -590,6 +591,8 @@ class App(tk.Tk):
             if self.lora_sender(sending=True, payload='cmd:cleanup', cmd=True, serverResponseTimeout=10):
                 self.lstCode = []
                 self.car_number = 0
+                self.lastReleaseRow = 0
+                self.breakLineList = []
                 self.sheet.delete_rows([x for x in range(0, self.sheet.get_total_rows())], redraw=True)
             else:
                 self.unpileCommands()
@@ -614,14 +617,19 @@ class App(tk.Tk):
             self.pileCommands("release")
             if len(self.breakLineList) > 0 and self._send_critical_command('cmd:release'):
                 breakLineIndex = self.breakLineList[0]
-                # Delete all rows from top through the break line (inclusive)
-                rows_to_delete = [x for x in range(0, breakLineIndex + 1)]
-                logging.info(f"[RELEASE] Deleting rows 0-{breakLineIndex} ({len(rows_to_delete)} rows)")
-                self.sheet.delete_rows(rows_to_delete, redraw=True)
+                # Gray out only the newly released rows (from last release to this break)
+                released_rows = list(range(self.lastReleaseRow, breakLineIndex + 1))
+                self.sheet.highlight_rows(rows=released_rows, bg='#d0d0d0', fg='#888888',
+                                          highlight_index=True, redraw=False)
+                # Mark the RELEASE POINT row as released (darker gray bar)
+                self.sheet.highlight_rows(rows=[breakLineIndex], bg='#a0a0a0', fg='#666666',
+                                          highlight_index=True, redraw=True)
+                logging.info(f"[RELEASE] Grayed out rows {self.lastReleaseRow}-{breakLineIndex} ({len(released_rows)} rows)")
+                self.lastReleaseRow = breakLineIndex + 1
                 self.breakLineList.pop(0)
-                # Adjust remaining break indices by total rows removed
-                deleted_count = breakLineIndex + 1
-                self.breakLineList = [x - deleted_count for x in self.breakLineList]
+                # Scroll to show the next active section
+                if self.sheet.get_total_rows() > breakLineIndex + 1:
+                    self.sheet.see(breakLineIndex + 1, 0)
                 self._flash_status("RELEASED", "green")
                 logging.info("[RELEASE] Release confirmed by server")
             else:
