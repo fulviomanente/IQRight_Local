@@ -61,6 +61,24 @@ LORA_CA_MIN_DELAY_MS = int(os.getenv('LORA_CA_MIN_DELAY_MS', '10'))
 LORA_CA_MAX_DELAY_MS = int(os.getenv('LORA_CA_MAX_DELAY_MS', '100'))
 LORA_RX_GUARD_MS = int(os.getenv('LORA_RX_GUARD_MS', '50'))
 
+# Power Management HAT selection (WAVESHARE or PISUGAR)
+POWER_HAT = os.getenv('POWER_HAT', 'WAVESHARE').upper()
+
+# LoRa SPI pins — Waveshare HAT uses GPIO 7 and 25, so LoRa pins move to 17/16.
+# PiSugar uses I2C only (no GPIO conflict), so standard CE1/D25 pins work.
+if POWER_HAT == 'PISUGAR':
+    LORA_CS_PIN = int(os.getenv('LORA_CS_PIN', '7'))     # CE1/GPIO 7 (standard)
+    LORA_RST_PIN = int(os.getenv('LORA_RST_PIN', '25'))  # D25/GPIO 25 (standard)
+else:
+    LORA_CS_PIN = int(os.getenv('LORA_CS_PIN', '17'))     # GPIO 17 (moved for Waveshare)
+    LORA_RST_PIN = int(os.getenv('LORA_RST_PIN', '16'))   # GPIO 16 (moved for Waveshare)
+
+# Waveshare Power Management HAT GPIO pins
+WAVESHARE_SHUTDOWN_PIN = 20  # HAT signals Pi to shutdown (input)
+WAVESHARE_RUNNING_PIN = 21   # Pi tells HAT it's running (output)
+WAVESHARE_SERIAL_DEVICE = '/dev/ttyS0'
+WAVESHARE_SERIAL_BAUD = 115200
+
 # IQRight Configuration
 IDFACILITY = 1
 BEACON_LOCATIONS = [

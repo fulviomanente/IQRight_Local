@@ -3,7 +3,7 @@
 LoRa Repeater Application
 
 A battery/solar-powered repeater node that forwards packets between scanner and server
-to extend network range. Runs on Raspberry Pi Zero.
+to extend network range. Runs on Raspberry Pi Zero with Waveshare Power Management HAT.
 
 Node ID Range: 200-256
 Functionality:
@@ -12,6 +12,9 @@ Functionality:
 - Checks if packet should be forwarded (TTL, duplicates)
 - Updates sender field and decrements TTL
 - Forwards packet with collision avoidance
+- Monitors Waveshare HAT power status (Vin, Vout, RTC)
+- Listens for HAT shutdown signal on GPIO 20
+- Signals running state to HAT on GPIO 21
 
 Usage:
     python repeater.py
@@ -22,6 +25,7 @@ Usage:
 
 import logging
 import logging.handlers
+import os
 import time
 import subprocess
 from datetime import datetime
@@ -37,20 +41,63 @@ from utils.config import (
 )
 from utils.oled_display import get_oled_display
 
-# PiSugar battery monitor (optional - not available on all hardware)
-try:
-    from utils.pisugar_monitor import read_pisugar_status, format_status_for_lora
-    # Test if hardware is actually present
-    _test = read_pisugar_status()
-    PISUGAR_AVAILABLE = _test['available']
-    if PISUGAR_AVAILABLE:
-        logging.info(f"PiSugar detected: Battery={_test['battery']:.1f}%, Voltage={_test['voltage']:.2f}V")
-    else:
-        logging.info(f"PiSugar module loaded but hardware not found: {_test.get('error', '')}")
-except ImportError:
-    PISUGAR_AVAILABLE = False
-    logging.info("PiSugar monitor not available (smbus not installed)")
+# Power Management HAT selection (WAVESHARE or PISUGAR, default WAVESHARE)
+POWER_HAT = os.getenv('POWER_HAT', 'WAVESHARE').upper()
 
+# Power status monitor (optional, depends on POWER_HAT setting)
+POWER_MONITOR_AVAILABLE = False
+read_power_status = None
+format_power_status_for_lora = None
+
+if POWER_HAT == 'PISUGAR':
+    try:
+        from utils.pisugar_monitor import read_pisugar_status as read_power_status
+        from utils.pisugar_monitor import format_status_for_lora as format_power_status_for_lora
+        POWER_MONITOR_AVAILABLE = True
+        logging.info("PiSugar power monitor loaded")
+    except ImportError:
+        logging.info("PiSugar monitor not available")
+else:
+    try:
+        from utils.waveshare_monitor import read_waveshare_status as read_power_status
+        from utils.waveshare_monitor import format_status_for_lora as format_power_status_for_lora
+        POWER_MONITOR_AVAILABLE = True
+        logging.info("Waveshare power monitor loaded")
+    except ImportError:
+        logging.info("Waveshare monitor not available")
+
+# GPIO pin config from config (Waveshare HAT defaults)
+try:
+    from utils.config import (
+        LORA_CS_PIN, LORA_RST_PIN,
+        WAVESHARE_SHUTDOWN_PIN, WAVESHARE_RUNNING_PIN,
+        WAVESHARE_SERIAL_DEVICE, WAVESHARE_SERIAL_BAUD
+    )
+except ImportError:
+    # Fallback defaults if config doesn't have these yet
+    LORA_CS_PIN = 17
+    LORA_RST_PIN = 16
+    WAVESHARE_SHUTDOWN_PIN = 20
+    WAVESHARE_RUNNING_PIN = 21
+    WAVESHARE_SERIAL_DEVICE = '/dev/ttyS0'
+    WAVESHARE_SERIAL_BAUD = 115200
+
+# GPIO setup for Waveshare HAT communication (only for Waveshare HAT)
+WAVESHARE_GPIO_AVAILABLE = False
+if POWER_HAT == 'WAVESHARE' and os.getenv("LOCAL") != 'TRUE':
+    try:
+        import RPi.GPIO as GPIO
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+        # Pin 20: HAT signals Pi to shutdown (input)
+        GPIO.setup(WAVESHARE_SHUTDOWN_PIN, GPIO.IN)
+        # Pin 21: Pi tells HAT it's running (output, HIGH = running)
+        GPIO.setup(WAVESHARE_RUNNING_PIN, GPIO.OUT)
+        GPIO.output(WAVESHARE_RUNNING_PIN, GPIO.HIGH)
+        WAVESHARE_GPIO_AVAILABLE = True
+        logging.info(f"Waveshare GPIO initialized: shutdown=GPIO{WAVESHARE_SHUTDOWN_PIN}, running=GPIO{WAVESHARE_RUNNING_PIN}")
+    except Exception as e:
+        logging.warning(f"Waveshare GPIO setup failed: {e}")
 
 
 # Logging setup
@@ -89,6 +136,33 @@ class RepeaterStats:
         logging.info(f"Forward Rate: {self.packets_forwarded/max(self.packets_received, 1)*100:.1f}%")
 
 
+def _get_lora_pins():
+    """Get board pin objects for CS and RST based on config GPIO numbers."""
+    if os.getenv("LOCAL") == 'TRUE':
+        return None, None
+    import board
+    import digitalio
+
+    # Map GPIO numbers to board pin objects
+    gpio_map = {
+        7: board.CE1,
+        8: board.CE0,
+        16: board.D16,
+        17: board.D17,
+        25: board.D25,
+    }
+
+    cs_board_pin = gpio_map.get(LORA_CS_PIN)
+    rst_board_pin = gpio_map.get(LORA_RST_PIN)
+
+    if cs_board_pin is None:
+        raise ValueError(f"Unsupported LORA_CS_PIN GPIO {LORA_CS_PIN}")
+    if rst_board_pin is None:
+        raise ValueError(f"Unsupported LORA_RST_PIN GPIO {LORA_RST_PIN}")
+
+    return cs_board_pin, rst_board_pin
+
+
 def main():
     """Main repeater loop"""
 
@@ -105,43 +179,51 @@ def main():
     logging.info(f"Starting LoRa Repeater Node {LORA_NODE_ID}")
     logging.info(f"Frequency: {LORA_FREQUENCY}MHz, TX Power: {LORA_TX_POWER}dBm")
     logging.info(f"Collision Avoidance: {'ENABLED' if LORA_ENABLE_CA else 'DISABLED'}")
+    logging.info(f"LoRa Pins: CS=GPIO{LORA_CS_PIN}, RST=GPIO{LORA_RST_PIN}")
 
     # Show startup on OLED
     oled.show_startup()
 
-    # Initialize transceiver
+    # Initialize transceiver with Waveshare-compatible pins
+    cs_pin, rst_pin = _get_lora_pins()
     transceiver = LoRaTransceiver(
         node_id=LORA_NODE_ID,
         node_type=NodeType.REPEATER,
         frequency=LORA_FREQUENCY,
-        tx_power=LORA_TX_POWER
+        tx_power=LORA_TX_POWER,
+        cs_pin=cs_pin,
+        reset_pin=rst_pin
     )
 
     stats = RepeaterStats()
     last_stats_time = time.time()
     last_oled_update = time.time()
-    last_battery_read = time.time()
     last_status_sent = time.time()
-    battery_percent = None  # Cache battery percentage for OLED
-    pisugar_status = None   # Cache full PiSugar status
-    STATS_INTERVAL = 300  # Log stats every 5 minutes
+    last_power_status = None  # Cache last Waveshare reading
+    is_transmitting = False   # Track LoRa TX state for status priority
+    STATS_INTERVAL = 300      # Log stats every 5 minutes
     OLED_STATS_INTERVAL = 60  # Update OLED stats every 60 seconds
-    BATTERY_READ_INTERVAL = 60  # Read battery every 60 seconds
     STATUS_SEND_INTERVAL = 600  # Send status to server every 10 minutes
-    SHUTDOWN_HOUR = 17  # Shutdown at 5:00 PM (17:00)
+
+    # Pending status to send when LoRa becomes idle
+    pending_status_event = None
+    pending_status_ready = False
 
     def send_status(event=None):
-        """Send a STATUS packet to the server. Optional event: STARTUP, SHUTDOWN, or None for periodic."""
-        if not PISUGAR_AVAILABLE:
+        """Send a STATUS packet to the server. Only call when LoRa is idle."""
+        if not POWER_MONITOR_AVAILABLE:
             return
         try:
-            status = read_pisugar_status()
+            if POWER_HAT == 'WAVESHARE':
+                status = read_power_status(WAVESHARE_SERIAL_DEVICE, WAVESHARE_SERIAL_BAUD)
+            else:
+                status = read_power_status()
+            nonlocal last_power_status
+            last_power_status = status
             if not status['available']:
+                logging.debug(f"Power status unavailable: {status['error']}")
                 return
-            nonlocal battery_percent, pisugar_status
-            pisugar_status = status
-            battery_percent = int(status['battery'])
-            status_payload = format_status_for_lora(status, event=event)
+            status_payload = format_power_status_for_lora(status, event=event)
             status_packet = LoRaPacket.create(
                 packet_type=PacketType.STATUS,
                 source_node=LORA_NODE_ID,
@@ -152,11 +234,22 @@ def main():
             success = transceiver.send_packet(status_packet, use_ack=False)
             label = f" ({event})" if event else ""
             if success:
-                logging.info(f"Status{label} sent to server: Battery={battery_percent}%, Voltage={status['voltage']:.2f}V")
+                logging.info(f"Status{label} sent: Vin={status['vin_voltage']:.2f}V, Vout={status['vout_voltage']:.2f}V, Alerts={status['alerts'] or 'none'}")
             else:
                 logging.warning(f"Failed to send status{label} to server")
         except Exception as e:
             logging.error(f"Error sending status: {e}")
+
+    def check_hat_shutdown():
+        """Check if Waveshare HAT is signaling shutdown via GPIO 20."""
+        if not WAVESHARE_GPIO_AVAILABLE:
+            return False
+        if GPIO.input(WAVESHARE_SHUTDOWN_PIN):
+            # Confirm signal is sustained (not a glitch)
+            time.sleep(1)
+            if GPIO.input(WAVESHARE_SHUTDOWN_PIN):
+                return True
+        return False
 
     logging.info("Repeater ready, listening for packets...")
 
@@ -164,67 +257,57 @@ def main():
     time.sleep(2)  # Wait for startup message to display
     oled.show_ready(LORA_NODE_ID, device_type="Repeater")
 
-    # Send STARTUP status to server
-    send_status(event="STARTUP")
+    # Queue STARTUP status to send when idle
+    pending_status_event = "STARTUP"
+    pending_status_ready = True
 
     try:
         while True:
+            # Check for HAT shutdown signal (highest priority)
+            if check_hat_shutdown():
+                logging.info("Waveshare HAT signaled shutdown via GPIO 20")
+                # Try to send shutdown status but don't block
+                send_status(event="SHUTDOWN")
+                stats.log_stats()
+
+                # Show shutdown message on OLED
+                try:
+                    oled._clear()
+                    oled.draw.text((10, 20), "HAT Shutdown", font=oled.font, fill=255)
+                    oled.draw.text((10, 35), "Signal Received", font=oled.font, fill=255)
+                    oled._update()
+                    time.sleep(2)
+                    oled._turn_off()
+                except Exception:
+                    pass
+
+                logging.info("Initiating system shutdown")
+                subprocess.run(["sudo", "shutdown", "-h", "now"])
+                break
+
             # Receive packet
             packet = transceiver.receive_packet(timeout=1.0)
 
             if packet is None:
-                # No packet received, continue
+                # No packet received — LoRa is idle, safe for housekeeping
                 time.sleep(0.1)
+
+                # Send any pending status (only when idle)
+                if pending_status_ready:
+                    send_status(event=pending_status_event)
+                    pending_status_event = None
+                    pending_status_ready = False
+                    last_status_sent = time.time()
 
                 # Periodically log stats
                 if time.time() - last_stats_time > STATS_INTERVAL:
                     stats.log_stats()
                     last_stats_time = time.time()
 
-                # Periodically read PiSugar status
-                if PISUGAR_AVAILABLE and time.time() - last_battery_read > BATTERY_READ_INTERVAL:
-                    try:
-                        pisugar_status = read_pisugar_status()
-                        if pisugar_status and pisugar_status.get('available'):
-                            battery_percent = int(pisugar_status['battery'])
-                            charging = "charging" if pisugar_status['charging'] else "discharging"
-                            logging.debug(f"Battery: {battery_percent}% ({charging})")
-                        else:
-                            battery_percent = None
-                        last_battery_read = time.time()
-                    except Exception as e:
-                        logging.debug(f"Failed to read PiSugar: {e}")
-                        battery_percent = None
-
-                # Periodically send status to server
-                if PISUGAR_AVAILABLE and time.time() - last_status_sent > STATUS_SEND_INTERVAL:
+                # Periodically read and send power status (only when idle)
+                if POWER_MONITOR_AVAILABLE and time.time() - last_status_sent > STATUS_SEND_INTERVAL:
                     send_status()
                     last_status_sent = time.time()
-
-                # Check for scheduled shutdown (5:00 PM)
-                current_hour = datetime.now().hour
-                current_minute = datetime.now().minute
-                if current_hour == SHUTDOWN_HOUR and current_minute == 0:
-                    logging.info("Scheduled shutdown time reached (5:00 PM)")
-                    send_status(event="SHUTDOWN")
-                    stats.log_stats()
-
-                    # Show shutdown message on OLED
-                    try:
-                        oled._clear()
-                        oled.draw.text((10, 20), "Scheduled", font=oled.font, fill=255)
-                        oled.draw.text((10, 35), "Shutdown", font=oled.font, fill=255)
-                        oled.draw.text((10, 50), "5:00 PM", font=oled.font, fill=255)
-                        oled._update()
-                        time.sleep(3)
-                        oled._turn_off()
-                    except Exception:
-                        pass
-
-                    # Shutdown the system
-                    logging.info("Initiating system shutdown")
-                    subprocess.run(["sudo", "shutdown", "-h", "now"])
-                    break  # Exit main loop
 
                 # Periodically update OLED stats
                 if time.time() - last_oled_update > OLED_STATS_INTERVAL:
@@ -232,11 +315,15 @@ def main():
                         total_dropped = (stats.packets_dropped_ttl +
                                        stats.packets_dropped_duplicate +
                                        stats.packets_dropped_crc)
+                        # Show Vin voltage on OLED if available
+                        vin_display = None
+                        if last_power_status and last_power_status.get('available'):
+                            vin_display = int(last_power_status['vin_voltage'] * 100)  # e.g. 499 for 4.99V
                         oled.show_repeater_stats(
                             stats.packets_received,
                             stats.packets_forwarded,
                             total_dropped,
-                            battery_percent  # Pass battery percentage to OLED
+                            vin_display
                         )
                         last_oled_update = time.time()
                     except Exception as e:
@@ -312,8 +399,6 @@ def main():
                         enable_random_delay=True
                     )
                 else:
-                    # Use ACK only for DATA packets, not for repeater forwarding
-                    # (reduces overhead)
                     success = transceiver.send_packet(repeated_packet, use_ack=False)
 
                 if success:
@@ -348,6 +433,15 @@ def main():
         except Exception:
             pass
         raise
+
+    finally:
+        # Clean up GPIO on exit
+        if WAVESHARE_GPIO_AVAILABLE:
+            try:
+                GPIO.output(WAVESHARE_RUNNING_PIN, GPIO.LOW)
+                GPIO.cleanup()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

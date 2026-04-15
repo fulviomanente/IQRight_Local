@@ -496,32 +496,28 @@ sudo systemctl daemon-reload
 sudo systemctl enable repeater-status-display
 ```
 
-## Battery Monitoring Integration
+## Power Monitoring Integration
 
-The repeater system includes **full INA219 battery monitoring integration**!
+The repeater supports two power management HATs, configured via `POWER_HAT` in `.env`:
 
-### ✅ Already Integrated
+### Waveshare Power Management HAT (default)
 
-Battery monitoring using INA219 power sensor is **fully implemented**:
-- ✅ `utils/battery_monitor.py` - Reads voltage, current, power, and calculates percentage
-- ✅ `repeater_status.sh` - Automatically detects and uses INA219
-- ✅ Color-coded display (green/yellow/red based on charge level)
-- ✅ Automatic fallback to system battery if INA219 not available
-- ✅ Graceful error handling
+- `utils/waveshare_monitor.py` — reads Vin voltage, Vout voltage, current, and RTC state via serial (`/dev/ttyS0`)
+- GPIO 20: HAT signals Pi to shutdown (input)
+- GPIO 21: Pi tells HAT it's running (output)
+- Alerts for low voltage, RTC drift, and scheduler errors
+- No cron job needed — HAT handles shutdown via hardware signal
 
-### Setup Required
+### PiSugar 3 (alternative)
 
-1. **Connect INA219** to Raspberry Pi I2C (GPIO 2/3)
-2. **Enable I2C**: `sudo raspi-config` → Interface Options → I2C → Enable
-3. **Install I2C tools**: `sudo apt-get install -y i2c-tools python3-smbus`
-4. **Test**: `python3 utils/battery_monitor.py`
+- `utils/pisugar_monitor.py` — reads battery percentage, voltage, charging state, and temperature via I2C (address 0x57)
+- Requires `smbus` Python module
+- Daily shutdown via cron job at 6:00 PM
+- RTC wake-up configured via `setup_pisugar_schedule.sh`
 
-**That's it!** The status script will automatically start showing real battery data.
+### Common
 
-### Documentation
-
-For complete INA219 setup, wiring diagrams, calibration, and troubleshooting:
-- **See**: [BATTERY_MONITORING_INA219.md](../BATTERY_MONITORING_INA219.md)
+Both monitors send STATUS packets to the server every 10 minutes with power telemetry, allowing the server to track repeater health remotely.
 
 ## Security Considerations
 
@@ -598,9 +594,16 @@ For issues:
 
 ## Version History
 
+- **v2.0** (2026-04-15) - Power HAT selection and Waveshare support
+  - Added Waveshare Power Management HAT as default power option
+  - Added PiSugar 3 as alternative power option
+  - Power HAT selection during setup (POWER_HAT in .env)
+  - HAT-aware LoRa pin configuration (GPIO 17/16 for Waveshare, GPIO 7/25 for PiSugar)
+  - Conditional shutdown: Waveshare via GPIO, PiSugar via cron
+  - Fixed setuptools missing for Cython compilation
+  - Fixed cron verification (explicit `-u root`, cron service enablement)
 - **v1.0** (2025-02-14) - Initial release
   - Service setup script
   - Status dashboard script
   - Auto-restart on crash
   - Comprehensive monitoring
-  - Battery monitoring placeholder

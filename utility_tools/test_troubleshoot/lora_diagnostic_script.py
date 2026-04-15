@@ -31,7 +31,7 @@ def check_system_info():
     # OS version
     success, version, _ = run_command("cat /etc/os-release | grep PRETTY_NAME")
     if success:
-        print(f"OS: {version.split('=')[1].strip('\"')}")
+        print(f"OS: {version.split('=')[1]}")
     
     # Python version
     print(f"Python: {sys.version.split()[0]}")

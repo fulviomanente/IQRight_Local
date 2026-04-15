@@ -99,7 +99,7 @@ install_system_packages() {
 
     apt update -qq
 
-    PACKAGES="python3-pip python3-venv python3-dev gcc i2c-tools ftp fbi"
+    PACKAGES="python3-pip python3-venv python3-dev gcc i2c-tools ftp fbi cron minicom"
     apt install -y $PACKAGES
 
     print_success "System packages installed"
@@ -225,8 +225,8 @@ compile_source() {
     cd "$INSTALL_DIR"
     source .venv/bin/activate
 
-    # Install Cython and build tools
-    pip install cython > /dev/null 2>&1
+    # Install Cython, setuptools and build tools
+    pip install cython setuptools > /dev/null 2>&1
     apt install -y python3-dev gcc > /dev/null 2>&1
     print_success "Build tools installed"
 
@@ -321,6 +321,30 @@ configure_node() {
         fi
     done
 
+    # Power Management HAT selection
+    echo ""
+    echo -e "${BOLD}Power Management HAT${NC}"
+    echo -e "  1) Waveshare Power Management HAT (default)"
+    echo -e "  2) PiSugar 3"
+    echo ""
+
+    while true; do
+        read -p "  Select power HAT [1]: " POWER_HAT_CHOICE
+        POWER_HAT_CHOICE="${POWER_HAT_CHOICE:-1}"
+
+        if [ "$POWER_HAT_CHOICE" = "1" ]; then
+            POWER_HAT="WAVESHARE"
+            break
+        elif [ "$POWER_HAT_CHOICE" = "2" ]; then
+            POWER_HAT="PISUGAR"
+            break
+        else
+            print_error "Invalid choice. Enter 1 or 2."
+        fi
+    done
+
+    print_success "Power HAT: ${POWER_HAT}"
+
     # Write .env file
     cat > "${INSTALL_DIR}/.env" << EOF
 # IQRight Repeater Configuration
@@ -331,6 +355,7 @@ LORA_FREQUENCY=915.23
 LORA_TX_POWER=23
 LORA_TTL=3
 LORA_ENABLE_CA=TRUE
+POWER_HAT=${POWER_HAT}
 EOF
 
     chown "${TARGET_USER}:${TARGET_GROUP}" "${INSTALL_DIR}/.env"
@@ -424,7 +449,19 @@ EOF
 # Step 9: Configure daily shutdown cron (6:00 PM)
 # ------------------------------------------------------------------
 configure_shutdown_cron() {
-    print_step 9 "Configuring daily shutdown cron job (6:00 PM)"
+    print_step 9 "Configuring daily shutdown"
+
+    # Waveshare HAT handles shutdown via GPIO signal — no cron needed
+    if [ "$POWER_HAT" = "WAVESHARE" ]; then
+        print_info "Waveshare HAT handles shutdown via GPIO ${WAVESHARE_SHUTDOWN_PIN:-20}"
+        print_info "No cron job needed — HAT RTC triggers shutdown signal"
+        print_success "Shutdown managed by Waveshare HAT"
+        return
+    fi
+
+    # PiSugar: needs a cron job for daily shutdown (no hardware shutdown signal)
+    print_info "PiSugar does not have a hardware shutdown signal"
+    print_info "Configuring cron job for daily shutdown at 6:00 PM"
 
     # Install shutdown script
     SHUTDOWN_SCRIPT="/usr/local/bin/shutdown_repeater.sh"
@@ -439,19 +476,23 @@ EOF
     chmod +x "$SHUTDOWN_SCRIPT"
     print_success "Shutdown script installed at ${SHUTDOWN_SCRIPT}"
 
+    # Ensure cron service is running
+    systemctl enable cron 2>/dev/null || true
+    systemctl start cron 2>/dev/null || true
+
     # Add cron job for root (shutdown requires root)
     CRON_MARKER="# IQRight Repeater daily shutdown"
     CRON_LINE="0 18 * * * ${SHUTDOWN_SCRIPT} ${CRON_MARKER}"
 
     # Check if already configured
-    if crontab -l 2>/dev/null | grep -q "$CRON_MARKER"; then
+    if crontab -u root -l 2>/dev/null | grep -q "$CRON_MARKER"; then
         print_warning "Shutdown cron already configured"
     else
-        (crontab -l 2>/dev/null; echo "$CRON_LINE") | crontab -
+        (crontab -u root -l 2>/dev/null; echo "$CRON_LINE") | crontab -u root -
         print_success "Cron job added: shutdown daily at 6:00 PM"
     fi
 
-    print_info "RTC will wake the Pi on the next day"
+    print_info "PiSugar RTC will wake the Pi on the next day"
 }
 
 # ------------------------------------------------------------------
@@ -520,13 +561,24 @@ verify_installation() {
         ERRORS=$((ERRORS + 1))
     fi
 
-    # Check pisugar_monitor (optional)
-    PY="${INSTALL_DIR}/utils/pisugar_monitor.py"
-    SO_MATCH=$(find "${INSTALL_DIR}" -path "*/pisugar_monitor.cpython-*.so" -o -path "*/pisugar_monitor.so" 2>/dev/null | head -1)
-    if [ -f "$PY" ] || [ -n "$SO_MATCH" ]; then
-        print_success "utils/pisugar_monitor ($([ -f "$PY" ] && echo '.py' || echo '.so'))"
+    # Check power monitor based on configured HAT type
+    POWER_HAT_CONFIGURED=$(grep POWER_HAT "${INSTALL_DIR}/.env" 2>/dev/null | cut -d= -f2)
+    if [ "$POWER_HAT_CONFIGURED" = "PISUGAR" ]; then
+        PY="${INSTALL_DIR}/utils/pisugar_monitor.py"
+        SO_MATCH=$(find "${INSTALL_DIR}" -path "*/pisugar_monitor.cpython-*.so" -o -path "*/pisugar_monitor.so" 2>/dev/null | head -1)
+        if [ -f "$PY" ] || [ -n "$SO_MATCH" ]; then
+            print_success "utils/pisugar_monitor ($([ -f "$PY" ] && echo '.py' || echo '.so'))"
+        else
+            print_warning "utils/pisugar_monitor — not found (PiSugar features disabled)"
+        fi
     else
-        print_warning "utils/pisugar_monitor — not found (optional, PiSugar features disabled)"
+        PY="${INSTALL_DIR}/utils/waveshare_monitor.py"
+        SO_MATCH=$(find "${INSTALL_DIR}" -path "*/waveshare_monitor.cpython-*.so" -o -path "*/waveshare_monitor.so" 2>/dev/null | head -1)
+        if [ -f "$PY" ] || [ -n "$SO_MATCH" ]; then
+            print_success "utils/waveshare_monitor ($([ -f "$PY" ] && echo '.py' || echo '.so'))"
+        else
+            print_warning "utils/waveshare_monitor — not found (Waveshare features disabled)"
+        fi
     fi
 
     # Check .env
@@ -553,12 +605,18 @@ verify_installation() {
         ERRORS=$((ERRORS + 1))
     fi
 
-    # Check shutdown cron
-    if crontab -l 2>/dev/null | grep -q "shutdown_repeater.sh"; then
-        print_success "Daily shutdown cron (6:00 PM)"
+    # Check shutdown mechanism
+    POWER_HAT_CONFIGURED=$(grep POWER_HAT "${INSTALL_DIR}/.env" 2>/dev/null | cut -d= -f2)
+    if [ "$POWER_HAT_CONFIGURED" = "WAVESHARE" ]; then
+        print_success "Shutdown via Waveshare HAT GPIO (no cron needed)"
     else
-        print_error "Daily shutdown cron — NOT configured"
-        ERRORS=$((ERRORS + 1))
+        # PiSugar needs a cron job
+        if crontab -u root -l 2>/dev/null | grep -q "shutdown_repeater.sh"; then
+            print_success "Daily shutdown cron (6:00 PM)"
+        else
+            print_error "Daily shutdown cron — NOT configured (required for PiSugar)"
+            ERRORS=$((ERRORS + 1))
+        fi
     fi
 
     # Check ownership
@@ -670,8 +728,14 @@ main() {
     echo -e "  ${CYAN}To update repeater files later:${NC}"
     echo -e "    Run this script again — it will overwrite the application files."
     echo ""
-    echo -e "  ${CYAN}PiSugar schedule (optional):${NC}"
-    echo -e "    Run setup_pisugar_schedule.sh for RTC wake-up configuration"
+    POWER_HAT_CONFIGURED=$(grep POWER_HAT "${INSTALL_DIR}/.env" | cut -d= -f2)
+    if [ "$POWER_HAT_CONFIGURED" = "PISUGAR" ]; then
+        echo -e "  ${CYAN}PiSugar schedule (recommended):${NC}"
+        echo -e "    Run setup_pisugar_schedule.sh for RTC wake-up configuration"
+    else
+        echo -e "  ${CYAN}PiSugar schedule (if switching to PiSugar later):${NC}"
+        echo -e "    Run setup_pisugar_schedule.sh for RTC wake-up configuration"
+    fi
     echo ""
     echo -e "  ${YELLOW}Reboot now to start the repeater automatically.${NC}"
     echo ""

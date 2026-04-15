@@ -257,7 +257,8 @@ class LoRaTransceiver:
     """
 
     def __init__(self, node_id: int, node_type: NodeType,
-                 frequency: float = 915.0, tx_power: int = 23):
+                 frequency: float = 915.0, tx_power: int = 23,
+                 cs_pin=None, reset_pin=None):
         """
         Initialize LoRa transceiver with hardware setup
 
@@ -266,6 +267,8 @@ class LoRaTransceiver:
             node_type: Role of this node (SERVER, SCANNER, REPEATER)
             frequency: LoRa frequency in MHz (default 915.0)
             tx_power: Transmission power in dBm (default 23)
+            cs_pin: Chip select pin (default: board.CE1 / GPIO 7)
+            reset_pin: Reset pin (default: board.D25 / GPIO 25)
         """
         self.node_id = node_id
         self.node_type = node_type
@@ -280,9 +283,9 @@ class LoRaTransceiver:
             import board
             import adafruit_rfm9x
 
-            # Configure LoRa Radio
-            CS = digitalio.DigitalInOut(board.CE1)
-            RESET = digitalio.DigitalInOut(board.D25)
+            # Configure LoRa Radio (pins configurable for different HATs)
+            CS = digitalio.DigitalInOut(cs_pin if cs_pin else board.CE1)
+            RESET = digitalio.DigitalInOut(reset_pin if reset_pin else board.D25)
             spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
 
             self.rfm9x = adafruit_rfm9x.RFM9x(spi, CS, RESET, frequency)

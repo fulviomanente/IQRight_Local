@@ -6,7 +6,7 @@ Complete guide for deploying the IQRight LoRa repeater on a Raspberry Pi Zero W 
 
 ## Architecture Overview
 
-The repeater runs a **headless service** on a Pi Zero W with Lite OS:
+The repeater runs a **headless service** on a Pi Zero W with Lite OS. It supports two power management options:
 
 ```
     ┌──────────────────┐
@@ -17,18 +17,24 @@ The repeater runs a **headless service** on a Pi Zero W with Lite OS:
     │                  │      └─ Extends network range
     │                  │
     │  OLED display    │◀──── SSD1306 128x64 (I2C, optional)
-    │  PiSugar 3       │◀──── Battery + RTC (I2C, optional)
+    │                  │
+    │  Power HAT       │◀──── Waveshare Power Management HAT (default)
+    │  (choose one)    │      └─ Shutdown via GPIO 20, status via serial
+    │                  │      OR
+    │                  │      PiSugar 3 (alternative)
+    │                  │      └─ Battery + RTC via I2C, cron shutdown
     └──────────────────┘
 ```
 
 | Component | Description |
 |-----------|-------------|
-| `repeater.py` | Main application — packet forwarding, OLED, battery monitoring |
+| `repeater.py` | Main application — packet forwarding, OLED, power monitoring |
 | `run_repeater.py` | Launcher script (imports `repeater`) |
 | `lora/` | Binary packet protocol package |
-| `utils/config.py` | Repeater configuration |
+| `utils/config.py` | Repeater configuration (HAT-aware pin selection) |
 | `utils/oled_display.py` | OLED display manager (auto-off, battery optimized) |
-| `utils/pisugar_monitor.py` | PiSugar 3 battery monitor (optional) |
+| `utils/waveshare_monitor.py` | Waveshare HAT power monitor (Vin, Vout, RTC alerts) |
+| `utils/pisugar_monitor.py` | PiSugar 3 battery monitor (optional alternative) |
 
 ### Installation Paths
 
@@ -40,7 +46,7 @@ The repeater runs a **headless service** on a Pi Zero W with Lite OS:
 | Active config | `/home/iqright/utils/config.py` |
 | Logs | `/home/iqright/log/` |
 | Systemd service | `/etc/systemd/system/iqright-repeater.service` |
-| Shutdown cron script | `/usr/local/bin/shutdown_repeater.sh` |
+| Shutdown cron script | `/usr/local/bin/shutdown_repeater.sh` (PiSugar only) |
 
 ---
 
@@ -50,28 +56,48 @@ The repeater runs a **headless service** on a Pi Zero W with Lite OS:
 
 - Raspberry Pi Zero W
 - RFM9x LoRa module (915 MHz for US) connected via SPI
-- SD card with Raspberry Pi OS Lite (32-bit)
+- SD card with Raspberry Pi OS Lite (64-bit)
+- Power management HAT (choose one):
+  - **Waveshare Power Management HAT** (default) — RTC, serial monitoring, GPIO shutdown signal
+  - **PiSugar 3** (alternative) — Battery UPS with RTC + solar panel, I2C monitoring
 - (Optional) SSD1306 128x64 I2C OLED display
-- (Optional) PiSugar 3 battery UPS with RTC + solar panel
-- (Optional) RTC module for scheduled wake-up (if not using PiSugar)
 
 ### Hardware Connections
 
-```
-Pi Zero W GPIO Pinout:
+>**Waveshare Power Management HAT (default):**
+>
+> The Waveshare HAT uses GPIO 7 and GPIO 25, so LoRa CS/RST pins must be moved.
+> The setup automatically configures the correct pins based on your HAT selection.
 
+```
 RFM9x LoRa (SPI):               OLED SSD1306 (I2C):
   MISO → GPIO 9                    VCC → Pin 1 (3.3V)
   MOSI → GPIO 10                   SDA → Pin 3 (GPIO 2)
   SCK  → GPIO 11                   SCL → Pin 5 (GPIO 3)
-  CS   → GPIO 7 (CE1)              GND → Pin 6
-  RST  → GPIO 25
+  CS   → GPIO 17 (moved!)          GND → Pin 6
+  RST  → GPIO 16 (moved!)
+  VIN  → 3.3V                   Waveshare HAT:
+  GND  → GND                       Shutdown signal → GPIO 20 (input)
+                                    Running signal  → GPIO 21 (output)
+                                    Status serial   → /dev/ttyS0 (115200 baud)
+```
+
+>**PiSugar 3 (alternative):**
+>
+> PiSugar uses I2C only (pogo pins). No GPIO conflict — standard LoRa pins work.
+
+```
+RFM9x LoRa (SPI):               OLED SSD1306 (I2C):
+  MISO → GPIO 9                    VCC → Pin 1 (3.3V)
+  MOSI → GPIO 10                   SDA → Pin 3 (GPIO 2)
+  SCK  → GPIO 11                   SCL → Pin 5 (GPIO 3)
+  CS   → GPIO 7 (CE1, standard)    GND → Pin 6
+  RST  → GPIO 25 (standard)
   VIN  → 3.3V                   PiSugar 3 (I2C):
   GND  → GND                       Connects via pogo pins (no wiring)
                                     I2C address: 0x57
 ```
 
-> **No pin conflicts** between LoRa (SPI) and OLED/PiSugar (I2C).
 
 ### On Your Development Machine
 
@@ -114,7 +140,6 @@ repeater_bundle/
 ├── run_repeater.py               # Launcher (imports repeater)
 ├── build_cython.py               # Cython compilation script
 ├── setup_repeater.sh             # Pi setup script
-├── shutdown_repeater.sh          # Cron shutdown script
 ├── setup_pisugar_schedule.sh     # PiSugar RTC config (optional)
 ├── lora/                         # Binary packet protocol
 │   ├── __init__.py
@@ -125,7 +150,7 @@ repeater_bundle/
 │   ├── __init__.py
 │   ├── config.repeater.py        # Config template (→ config.py)
 │   ├── oled_display.py           # OLED display manager
-│   └── pisugar_monitor.py        # PiSugar battery monitor (if available)
+│   └── waveshare_monitor.py      # Waveshare HAT power monitor
 ├── configs/
 │   └── requirements.repeater.txt # Python dependencies (minimal)
 └── log/                          # Empty log directory
@@ -183,16 +208,16 @@ The script performs **10 automated steps**:
 
 | Step | What It Does |
 |------|-------------|
-| 1 | Installs system packages: Python 3, pip, venv, dev tools, gcc, I2C tools, FTP client |
+| 1 | Installs system packages: Python 3, pip, venv, dev tools, gcc, I2C tools, cron, minicom, FTP client |
 | 2 | Downloads `repeater_bundle.tar.gz` from the FTP server |
 | 3 | Extracts bundle to `/home/iqright/`, copies `config.repeater.py` → `config.py` |
 | 4 | Creates Python venv (`.venv/`), installs dependencies from `requirements.repeater.txt` |
-| 5 | **Compiles with Cython** — installs Cython + gcc, compiles `.py` → `.so`, removes source files (10-30 min on Pi Zero) |
-| 6 | **Configures repeater node ID** — prompts for ID (200-256), creates `.env` |
-| 7 | **Enables I2C** for OLED display and PiSugar, adds user to `i2c` group, configures passwordless shutdown |
+| 5 | **Compiles with Cython** — installs Cython + setuptools + gcc, compiles `.py` → `.so`, removes source files (10-30 min on Pi Zero) |
+| 6 | **Configures repeater** — prompts for node ID (200-256), prompts for power HAT (Waveshare/PiSugar), creates `.env` |
+| 7 | **Enables I2C** for OLED display, adds user to `i2c` group, configures passwordless shutdown |
 | 8 | **Creates systemd service** — `iqright-repeater.service` with auto-restart on crash |
-| 9 | **Configures daily shutdown** — cron job at 6:00 PM via `/usr/local/bin/shutdown_repeater.sh` |
-| 10 | **Silent boot** — disables splash, quiet kernel, masks console login |
+| 9 | **Configures daily shutdown** — Waveshare: skipped (HAT handles via GPIO). PiSugar: creates cron job at 6:00 PM |
+| 10 | **Silent boot** — disables splash, quiet kernel, disables console login |
 
 At the end, the script verifies the installation and offers to reboot.
 
@@ -214,10 +239,11 @@ sudo journalctl -u iqright-repeater -f
 ```
 
 The OLED display (if connected) should show:
-1. "IQRight Scanner Starting..." for 2 seconds
+1. "IQRight Repeater Starting..." for 2 seconds
 2. "Repeater Ready / Node ID: 200 / Listening..." for 30 seconds
 3. Auto-off (display goes dark to save battery)
 4. Briefly flashes when forwarding packets
+5. Stats update every 60 seconds (RX/FWD/DROP + Vin voltage if Waveshare)
 
 ### Step 8: Configure PiSugar Schedule (Optional)
 
@@ -292,7 +318,8 @@ The setup script compiles all Python source to native `.so` extensions using Cyt
 - `lora/collision_avoidance.py` → `collision_avoidance.*.so`
 - `utils/config.py` → `config.*.so`
 - `utils/oled_display.py` → `oled_display.*.so`
-- `utils/pisugar_monitor.py` → `pisugar_monitor.*.so` (if present)
+- `utils/waveshare_monitor.py` → `waveshare_monitor.*.so`
+- `utils/pisugar_monitor.py` → `pisugar_monitor.*.so` (if present in bundle)
 
 ### What Stays as `.py`
 
@@ -322,7 +349,7 @@ Each repeater needs a unique node ID in the range **200-256**:
 | 200 | (first repeater) | Default repeater |
 | 201-256 | (available) | Additional repeaters |
 
-The node ID is stored in `/home/iqright/.env`:
+The node ID and power HAT selection are stored in `/home/iqright/.env`:
 
 ```env
 LORA_NODE_TYPE=REPEATER
@@ -331,9 +358,14 @@ LORA_FREQUENCY=915.23
 LORA_TX_POWER=23
 LORA_TTL=3
 LORA_ENABLE_CA=TRUE
+POWER_HAT=WAVESHARE
 ```
 
-To change the node ID after setup, edit `.env` and restart the service:
+The `POWER_HAT` setting controls:
+- **`WAVESHARE`** (default): Loads `waveshare_monitor.py`, enables GPIO shutdown listener (GPIO 20/21), uses moved LoRa pins (CS=GPIO17, RST=GPIO16)
+- **`PISUGAR`**: Loads `pisugar_monitor.py`, uses standard LoRa pins (CS=GPIO7, RST=GPIO25), requires cron for daily shutdown
+
+To change settings after setup, edit `.env` and restart the service:
 
 ```bash
 sudo systemctl restart iqright-repeater
@@ -343,24 +375,48 @@ sudo systemctl restart iqright-repeater
 
 ## Daily Operation Schedule
 
-The repeater is configured for autonomous operation with daily shutdown and RTC wake-up:
+The repeater is configured for autonomous operation. The shutdown and wake-up mechanisms depend on which power HAT is installed.
+
+### Waveshare Power Management HAT (default)
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ Daily Schedule                                      │
+│ Daily Schedule (Waveshare)                          │
 ├─────────────────────────────────────────────────────┤
-│ RTC Wake-up         → Pi powers on                  │
-│ ~30 seconds later   → Repeater service auto-starts  │
-│ (school hours)      → Forwards LoRa packets         │
-│ 6:00 PM             → Cron triggers shutdown         │
-│ (overnight)         → Pi off / solar charging        │
-│ Next day            → RTC wakes Pi again             │
+│ RTC Wake-up         → HAT powers on the Pi           │
+│ ~30 seconds later   → Repeater service auto-starts   │
+│ (school hours)      → Forwards LoRa packets          │
+│ Scheduled time      → HAT signals GPIO 20 HIGH       │
+│                     → Repeater detects, shuts down    │
+│ (overnight)         → Pi off / solar charging         │
+│ Next day            → RTC wakes Pi again              │
 └─────────────────────────────────────────────────────┘
 ```
 
-**Shutdown mechanism**: A cron job runs `/usr/local/bin/shutdown_repeater.sh` at 6:00 PM daily, which calls `shutdown -h now`. The RTC (either PiSugar or external RTC module) is responsible for waking the Pi on the next day.
+**Shutdown**: The HAT drives GPIO 20 HIGH when it's time to shut down. The repeater detects this in its main loop, sends a SHUTDOWN status to the server, and calls `shutdown -h now`. On startup, the repeater sets GPIO 21 HIGH to tell the HAT the Pi is running. No cron job needed.
 
-> **Note**: The repeater software (`repeater.py`) also has a built-in software shutdown at 5:00 PM as a safety net. The cron job at 6:00 PM acts as a fallback in case the software shutdown doesn't trigger.
+**Power monitoring**: Every 10 minutes (when LoRa is idle), the repeater reads the HAT's serial output (`/dev/ttyS0`) to check Vin voltage, Vout voltage, RTC state, and time drift. Alerts are sent to the server as STATUS packets.
+
+### PiSugar 3 (alternative)
+
+```
+┌─────────────────────────────────────────────────────┐
+│ Daily Schedule (PiSugar)                            │
+├─────────────────────────────────────────────────────┤
+│ 1:00 PM             → PiSugar RTC wakes Pi           │
+│ ~30 seconds later   → Repeater service auto-starts   │
+│ (school hours)      → Forwards LoRa packets          │
+│ 6:00 PM             → Cron job shuts down Pi          │
+│ (overnight)         → Pi off / solar charging         │
+│ Next day 1:00 PM    → RTC wakes Pi again              │
+└─────────────────────────────────────────────────────┘
+```
+
+**Shutdown**: A cron job runs `/usr/local/bin/shutdown_repeater.sh` at 6:00 PM daily. The repeater also sends a SHUTDOWN status to the server on `KeyboardInterrupt` / service stop.
+
+**Power monitoring**: Every 10 minutes, the repeater reads PiSugar battery level, voltage, charging state, and temperature via I2C (address 0x57). Alerts are sent to the server as STATUS packets.
+
+**PiSugar RTC schedule**: Run `setup_pisugar_schedule.sh` after setup to configure the daily wake-up alarm (see Step 8 below).
 
 ---
 
@@ -406,8 +462,10 @@ sudo systemctl restart iqright-repeater
 | **App crash** | Systemd auto-restarts after 10 seconds (max 5 restarts per 5 min) |
 | **Source code** | Compiled to native `.so` — no readable Python on device |
 | **OLED** | Shows forwarding activity, stats every 60s, auto-off after 30s |
-| **Shutdown** | Cron at 6:00 PM + software shutdown at 5:00 PM (dual safety) |
-| **Wake-up** | RTC alarm (PiSugar or external RTC) |
+| **Shutdown (Waveshare)** | HAT signals GPIO 20 → repeater shuts down gracefully (no cron) |
+| **Shutdown (PiSugar)** | Cron job at 6:00 PM → system shutdown (configured during setup) |
+| **Wake-up** | Power HAT RTC alarm powers on the Pi |
+| **Power monitoring** | Waveshare: Vin/Vout/RTC via serial. PiSugar: battery/voltage/temp via I2C. Every 10 min → STATUS packet to server |
 
 ---
 
@@ -416,14 +474,15 @@ sudo systemctl restart iqright-repeater
 | Item | Description |
 |------|-------------|
 | `/home/iqright/.venv/` | Python virtual environment |
-| `/home/iqright/.env` | Node configuration (repeater ID, LoRa settings) |
-| `/home/iqright/utils/config.py` | Active config (copied from `config.repeater.py`) |
+| `/home/iqright/.env` | Node configuration (repeater ID, LoRa settings, power HAT selection) |
+| `/home/iqright/utils/config.py` | Active config (copied from `config.repeater.py`, HAT-aware pins) |
 | `/home/iqright/log/` | Log directory |
 | `/etc/systemd/system/iqright-repeater.service` | Systemd service (auto-start, crash recovery) |
-| `/usr/local/bin/shutdown_repeater.sh` | Daily shutdown script |
-| Root crontab entry | `0 18 * * *` triggers shutdown at 6:00 PM |
 | `/etc/sudoers.d/repeater-shutdown` | Passwordless shutdown for repeater user |
+| `/usr/local/bin/shutdown_repeater.sh` | Daily shutdown script (PiSugar only) |
+| Cron job (6:00 PM) | Daily shutdown via cron (PiSugar only) |
 | I2C enabled | `/dev/i2c-1` available for OLED and PiSugar |
+| UART enabled | `/dev/ttyS0` available for Waveshare HAT serial monitoring |
 
 ### Python Dependencies (requirements.repeater.txt)
 
@@ -434,9 +493,9 @@ sudo systemctl restart iqright-repeater
 | `adafruit-blinka` | CircuitPython compatibility layer |
 | `adafruit-circuitpython-ssd1306` | OLED display driver (optional) |
 | `pillow` | OLED graphics rendering (optional) |
+| `RPi.GPIO` | Waveshare HAT GPIO communication (shutdown signal, running heartbeat) |
 
-> `cython`, `python3-dev`, and `gcc` are installed during setup for compilation only.
-> `smbus` (for PiSugar I2C) is a system package, not installed via pip.
+> `cython`, `setuptools`, `python3-dev`, `gcc`, `minicom`, and `cron` are installed as system packages during setup.
 
 ---
 
@@ -456,6 +515,9 @@ tail -f /home/iqright/log/repeater_*.log   # Application log
 
 # I2C diagnostics
 sudo i2cdetect -y 1                        # Scan I2C bus
+
+# Waveshare HAT serial monitor
+sudo minicom -b 115200 -o -D /dev/ttyS0   # View HAT status (Ctrl+A then X to exit)
 
 # Manual test run
 cd /home/iqright
@@ -504,27 +566,44 @@ python3 run_repeater.py                    # Run in foreground
 
 ### Pi doesn't wake up on schedule
 
-- Verify RTC module is working (PiSugar: `echo "get battery" | nc 127.0.0.1 8423`)
-- Re-run PiSugar schedule setup: `sudo ./setup_pisugar_schedule.sh`
-- For external RTC: verify the alarm is set correctly
-- Check RTC battery (PiSugar uses the main battery; external RTCs use coin cells)
+- Verify the Waveshare HAT RTC is configured (check via `sudo minicom -b 115200 -o -D /dev/ttyS0`)
+- Check `Rtc_State` in serial output — should be `1` (scheduler enabled)
+- Verify power source is connected to the HAT (Vin should be > 4.7V)
 
-### Pi doesn't shut down at 6 PM
+### Pi doesn't shut down on schedule
 
-- Verify cron job exists: `sudo crontab -l | grep shutdown`
-- Verify shutdown script exists: `ls -la /usr/local/bin/shutdown_repeater.sh`
-- Check cron logs: `grep CRON /var/log/syslog`
-- Test manually: `sudo /usr/local/bin/shutdown_repeater.sh`
+**Waveshare HAT:**
+- The HAT drives GPIO 20 HIGH when it's time to shut down
+- Verify GPIO 20 is connected: `cat /sys/class/gpio/gpio20/value` (or check in Python)
+- Check repeater logs for "HAT signaled shutdown" messages: `grep -i shutdown /home/iqright/log/repeater_*.log`
+- Verify the repeater service is running (it contains the shutdown listener)
+- Test the HAT serial output: `sudo minicom -b 115200 -o -D /dev/ttyS0`
+
+**PiSugar:**
+- Verify the cron job exists: `sudo crontab -u root -l | grep shutdown`
+- Verify cron service is running: `sudo systemctl status cron`
+- Check shutdown script exists and is executable: `ls -la /usr/local/bin/shutdown_repeater.sh`
+- To recreate: `(sudo crontab -u root -l; echo "0 18 * * * /usr/local/bin/shutdown_repeater.sh # IQRight Repeater daily shutdown") | sudo crontab -u root -`
+
+### Waveshare HAT serial not working
+
+- Verify serial port exists: `ls /dev/ttyS0`
+- Verify UART is enabled: `grep enable_uart /boot/firmware/config.txt` (should say `enable_uart=1`)
+- Verify serial console is disabled: `systemctl status serial-getty@ttyS0` (should be disabled/masked)
+- Test manually: `sudo minicom -b 115200 -o -D /dev/ttyS0` (should show voltage/RTC data)
 
 ### Cython compilation fails during setup
 
 - The setup script continues with `.py` source files if compilation fails
-- Common causes: insufficient disk space, missing `python3-dev` or `gcc`
+- Common causes:
+  - Missing `setuptools` (Python 3.12+ no longer bundles it in venvs) — the setup script now installs it automatically
+  - Insufficient disk space
+  - Missing `python3-dev` or `gcc`
 - To retry compilation manually:
   ```bash
   cd /home/iqright
   source .venv/bin/activate
-  pip install cython
+  pip install cython setuptools
   sudo apt install -y python3-dev gcc
   python build_cython.py build_ext --inplace
   ```
@@ -556,7 +635,8 @@ On Pi (first time):
   3. scp setup_repeater.sh to Pi
   4. sudo ./setup_repeater.sh
   5. Enter node ID (200-256) when prompted
-  6. Reboot when prompted
+  6. Select power HAT (1=Waveshare, 2=PiSugar) when prompted
+  7. Reboot when prompted
 
 On Pi (updates):
   1. Rebuild bundle on Mac
@@ -567,4 +647,6 @@ Verify:
   sudo systemctl status iqright-repeater
   tail -f /home/iqright/log/repeater_*.log
   sudo i2cdetect -y 1
+  cat /home/iqright/.env                         # Check POWER_HAT setting
+  sudo minicom -b 115200 -o -D /dev/ttyS0        # Waveshare only
 ```

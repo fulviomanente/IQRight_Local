@@ -226,7 +226,7 @@ compile_source() {
     source .venv/bin/activate
 
     # Install Cython and build tools
-    pip install cython > /dev/null 2>&1
+    pip install setuptools cython > /dev/null 2>&1
     apt install -y python3-dev gcc > /dev/null 2>&1
     print_success "Build tools installed"
 

@@ -58,7 +58,7 @@ require_file "configs/requirements.repeater.txt"
 require_file "utility_tools/setup/repeater/run_repeater.py"
 require_file "utility_tools/setup/repeater/build_cython.py"
 require_file "utility_tools/setup/repeater/setup_repeater.sh"
-require_file "utility_tools/setup/repeater/shutdown_repeater.sh"
+require_file "utils/waveshare_monitor.py"
 
 if [ "$MISSING" -gt 0 ]; then
     echo -e "${RED}  $MISSING required file(s) missing — aborting bundle${NC}"
@@ -82,7 +82,7 @@ echo -e "${CYAN}  Packaging setup utilities...${NC}"
 
 REPEATER_SETUP="$PROJECT_ROOT/utility_tools/setup/repeater"
 
-for f in run_repeater.py build_cython.py setup_repeater.sh shutdown_repeater.sh setup_pisugar_schedule.sh; do
+for f in run_repeater.py build_cython.py setup_repeater.sh setup_pisugar_schedule.sh; do
     if [ -f "$REPEATER_SETUP/$f" ]; then
         cp "$REPEATER_SETUP/$f" "$DEST/"
     fi
@@ -107,6 +107,7 @@ echo -e "${CYAN}  Packaging utils/...${NC}"
 mkdir -p "$DEST/utils"
 cp utils/__init__.py "$DEST/utils/"
 cp utils/oled_display.py "$DEST/utils/"
+cp utils/waveshare_monitor.py "$DEST/utils/"
 cp configs/config.repeater.py "$DEST/utils/config.repeater.py"
 
 # Include pisugar_monitor if it exists (optional)
