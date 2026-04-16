@@ -245,9 +245,19 @@ The OLED display (if connected) should show:
 4. Briefly flashes when forwarding packets
 5. Stats update every 60 seconds (RX/FWD/DROP + Vin voltage if Waveshare)
 
-### Step 8: Configure PiSugar Schedule (Optional)
+### Step 8: Install PiSugar Power Manager (PiSugar only)
 
-If using PiSugar 3 for battery + RTC wake-up:
+If using PiSugar 3, the PiSugar daemon must be installed manually because it requires selecting your Pi model during installation:
+
+```bash
+# Download the installer
+curl http://cdn.pisugar.com/release/pisugar-power-manager.sh > pisugar-pm.sh
+
+# Run the installer (will prompt for Pi model selection)
+sudo bash pisugar-pm.sh
+```
+
+After the PiSugar daemon is installed and running, configure the RTC schedule:
 
 ```bash
 cd /home/iqright
@@ -258,6 +268,8 @@ This configures:
 - Wake-up at 1:00 PM daily via RTC alarm
 - Safe shutdown at 5% battery
 - Repeat every day of the week
+
+> The PiSugar web interface is also available at `http://<pi-ip>:8421` for manual configuration.
 
 ### Step 9: Verify I2C Devices (Optional)
 
@@ -310,6 +322,8 @@ FTP_HOST=10.0.0.50 FTP_PORT=21 INSTALL_DIR=/opt/repeater sudo ./setup_repeater.s
 
 The setup script compiles all Python source to native `.so` extensions using Cython. This protects the source code on deployed devices.
 
+> **Important**: Cython enforces type annotations as strict C-level checks. In pure Python, `bytes` and `bytearray` are interchangeable, but Cython-compiled code will reject a `bytearray` where `bytes` is annotated. Always wrap external data with `bytes()` before passing it to type-hinted functions (e.g., `rfm9x.receive()` returns `bytearray` — convert with `bytes()` before calling `deserialize(data: bytes)`).
+
 ### What Gets Compiled
 
 - `repeater.py` → `repeater.*.so`
@@ -326,6 +340,7 @@ The setup script compiles all Python source to native `.so` extensions using Cyt
 - `__init__.py` files (required for Python package imports)
 - `run_repeater.py` (launcher — imports `repeater`)
 - `build_cython.py` (the build script itself)
+- `config.repeater.py` (config template — dots in filename break Cython module naming)
 
 ### After Compilation
 
@@ -337,6 +352,63 @@ The setup script compiles all Python source to native `.so` extensions using Cyt
 ### If Compilation Fails
 
 The setup script falls back gracefully — it keeps the `.py` source files and the repeater runs normally from Python source. A warning is printed but setup continues.
+
+### Full Compilation (Manual)
+
+```bash
+cd /home/iqright
+source .venv/bin/activate
+pip install cython setuptools
+python build_cython.py build_ext --inplace
+```
+
+After success, remove the source files:
+
+```bash
+# Remove compiled source files (keep __init__.py, run_repeater.py, build_cython.py, config.repeater.py)
+rm repeater.py
+rm lora/collision_avoidance.py lora/node_types.py lora/packet_handler.py
+rm utils/config.py utils/oled_display.py utils/waveshare_monitor.py utils/pisugar_monitor.py
+
+# Clean up build artifacts
+rm -rf build/ *.c lora/*.c utils/*.c
+```
+
+### Single File Recompilation
+
+When patching a deployed repeater, you can recompile individual files without running the full build:
+
+```bash
+# 1. Copy the updated .py file from your Mac
+scp lora/packet_handler.py iqright@<pi-ip>:/home/iqright/lora/
+
+# 2. On the Pi: cythonize → compile → clean up
+cd /home/iqright && source .venv/bin/activate
+cython -3 lora/packet_handler.py
+gcc -shared -fPIC -O2 -I/usr/include/python3.13 \
+    -o lora/packet_handler.cpython-313-aarch64-linux-gnu.so \
+    lora/packet_handler.c
+rm lora/packet_handler.py lora/packet_handler.c
+
+# 3. Restart the service
+sudo systemctl restart iqright-repeater
+```
+
+The `.so` filename pattern is `<module>.cpython-<version>-<arch>.so`. To find the correct pattern on your Pi:
+
+```bash
+ls *.so lora/*.so utils/*.so
+```
+
+### Known Issues
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| `BrokenProcessPool` during compilation | Pi Zero runs out of RAM with parallel builds | `build_cython.py` uses `nthreads=1` (single-threaded) |
+| `No module named 'setuptools'` | Python 3.12+ doesn't bundle setuptools in venvs | `pip install setuptools` (setup script does this automatically) |
+| `'._foo' is not a valid module name` | macOS resource fork files in the bundle | `find . -name '._*' -delete` (bundle script strips these automatically) |
+| `config.repeater.py` creates wrong `.so` path | Dot in filename treated as package separator | Excluded from compilation (in `EXCLUDE_FILES`) |
+| `expected bytes, got bytearray` at runtime | Cython enforces type hints strictly | Wrap with `bytes()` before passing to typed functions |
 
 ---
 
@@ -494,6 +566,7 @@ sudo systemctl restart iqright-repeater
 | `adafruit-circuitpython-ssd1306` | OLED display driver (optional) |
 | `pillow` | OLED graphics rendering (optional) |
 | `RPi.GPIO` | Waveshare HAT GPIO communication (shutdown signal, running heartbeat) |
+| `smbus` | I2C communication for PiSugar 3 battery monitor |
 
 > `cython`, `setuptools`, `python3-dev`, `gcc`, `minicom`, and `cron` are installed as system packages during setup.
 

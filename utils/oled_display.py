@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """
-OLED Display Manager for Scanner
+OLED Display Manager for Scanner/Repeater
 
-Manages SSD1306 128x64 I2C OLED display with battery optimization.
+Manages SSD1306 or SH1106 128x64 I2C OLED display with battery optimization.
 Shows minimal information: startup status, errors, and critical events.
 
+Supported controllers:
+- SSD1306: Common on 0.96" OLEDs (default)
+- SH1106:  Common on 1.3" OLEDs (set OLED_DRIVER=SH1106 in .env)
+
 Hardware:
-- SSD1306 OLED 128x64 I2C
-- VCC → Pin 1 (3.3V)
+- VCC → 3.3V or 5V (most modules have onboard regulator)
 - GND → Pin 6 (GND)
 - SDA → Pin 3 (GPIO 2)
 - SCL → Pin 5 (GPIO 3)
@@ -37,6 +40,33 @@ if os.getenv("LOCAL", "FALSE") != "TRUE":
         OLED_AVAILABLE = False
 else:
     OLED_AVAILABLE = False
+
+# OLED driver selection: SSD1306 (0.96") or SH1106 (1.3")
+OLED_DRIVER = os.getenv("OLED_DRIVER", "SSD1306").upper()
+
+
+class SH1106_I2C(SSD1306_I2C):
+    """SH1106 OLED driver — subclasses SSD1306_I2C, overrides show() only.
+
+    The SH1106 has 132-column RAM (vs 128 for SSD1306) and only supports
+    page-addressing mode. The visible 128 columns start at column offset 2.
+    Everything else (init, image(), contrast(), power) is identical to SSD1306.
+    """
+
+    def show(self):
+        """Write framebuffer to display using page addressing with column offset."""
+        for page in range(self.height // 8):
+            self.write_cmd(0xB0 | page)  # Set page address
+            self.write_cmd(0x02)          # Set lower column address (offset 2)
+            self.write_cmd(0x10)          # Set upper column address (0)
+
+            # self.buffer layout: [0x40, page0_data(128 bytes), page1_data, ...]
+            page_start = 1 + (page * self.width)
+            page_end = page_start + self.width
+            page_data = bytearray([0x40]) + self.buffer[page_start:page_end]
+
+            with self.i2c_device:
+                self.i2c_device.write(page_data)
 
 
 class OLEDDisplay:
@@ -70,12 +100,15 @@ class OLEDDisplay:
             # Initialize I2C
             i2c = busio.I2C(board.SCL, board.SDA)
 
+            # Select driver class based on OLED_DRIVER env var
+            DriverClass = SH1106_I2C if OLED_DRIVER == "SH1106" else SSD1306_I2C
+
             # Initialize OLED (I2C address 0x3C or 0x3D)
             try:
-                self.display = SSD1306_I2C(width, height, i2c, addr=0x3C)
+                self.display = DriverClass(width, height, i2c, addr=0x3C)
             except Exception:
                 # Try alternate address
-                self.display = SSD1306_I2C(width, height, i2c, addr=0x3D)
+                self.display = DriverClass(width, height, i2c, addr=0x3D)
 
             # Create blank image for drawing
             self.image = Image.new("1", (width, height))
@@ -90,7 +123,7 @@ class OLEDDisplay:
             # Set contrast (brightness) to 50% to save power
             self.display.contrast(128)  # 0-255, default 207
 
-            logging.info(f"OLED display initialized: {width}x{height}")
+            logging.info(f"OLED display initialized: {width}x{height} ({OLED_DRIVER})")
 
             # Show startup message
             self.show_startup()

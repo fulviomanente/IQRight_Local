@@ -15,3 +15,6 @@ pillow>=10.0.0
 
 # GPIO for Waveshare Power Management HAT shutdown listener
 RPi.GPIO>=0.7.1
+
+# I2C for PiSugar 3 battery monitor (reads battery via I2C address 0x57)
+smbus>=1.1.post2

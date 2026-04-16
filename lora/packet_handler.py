@@ -312,6 +312,7 @@ class LoRaTransceiver:
 
         logging.debug(f"Sending {packet}")
 
+        data = bytes(data)
         if use_ack:
             return self.rfm9x.send_with_ack(data)
         else:
@@ -328,7 +329,8 @@ class LoRaTransceiver:
             return None
 
         # Skip RFM9x header (first 4 bytes: to, from, id, flags)
-        packet_data = raw_data[4:]
+        # Convert to bytes — rfm9x returns bytearray which Cython rejects
+        packet_data = bytes(raw_data[4:])
 
         packet = LoRaPacket.deserialize(packet_data)
 

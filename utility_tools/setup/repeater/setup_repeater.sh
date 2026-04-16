@@ -345,6 +345,30 @@ configure_node() {
 
     print_success "Power HAT: ${POWER_HAT}"
 
+    # OLED display driver selection
+    echo ""
+    echo -e "${BOLD}OLED Display${NC}"
+    echo -e "  1) SSD1306 — 0.96\" display (default)"
+    echo -e "  2) SH1106  — 1.3\" display"
+    echo ""
+
+    while true; do
+        read -p "  Select OLED driver [1]: " OLED_CHOICE
+        OLED_CHOICE="${OLED_CHOICE:-1}"
+
+        if [ "$OLED_CHOICE" = "1" ]; then
+            OLED_DRIVER="SSD1306"
+            break
+        elif [ "$OLED_CHOICE" = "2" ]; then
+            OLED_DRIVER="SH1106"
+            break
+        else
+            print_error "Invalid choice. Enter 1 or 2."
+        fi
+    done
+
+    print_success "OLED driver: ${OLED_DRIVER}"
+
     # Write .env file
     cat > "${INSTALL_DIR}/.env" << EOF
 # IQRight Repeater Configuration
@@ -356,6 +380,7 @@ LORA_TX_POWER=23
 LORA_TTL=3
 LORA_ENABLE_CA=TRUE
 POWER_HAT=${POWER_HAT}
+OLED_DRIVER=${OLED_DRIVER}
 EOF
 
     chown "${TARGET_USER}:${TARGET_GROUP}" "${INSTALL_DIR}/.env"
@@ -711,7 +736,12 @@ main() {
     echo -e "    - On reboot, the repeater service auto-starts"
     echo -e "    - SSH remains available for troubleshooting"
     echo -e "    - If the app crashes, systemd restarts it after 10 seconds"
-    echo -e "    - Daily shutdown at 6:00 PM via cron (RTC wakes next day)"
+    POWER_HAT_CONFIGURED=$(grep POWER_HAT "${INSTALL_DIR}/.env" | cut -d= -f2)
+    if [ "$POWER_HAT_CONFIGURED" = "WAVESHARE" ]; then
+        echo -e "    - Waveshare HAT manages shutdown via GPIO (no cron)"
+    else
+        echo -e "    - Daily shutdown at 6:00 PM via cron (PiSugar RTC wakes next day)"
+    fi
     echo -e "    - OLED display shows forwarding activity and stats"
     echo ""
     echo -e "  ${CYAN}Useful commands:${NC}"
@@ -728,13 +758,18 @@ main() {
     echo -e "  ${CYAN}To update repeater files later:${NC}"
     echo -e "    Run this script again — it will overwrite the application files."
     echo ""
-    POWER_HAT_CONFIGURED=$(grep POWER_HAT "${INSTALL_DIR}/.env" | cut -d= -f2)
-    if [ "$POWER_HAT_CONFIGURED" = "PISUGAR" ]; then
-        echo -e "  ${CYAN}PiSugar schedule (recommended):${NC}"
-        echo -e "    Run setup_pisugar_schedule.sh for RTC wake-up configuration"
-    else
-        echo -e "  ${CYAN}PiSugar schedule (if switching to PiSugar later):${NC}"
-        echo -e "    Run setup_pisugar_schedule.sh for RTC wake-up configuration"
+    POWER_HAT_CONFIGURED2=$(grep POWER_HAT "${INSTALL_DIR}/.env" | cut -d= -f2)
+    if [ "$POWER_HAT_CONFIGURED2" = "PISUGAR" ]; then
+        echo -e "  ${YELLOW}PiSugar Power Manager (REQUIRED for PiSugar):${NC}"
+        echo -e "    The PiSugar daemon must be installed manually because it"
+        echo -e "    requires selecting your Pi model during installation."
+        echo -e "    Run these commands after reboot:"
+        echo -e ""
+        echo -e "    ${GREEN}curl http://cdn.pisugar.com/release/pisugar-power-manager.sh > pisugar-pm.sh${NC}"
+        echo -e "    ${GREEN}sudo bash pisugar-pm.sh${NC}"
+        echo -e ""
+        echo -e "    Then configure the RTC schedule:"
+        echo -e "    ${GREEN}cd ${INSTALL_DIR} && sudo ./setup_pisugar_schedule.sh${NC}"
     fi
     echo ""
     echo -e "  ${YELLOW}Reboot now to start the repeater automatically.${NC}"

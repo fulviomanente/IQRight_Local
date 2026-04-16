@@ -1,0 +1,45 @@
+// =============================================
+// Press-Fit Lid with Display Cutout
+// =============================================
+
+outer_size    = 130;
+inner_box     = 119.3;
+clearance     = 0.5;
+top_thick     = 3;
+lip_height    = 5;
+wall_thick    = 2.5;
+
+// Display hole dimensions
+hole_w        = 27.1;
+hole_h        = 19.1;
+hole_from_top   = 20;
+hole_from_right = 20;
+
+// Calculated
+lip_outer = inner_box - clearance;
+lip_inner = lip_outer - (2 * wall_thick);
+offset    = (outer_size - lip_outer) / 2;
+
+// Hole position (bottom-left corner of hole)
+hole_x = outer_size - hole_from_right - hole_w;   // 82.9 mm from left
+hole_y = outer_size - hole_from_top  - hole_h;    // 90.9 mm from bottom
+
+difference() {
+
+    union() {
+        // Top flat plate
+        cube([outer_size, outer_size, top_thick]);
+
+        // Inner lip (hollow walls)
+        translate([offset, offset, -lip_height])
+            difference() {
+                cube([lip_outer, lip_outer, lip_height]);
+                translate([wall_thick, wall_thick, 0])
+                    cube([lip_inner, lip_inner, lip_height]);
+            }
+    }
+
+    // Display cutout (goes through full top plate thickness)
+    translate([hole_x, hole_y, -0.1])
+        cube([hole_w, hole_h, top_thick + 0.2]);
+}

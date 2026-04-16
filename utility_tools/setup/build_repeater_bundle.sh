@@ -135,8 +135,9 @@ mkdir -p "$DEST/log"
 # Cleanup and create tarball
 # ---------------------------------------------------------------
 
-# Remove .DS_Store files
+# Remove macOS metadata files (.DS_Store and AppleDouble resource forks)
 find "$DEST" -name '.DS_Store' -delete 2>/dev/null || true
+find "$DEST" -name '._*' -delete 2>/dev/null || true
 
 cd "$STAGING"
 tar czf "$OUTPUT" "$BUNDLE_NAME"

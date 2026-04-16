@@ -234,7 +234,10 @@ def main():
             success = transceiver.send_packet(status_packet, use_ack=False)
             label = f" ({event})" if event else ""
             if success:
-                logging.info(f"Status{label} sent: Vin={status['vin_voltage']:.2f}V, Vout={status['vout_voltage']:.2f}V, Alerts={status['alerts'] or 'none'}")
+                if POWER_HAT == 'WAVESHARE':
+                    logging.info(f"Status{label} sent: Vin={status['vin_voltage']:.2f}V, Vout={status['vout_voltage']:.2f}V, Alerts={status['alerts'] or 'none'}")
+                else:
+                    logging.info(f"Status{label} sent: Battery={status['battery']:.1f}%, Voltage={status['voltage']:.2f}V, Charging={status['charging']}")
             else:
                 logging.warning(f"Failed to send status{label} to server")
         except Exception as e:
@@ -315,10 +318,13 @@ def main():
                         total_dropped = (stats.packets_dropped_ttl +
                                        stats.packets_dropped_duplicate +
                                        stats.packets_dropped_crc)
-                        # Show Vin voltage on OLED if available
+                        # Show power info on OLED if available
                         vin_display = None
                         if last_power_status and last_power_status.get('available'):
-                            vin_display = int(last_power_status['vin_voltage'] * 100)  # e.g. 499 for 4.99V
+                            if POWER_HAT == 'WAVESHARE':
+                                vin_display = int(last_power_status['vin_voltage'] * 100)  # e.g. 499 for 4.99V
+                            else:
+                                vin_display = int(last_power_status['battery'])  # e.g. 85 for 85%
                         oled.show_repeater_stats(
                             stats.packets_received,
                             stats.packets_forwarded,
@@ -379,7 +385,7 @@ def main():
             # Create repeated packet with updated sender and TTL
             repeated_packet = packet.create_repeat(LORA_NODE_ID)
 
-            logging.info(f"Forwarding packet: {repeated_packet}")
+            logging.info(f"Forwarding packet: {packet}")
 
             # Show forwarding on OLED (brief)
             try:

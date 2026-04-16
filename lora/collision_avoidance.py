@@ -152,7 +152,7 @@ class CollisionAvoidance:
 
             # Channel clear, send
             logging.debug(f"Sending with CA (attempt {attempt + 1}/{max_retries})")
-            if rfm9x.send_with_ack(data):
+            if rfm9x.send_with_ack(bytes(data)):
                 logging.debug("Send successful")
                 return True
             else:
