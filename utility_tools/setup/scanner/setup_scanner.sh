@@ -157,6 +157,10 @@ extract_bundle() {
     mkdir -p "${INSTALL_DIR}/log"
     mkdir -p "${INSTALL_DIR}/data"
 
+    # Remove macOS resource fork files (._*) that may have slipped into the bundle
+    find "${INSTALL_DIR}" -name '._*' -delete 2>/dev/null || true
+    find "${INSTALL_DIR}" -name '.DS_Store' -delete 2>/dev/null || true
+
     # Copy scanner config as active config
     if [ -f "${INSTALL_DIR}/utils/config.scanner.py" ]; then
         cp "${INSTALL_DIR}/utils/config.scanner.py" "${INSTALL_DIR}/utils/config.py"
