@@ -157,6 +157,10 @@ extract_bundle() {
     # Ensure required directories exist
     mkdir -p "${INSTALL_DIR}/log"
 
+    # Remove macOS resource fork files (._*) that may have slipped into the bundle
+    find "${INSTALL_DIR}" -name '._*' -delete 2>/dev/null || true
+    find "${INSTALL_DIR}" -name '.DS_Store' -delete 2>/dev/null || true
+
     # Copy repeater config as active config
     if [ -f "${INSTALL_DIR}/utils/config.repeater.py" ]; then
         cp "${INSTALL_DIR}/utils/config.repeater.py" "${INSTALL_DIR}/utils/config.py"
@@ -509,12 +513,17 @@ EOF
     CRON_MARKER="# IQRight Repeater daily shutdown"
     CRON_LINE="0 18 * * * ${SHUTDOWN_SCRIPT} ${CRON_MARKER}"
 
-    # Check if already configured
-    if crontab -u root -l 2>/dev/null | grep -q "$CRON_MARKER"; then
+    # Check if already configured (script runs as root, no need for -u root)
+    if crontab -l 2>/dev/null | grep -q "$CRON_MARKER"; then
         print_warning "Shutdown cron already configured"
     else
-        (crontab -u root -l 2>/dev/null; echo "$CRON_LINE") | crontab -u root -
-        print_success "Cron job added: shutdown daily at 6:00 PM"
+        (crontab -l 2>/dev/null; echo "$CRON_LINE") | crontab -
+        # Verify it was actually written
+        if crontab -l 2>/dev/null | grep -q "$CRON_MARKER"; then
+            print_success "Cron job added: shutdown daily at 6:00 PM"
+        else
+            print_error "Failed to write cron job"
+        fi
     fi
 
     print_info "PiSugar RTC will wake the Pi on the next day"
@@ -641,7 +650,7 @@ verify_installation() {
         print_success "Shutdown via Waveshare HAT GPIO (no cron needed)"
     else
         # PiSugar needs a cron job
-        if crontab -u root -l 2>/dev/null | grep -q "shutdown_repeater.sh"; then
+        if crontab -l 2>/dev/null | grep -q "shutdown_repeater.sh"; then
             print_success "Daily shutdown cron (6:00 PM)"
         else
             print_error "Daily shutdown cron — NOT configured (required for PiSugar)"
