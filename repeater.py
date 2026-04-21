@@ -441,6 +441,12 @@ def main():
         raise
 
     finally:
+        # Always turn off OLED on exit — prevents battery drain after shutdown
+        try:
+            oled.shutdown()
+        except Exception:
+            pass
+
         # Clean up GPIO on exit
         if WAVESHARE_GPIO_AVAILABLE:
             try:
