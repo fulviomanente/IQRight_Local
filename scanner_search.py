@@ -48,7 +48,7 @@ import logging
 import logging.handlers
 import os
 import re
-from utils.config import LORA_FREQUENCY, LORA_TX_POWER, LORA_ENABLE_CA
+from utils.config import LORA_FREQUENCY, LORA_TX_POWER, LORA_ENABLE_CA, LORA_NODE_ID, IDFACILITY
 from utils.matching_engine import StudentMatcher
 
 
@@ -68,21 +68,14 @@ max_log_size = 20 * 1024 * 1024 #20Mb
 backup_count = 10
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-# Daily rotation at midnight, fallback to size-based rotation
-daily_handler = logging.handlers.TimedRotatingFileHandler(
+# Single handler — daily rotation at midnight (avoids duplicate lines)
+log_handler = logging.handlers.TimedRotatingFileHandler(
     log_filename, when='midnight', interval=1, backupCount=backup_count
 )
-daily_handler.setFormatter(log_formatter)
-daily_handler.suffix = "%Y-%m-%d"
+log_handler.setFormatter(log_formatter)
+log_handler.suffix = "%Y-%m-%d"
 
-# Size-based rotation as safety net (20MB max)
-size_handler = logging.handlers.RotatingFileHandler(
-    log_filename, maxBytes=max_log_size, backupCount=backup_count
-)
-size_handler.setFormatter(log_formatter)
-
-logging.getLogger().addHandler(daily_handler)
-logging.getLogger().addHandler(size_handler)
+logging.getLogger().addHandler(log_handler)
 logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
 
@@ -188,8 +181,8 @@ class App(tk.Tk):
     def __init__(self):
         # Initialize enhanced LoRa transceiver (handles hardware setup internally)
         # Scanner node ID should be 100-199 range
-        self.scanner_node_id = 102  # Change this for each scanner
-        self.server_node_id = 1
+        self.scanner_node_id = LORA_NODE_ID  # Change this for each scanner
+        self.server_node_id = IDFACILITY
 
         # Only initialize transceiver in hardware mode (not LOCAL)
         if os.getenv("LOCAL", "FALSE") != "TRUE":
