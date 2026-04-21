@@ -46,7 +46,3 @@ aiohttp==3.11.12
 # busio==1.4.0
 # board==1.0
 # digitalio==1.0.0
-
-# Meshtastic Dependencies (for CaptureMeshstatic.py and scanner_meshstatic.py)
-meshtastic>=2.3.0
-pypubsub>=4.0.3
