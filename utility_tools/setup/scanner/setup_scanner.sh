@@ -453,6 +453,12 @@ EOF
 
     chown "${TARGET_USER}:${TARGET_GROUP}" "$PROFILE"
     print_success "Auto-start configured in ${PROFILE} (with crash recovery)"
+
+    # Keep tty2 available for emergency local access (Alt+F2 on keyboard)
+    # tty1 is consumed by the scanner X session — tty2 provides a shell fallback
+    systemctl unmask getty@tty2.service 2>/dev/null || true
+    systemctl enable getty@tty2.service 2>/dev/null || true
+    print_success "Emergency login enabled on tty2 (Alt+F2)"
 }
 
 # ------------------------------------------------------------------

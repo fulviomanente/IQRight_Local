@@ -541,9 +541,14 @@ configure_boot() {
     done
     print_success "Silent boot configured"
 
-    # Disable login prompt on console (service handles everything)
+    # Disable login prompt on tty1 (service handles everything)
     systemctl mask getty@tty1.service 2>/dev/null || true
-    print_success "Console login prompt disabled"
+    print_success "Console login prompt disabled on tty1"
+
+    # Keep tty2 available for emergency local access (Alt+F2)
+    systemctl unmask getty@tty2.service 2>/dev/null || true
+    systemctl enable getty@tty2.service 2>/dev/null || true
+    print_success "Emergency login enabled on tty2 (Alt+F2)"
 }
 
 # ------------------------------------------------------------------
