@@ -801,10 +801,11 @@ async def main_loop_async():
                 is_active = False
                 logging.info(f"=== SWITCHING TO IDLE MODE - no valid packets for {WIND_DOWN_THRESHOLD // 60} minutes ===")
 
-            # In ACTIVE mode: log every timeout
+            # In ACTIVE mode: log timeout every 10 seconds (not every poll)
             if is_active:
-                if DEBUG:
+                if DEBUG and (now - last_timeout_log_time) >= 10:
                     logging.debug('No packet received (timeout)')
+                    last_timeout_log_time = now
             # In IDLE/WIND_DOWN mode: log only every 5 minutes
             else:
                 if (now - last_timeout_log_time) >= IDLE_LOG_INTERVAL:
