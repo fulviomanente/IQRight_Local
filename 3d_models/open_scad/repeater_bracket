@@ -1,0 +1,32 @@
+// =======================================================================
+// Corner Bracket — print 4 copies
+// Fits 130mm inner box into 149mm junction box (6x6 inches from CANTEX)
+// =======================================================================
+
+box_outer       = 130;
+junction_inner  = 149;
+gap             = (junction_inner - box_outer) / 2;  // 9.5mm per side
+chamfer_leg     = 20;       // Junction box 45-degree corner length
+jbox_clearance  = 0.4;      // Clearance to slide into junction box corner
+box_clearance   = 0.2;      // Clearance against inner box walls
+bracket_h       = 50;       // Height — enough to grip securely
+
+// Calculated
+a = chamfer_leg - jbox_clearance;   // 19.6mm arm
+g = gap;                             // 9.5mm
+c = box_clearance;                   // 0.2mm
+
+// Cross-section polygon
+// Box outer corner sits at (a+c, a+c)
+// Outer profile follows junction box inner walls + 45-degree chamfer
+
+linear_extrude(bracket_h)
+    polygon([
+        [a + c, c    ],    // inner notch — along Y wall
+        [a + g, c    ],    // outer face bottom
+        [a + g, a    ],    // chamfer point 1
+        [a,     a + g],    // chamfer point 2
+        [c,     a + g],    // outer face top
+        [c,     a + c],    // inner notch — along X wall
+        [a + c, a + c]     // inner corner (box corner sits here)
+    ]);

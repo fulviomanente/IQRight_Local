@@ -1,0 +1,77 @@
+/ =============================================
+// Raspberry Pi Zero Mounting Plate
+// + Secondary board mount (top)
+// + Divider wall (bottom-left)
+// =============================================
+
+inner_box       = 119.3;
+clearance       = 0.5;
+plate_thick     = 2;
+standoff_h      = 10;
+standoff_d      = 6;
+screw_d         = 2.7;      // M2.5 + 0.2 clearance
+
+// Pi Zero (bottom-right, vertical)
+margin          = 10;
+pi_hole_x       = 23;
+pi_hole_y       = 58;
+
+// Secondary board (top, horizontal)
+board2_from_top    = 10;
+board2_hole_x      = 34.4;
+board2_hole_y      = 39.7;
+board2_from_left   = 35;
+
+// Divider wall (bottom-left)
+divider_x       = 21.6;       // Distance from left edge
+divider_length  = 80;       // How far up from bottom
+divider_thick   = 4;        // Wall thickness
+divider_height  = 12;       // Z height above plate
+
+// Plate
+plate_size = inner_box - clearance;   // 118.8 mm
+
+// ---- Pi Zero hole positions (bottom-right, vertical) ----
+anchor_x = plate_size - margin;
+anchor_y = margin;
+
+pi_holes = [
+    [anchor_x - pi_hole_x, anchor_y              ],
+    [anchor_x,             anchor_y              ],
+    [anchor_x - pi_hole_x, anchor_y + pi_hole_y  ],
+    [anchor_x,             anchor_y + pi_hole_y  ]
+];
+
+// ---- Secondary board hole positions (top area) ----
+board2_anchor_y = plate_size - board2_from_top - board2_hole_y;
+
+board2_holes = [
+    [board2_from_left,               board2_anchor_y                 ],  // bottom-left
+    [board2_from_left + board2_hole_x, board2_anchor_y               ],  // bottom-right
+    [board2_from_left,               board2_anchor_y + board2_hole_y ],  // top-left
+    [board2_from_left + board2_hole_x, board2_anchor_y + board2_hole_y]  // top-right
+];
+
+// ---- All standoff positions combined ----
+all_holes = concat(pi_holes, board2_holes);
+
+difference() {
+    union() {
+        // Base plate
+        cube([plate_size, plate_size, plate_thick]);
+
+        // Standoffs for all boards
+        for (pos = all_holes)
+            translate([pos[0], pos[1], plate_thick])
+                cylinder(h = standoff_h, d = standoff_d, $fn = 32);
+
+        // Divider wall
+        translate([divider_x, 0, plate_thick])
+            cube([divider_thick, divider_length, divider_height]);
+    }
+
+    // Screw holes through plate and standoffs
+    for (pos = all_holes)
+        translate([pos[0], pos[1], plate_thick])
+            cylinder(h = plate_thick + standoff_h + 0.2, d = screw_d, $fn = 32);
+}

@@ -1,45 +1,90 @@
 // =============================================
-// Press-Fit Lid with Display Cutout
+// Press-Fit Lid with Display Holder + Button Hole
 // =============================================
 
-outer_size    = 130;
-inner_box     = 119.3;
-clearance     = 0.5;
-top_thick     = 3;
-lip_height    = 5;
-wall_thick    = 2.5;
+outer_size            = 130;
+inner_box             = 119.5;       // Updated
+clearance             = 0.5;
+top_thick             = 3;
+lip_height            = 5;
+wall_thick            = 2.5;
 
-// Display hole dimensions
-hole_w        = 27.1;
-hole_h        = 19.1;
-hole_from_top   = 20;
-hole_from_right = 20;
+// Display cutout (hole in plate)
+hole_w                = 27.1;
+hole_h                = 19.1;
+hole_from_top         = 20;
+hole_from_right       = 20;
 
-// Calculated
+// Display PCB dimensions
+display_w             = 26.7;
+display_h             = 27.6;
+display_screen_offset = 4;       // Screen starts 4mm from top of PCB
+display_wall          = 2;       // Holder wall thickness
+display_holder_depth  = 8;       // How deep the holder is
+display_clearance     = 0.3;     // PCB fit clearance
+
+// Button/knob hole
+button_d              = 12;
+button_from_display   = 38;      // To the left of display center
+button_from_top   = 38;
+
+// ---- Calculated ----
 lip_outer = inner_box - clearance;
 lip_inner = lip_outer - (2 * wall_thick);
 offset    = (outer_size - lip_outer) / 2;
 
-// Hole position (bottom-left corner of hole)
-hole_x = outer_size - hole_from_right - hole_w;   // 82.9 mm from left
-hole_y = outer_size - hole_from_top  - hole_h;    // 90.9 mm from bottom
+// Hole position (bottom-left of cutout)
+hole_x = outer_size - hole_from_right - hole_w;
+hole_y = outer_size - hole_from_top  - hole_h;
+
+// PCB position — top of PCB is screen_offset above top of hole
+pcb_x     = hole_x + (hole_w - display_w) / 2;
+pcb_top_y = hole_y + hole_h + display_screen_offset;
+pcb_y     = pcb_top_y - display_h;
+
+// Holder box bottom-left corner
+holder_x = pcb_x - display_wall;
+holder_y = pcb_y - display_wall;
+holder_w = display_w + display_clearance + 2 * display_wall;
+holder_h = display_h + display_clearance + 2 * display_wall;
+
+// Button hole — vertically centered on display, 38mm to the left
+button_x = pcb_x + display_w / 2 - button_from_display;
+button_y = pcb_y + display_h / 2 - button_from_top;
 
 difference() {
-
     union() {
-        // Top flat plate
+
+        // Top plate
         cube([outer_size, outer_size, top_thick]);
 
-        // Inner lip (hollow walls)
+        // Inner lip
         translate([offset, offset, -lip_height])
             difference() {
                 cube([lip_outer, lip_outer, lip_height]);
                 translate([wall_thick, wall_thick, 0])
                     cube([lip_inner, lip_inner, lip_height]);
             }
+
+        // Display holder (hollow box below plate)
+        translate([holder_x, holder_y, -display_holder_depth])
+            difference() {
+                cube([holder_w, holder_h, display_holder_depth]);
+                // Hollow inner cavity (open at bottom)
+                translate([display_wall, display_wall, -0.1])
+                    cube([
+                        display_w + display_clearance,
+                        display_h + display_clearance,
+                        display_holder_depth + 0.2
+                    ]);
+            }
     }
 
-    // Display cutout (goes through full top plate thickness)
+    // Display cutout through top plate
     translate([hole_x, hole_y, -0.1])
         cube([hole_w, hole_h, top_thick + 0.2]);
+
+    // Button hole through top plate
+    translate([button_x, button_y, -0.1])
+        cylinder(h = top_thick + 0.2, d = button_d, $fn = 64);
 }

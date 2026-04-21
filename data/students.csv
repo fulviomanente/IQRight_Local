@@ -1,0 +1,1983 @@
+FirstName,LastName,ChildName,DeviceID,ClassCode,HierarchyLevel1,HierarchyLevel2
+Fulvio,Manente,Alice Manente,P0000001,4,Fourth Grade,"Jester, Kristen"
+Yanira,Guillen,Analise Martinez,P0110171,1G,First Grade,Mrs. Olga Griffin
+David,Martinez,Analise Martinez,P120171,1G,First Grade,Mrs. Olga Griffin
+Herminia,Alcantara,Analise Martinez,P130171,1G,First Grade,Mrs. Olga Griffin
+Sara,Martinez,Analise Martinez,P140171,1G,First Grade,Mrs. Olga Griffin
+Jesus,Martinez,Analise Martinez,P150171,1G,First Grade,Mrs. Olga Griffin
+Maria,Blanco,Analise Martinez,P160171,1G,First Grade,Mrs. Olga Griffin
+Lisa-Maria,Isabella,Anastasia Isabella,P0210172,1H,First Grade,Miss Jadyn Heinle
+Lisa-Maria,Isabella,Aurelia Isabella,P0210172,1G,First Grade,Mrs. Olga Griffin
+Michael,Isabella,Anastasia Isabella,P0410171,1H,First Grade,Miss Jadyn Heinle
+Michael,Isabella,Aurelia Isabella,P0410171,1G,First Grade,Mrs. Olga Griffin
+Martina,Steiert,Anastasia Isabella,P230172,1H,First Grade,Miss Jadyn Heinle
+Martina,Steiert,Aurelia Isabella,P230172,1G,First Grade,Mrs. Olga Griffin
+Karl Peter,Steiert,Anastasia Isabella,P240172,1H,First Grade,Miss Jadyn Heinle
+Karl Peter,Steiert,Aurelia Isabella,P240172,1G,First Grade,Mrs. Olga Griffin
+Vincent,Isabella,Anastasia Isabella,P250172,1H,First Grade,Miss Jadyn Heinle
+Vincent,Isabella,Aurelia Isabella,P250172,1G,First Grade,Mrs. Olga Griffin
+Dawn,Isabella,Anastasia Isabella,P260172,1H,First Grade,Miss Jadyn Heinle
+Dawn,Isabella,Aurelia Isabella,P260172,1G,First Grade,Mrs. Olga Griffin
+Richard,Sheets,Annalee Sheets,P11810376,1G,First Grade,Mrs. Olga Griffin
+Richard,Sheets,Hayden Sheets,P11810376,3L,Third Grade,Mrs. Ginny Luffman
+Richard,Sheets,Hope Sheets,P11810376,3A,Third Grade,Mrs. Leigh Anne Aldama
+Jennifer,Sheets,Annalee Sheets,P12010365,1G,First Grade,Mrs. Olga Griffin
+Jennifer,Sheets,Hayden Sheets,P12010365,3L,Third Grade,Mrs. Ginny Luffman
+Jennifer,Sheets,Hope Sheets,P12010365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Lauren,Clarfelt,Avery Clarfelt,P00510172,1H,First Grade,Miss Jadyn Heinle
+Daniel,Clarfelt,Avery Clarfelt,P520172,1H,First Grade,Miss Jadyn Heinle
+Ann,Saunders,Avery Clarfelt,P530172,1H,First Grade,Miss Jadyn Heinle
+John,Saunders,Avery Clarfelt,P540172,1H,First Grade,Miss Jadyn Heinle
+David,Saunders,Avery Clarfelt,P550172,1H,First Grade,Miss Jadyn Heinle
+Sarah,Milholen,Avery Clarfelt,P560172,1H,First Grade,Miss Jadyn Heinle
+Larry,Clarfelt,Avery Clarfelt,P570172,1H,First Grade,Miss Jadyn Heinle
+Clarfelt,Margo,Avery Clarfelt,P580172,1H,First Grade,Miss Jadyn Heinle
+Ashley,Barrett,Beau Barrett,P610172,1H,First Grade,Miss Jadyn Heinle
+Ashley,Barrett,Oliver Barrett,P610172,3L,Third Grade,Mrs. Ginny Luffman
+Josh,Barrett,Beau Barrett,P13010376,1H,First Grade,Miss Jadyn Heinle
+Josh,Barrett,Oliver Barrett,P13010376,3L,Third Grade,Mrs. Ginny Luffman
+David,Grajeda,Beau Barrett,P630172,1H,First Grade,Miss Jadyn Heinle
+David,Grajeda,Oliver Barrett,P630172,3L,Third Grade,Mrs. Ginny Luffman
+Jacque,Grajeda,Beau Barrett,P640172,1H,First Grade,Miss Jadyn Heinle
+Jacque,Grajeda,Oliver Barrett,P640172,3L,Third Grade,Mrs. Ginny Luffman
+Mary,Barrett,Beau Barrett,P650172,1H,First Grade,Miss Jadyn Heinle
+Mary,Barrett,Oliver Barrett,P650172,3L,Third Grade,Mrs. Ginny Luffman
+Tony,Grajeda,Beau Barrett,P660172,1H,First Grade,Miss Jadyn Heinle
+Tony,Grajeda,Oliver Barrett,P660172,3L,Third Grade,Mrs. Ginny Luffman
+Raymond,Barrett,Beau Barrett,P670172,1H,First Grade,Miss Jadyn Heinle
+Raymond,Barrett,Oliver Barrett,P670172,3L,Third Grade,Mrs. Ginny Luffman
+Bruna,Fernandes,Benjamin Oliveira,P0710172,1H,First Grade,Miss Jadyn Heinle
+Joao,Oliveira,Benjamin Oliveira,P720172,1H,First Grade,Miss Jadyn Heinle
+Lucirene,Pinto,Benjamin Oliveira,P730172,1H,First Grade,Miss Jadyn Heinle
+Ricardo,Pinto,Benjamin Oliveira,P740172,1H,First Grade,Miss Jadyn Heinle
+Hannah,Thayer,Blair Thayer,P0810172,1H,First Grade,Miss Jadyn Heinle
+Hannah,Thayer,Blaize Thayer,P0810172,3A,Third Grade,Mrs. Leigh Anne Aldama
+Brandon,Thayer,Blair Thayer,P10310365,1H,First Grade,Miss Jadyn Heinle
+Brandon,Thayer,Blaize Thayer,P10310365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Rocky,Thayer,Blair Thayer,P830172,1H,First Grade,Miss Jadyn Heinle
+Rocky,Thayer,Blaize Thayer,P830172,3A,Third Grade,Mrs. Leigh Anne Aldama
+Myra,Thayer,Blair Thayer,P840172,1H,First Grade,Miss Jadyn Heinle
+Myra,Thayer,Blaize Thayer,P840172,3A,Third Grade,Mrs. Leigh Anne Aldama
+Mikel,Williams,Claire Williams,P910171,1G,First Grade,Mrs. Olga Griffin
+Nicole,Williams,Claire Williams,P920171,1G,First Grade,Mrs. Olga Griffin
+Barb,Woelfel,Claire Williams,P930171,1G,First Grade,Mrs. Olga Griffin
+Ed,Woelfel,Claire Williams,P940171,1G,First Grade,Mrs. Olga Griffin
+Matthew,Kopp,Daniel Kopp,P1010171,1G,First Grade,Mrs. Olga Griffin
+Matthew,Kopp,Clara Kopp,P1010171,4P,Fourth Grade,Miss Litzi Perea
+Matthew,Kopp,William Kopp,P1010171,6H,Sixth Grade,Mrs. Kaley Hefley
+Matthew,Kopp,Joseph Kopp,P1010171,8G,Eighth Grade,Mrs. Marisean Grom
+Kelly,Kopp,Daniel Kopp,P1020171,1G,First Grade,Mrs. Olga Griffin
+Kelly,Kopp,Clara Kopp,P1020171,4P,Fourth Grade,Miss Litzi Perea
+Kelly,Kopp,William Kopp,P1020171,6H,Sixth Grade,Mrs. Kaley Hefley
+Kelly,Kopp,Joseph Kopp,P1020171,8G,Eighth Grade,Mrs. Marisean Grom
+Jill,Schweiger,Daniel Kopp,P1030171,1G,First Grade,Mrs. Olga Griffin
+Jill,Schweiger,Clara Kopp,P1030171,4P,Fourth Grade,Miss Litzi Perea
+Jill,Schweiger,William Kopp,P1030171,6H,Sixth Grade,Mrs. Kaley Hefley
+Jill,Schweiger,Joseph Kopp,P1030171,8G,Eighth Grade,Mrs. Marisean Grom
+Chuck,Schweiger,Daniel Kopp,P1040171,1G,First Grade,Mrs. Olga Griffin
+Chuck,Schweiger,Clara Kopp,P1040171,4P,Fourth Grade,Miss Litzi Perea
+Chuck,Schweiger,William Kopp,P1040171,6H,Sixth Grade,Mrs. Kaley Hefley
+Chuck,Schweiger,Joseph Kopp,P1040171,8G,Eighth Grade,Mrs. Marisean Grom
+Virginia,Kopp,Daniel Kopp,P1050171,1G,First Grade,Mrs. Olga Griffin
+Virginia,Kopp,William Kopp,P1050171,6H,Sixth Grade,Mrs. Kaley Hefley
+Virginia,Kopp,Joseph Kopp,P1050171,8G,Eighth Grade,Mrs. Marisean Grom
+Itzy,Castorena,David Galvan,P1110171,1G,First Grade,Mrs. Olga Griffin
+Javier,Galvan,David Galvan,P1120171,1G,First Grade,Mrs. Olga Griffin
+Alma,Hernandez,David Galvan,P1130171,1G,First Grade,Mrs. Olga Griffin
+Erick,Castorena,David Galvan,P1140171,1G,First Grade,Mrs. Olga Griffin
+Kevin,Kramper,Denali Kramper,P1210171,1G,First Grade,Mrs. Olga Griffin
+Kevin,Kramper,Eden Kramper,P1210171,3L,Third Grade,Mrs. Ginny Luffman
+Kevin,Kramper,Halo Kramper,P1210171,5S,Fifth Grade,Mrs. Amanda Stephens
+Diana,Kramper,Denali Kramper,P1220171,1G,First Grade,Mrs. Olga Griffin
+Diana,Kramper,Eden Kramper,P1220171,3L,Third Grade,Mrs. Ginny Luffman
+Diana,Kramper,Halo Kramper,P1220171,5S,Fifth Grade,Mrs. Amanda Stephens
+Myra,Smith,Denali Kramper,P1230171,1G,First Grade,Mrs. Olga Griffin
+Myra,Smith,Eden Kramper,P1230171,3L,Third Grade,Mrs. Ginny Luffman
+Myra,Smith,Halo Kramper,P1230171,5S,Fifth Grade,Mrs. Amanda Stephens
+Linda,Matula,Denali Kramper,P1240171,1G,First Grade,Mrs. Olga Griffin
+Linda,Matula,Eden Kramper,P1240171,3L,Third Grade,Mrs. Ginny Luffman
+Linda,Matula,Halo Kramper,P1240171,5S,Fifth Grade,Mrs. Amanda Stephens
+Samuel,Schaefer,Denver Schaefer,P1310172,1H,First Grade,Miss Jadyn Heinle
+Paige,Fenner,Denver Schaefer,P1320172,1H,First Grade,Miss Jadyn Heinle
+Alesia,Schaefer,Denver Schaefer,P1330172,1H,First Grade,Miss Jadyn Heinle
+Jamie,Boyd,Denver Schaefer,P1340172,1H,First Grade,Miss Jadyn Heinle
+Bailey,Farrell,Dylan Farrell,P1410172,1H,First Grade,Miss Jadyn Heinle
+Bailey,Farrell,Ellie Farrell,P1410172,7P,Seventh Grade,Mrs. Carla Pardetti
+Luke,Farrell,Dylan Farrell,P1420172,1H,First Grade,Miss Jadyn Heinle
+Luke,Farrell,Ellie Farrell,P1420172,7P,Seventh Grade,Mrs. Carla Pardetti
+Denise,Cottrill,Dylan Farrell,P1430172,1H,First Grade,Miss Jadyn Heinle
+Denise,Cottrill,Ellie Farrell,P1430172,7P,Seventh Grade,Mrs. Carla Pardetti
+Eric,Cottril,Dylan Farrell,P1440172,1H,First Grade,Miss Jadyn Heinle
+Eric,Cottril,Ellie Farrell,P1440172,7P,Seventh Grade,Mrs. Carla Pardetti
+Edmund,Farrell,Dylan Farrell,P1450172,1H,First Grade,Miss Jadyn Heinle
+Edmund,Farrell,Ellie Farrell,P1450172,7P,Seventh Grade,Mrs. Carla Pardetti
+Barbara,Farrell,Dylan Farrell,P1460172,1H,First Grade,Miss Jadyn Heinle
+Barbara,Farrell,Ellie Farrell,P1460172,7P,Seventh Grade,Mrs. Carla Pardetti
+Isaac,Wuehler,Eden Wuehler,P1510171,1G,First Grade,Mrs. Olga Griffin
+Mercedes,Wuehler,Eden Wuehler,P1520171,1G,First Grade,Mrs. Olga Griffin
+Maria Rodriguez,Pacheco,Emma Padilla Rodriguez,P1610171,1G,First Grade,Mrs. Olga Griffin
+Victor Padilla,Guerra,Emma Padilla Rodriguez,P1620171,1G,First Grade,Mrs. Olga Griffin
+Laura Pacheco,Otamendi,Emma Padilla Rodriguez,P1630171,1G,First Grade,Mrs. Olga Griffin
+Michael,Gaffigan,Evelyn Gaffigan,P1710171,1G,First Grade,Mrs. Olga Griffin
+Marqette,Gaffigan,Evelyn Gaffigan,P1720171,1G,First Grade,Mrs. Olga Griffin
+Theresa,Gaffigan,Evelyn Gaffigan,P1730171,1G,First Grade,Mrs. Olga Griffin
+Jim,Gaffigan,Evelyn Gaffigan,P1740171,1G,First Grade,Mrs. Olga Griffin
+Aaron,Gaffigan,Evelyn Gaffigan,P1750171,1G,First Grade,Mrs. Olga Griffin
+Anderson,Mark,Evelyn Gaffigan,P1760171,1G,First Grade,Mrs. Olga Griffin
+Rebecca,Gaffigan,Evelyn Gaffigan,P1770171,1G,First Grade,Mrs. Olga Griffin
+Jonathan,Murphy,Fiona Murphy,P1810171,1G,First Grade,Mrs. Olga Griffin
+Kaitlyn,Murphy,Fiona Murphy,P1820171,1G,First Grade,Mrs. Olga Griffin
+Cristina,Lyssy,Francesca Lyssy,P1910172,1H,First Grade,Miss Jadyn Heinle
+Jacob,Lyssy,Francesca Lyssy,P1920172,1H,First Grade,Miss Jadyn Heinle
+Terry,Lyssy,Francesca Lyssy,P1930172,1H,First Grade,Miss Jadyn Heinle
+Mary,Sansone,Francesca Lyssy,P1940172,1H,First Grade,Miss Jadyn Heinle
+Gabe,Lyssy,Francesca Lyssy,P1950172,1H,First Grade,Miss Jadyn Heinle
+Sheba,Jackson,Francesca Lyssy,P1960172,1H,First Grade,Miss Jadyn Heinle
+Claire,Robb,Francesca Lyssy,P1970172,1H,First Grade,Miss Jadyn Heinle
+Shannon,Chrin,Gavin Chrin,P2010172,1H,First Grade,Miss Jadyn Heinle
+Shannon,Chrin,Aubrey Chrin,P2010172,4C,Fourth Grade,Mrs. Roberta Casey
+Brian,Chrin,Gavin Chrin,P2020172,1H,First Grade,Miss Jadyn Heinle
+Brian,Chrin,Aubrey Chrin,P2020172,4C,Fourth Grade,Mrs. Roberta Casey
+Donna,Chrin,Gavin Chrin,P2030172,1H,First Grade,Miss Jadyn Heinle
+Donna,Chrin,Aubrey Chrin,P2030172,4C,Fourth Grade,Mrs. Roberta Casey
+Emily,Imhof,Gavin Chrin,P2040172,1H,First Grade,Miss Jadyn Heinle
+Emily,Imhof,Aubrey Chrin,P2040172,4C,Fourth Grade,Mrs. Roberta Casey
+Ben,Chrin,Gavin Chrin,P2050172,1H,First Grade,Miss Jadyn Heinle
+Ben,Chrin,Aubrey Chrin,P2050172,4C,Fourth Grade,Mrs. Roberta Casey
+Susan,PIttsley,Gavin Chrin,P2060172,1H,First Grade,Miss Jadyn Heinle
+Susan,PIttsley,Aubrey Chrin,P2060172,4C,Fourth Grade,Mrs. Roberta Casey
+Daren,Pittsley,Gavin Chrin,P2070172,1H,First Grade,Miss Jadyn Heinle
+Daren,Pittsley,Aubrey Chrin,P2070172,4C,Fourth Grade,Mrs. Roberta Casey
+Jennifer,Teague,Genevieve Teague,P2110171,1G,First Grade,Mrs. Olga Griffin
+Jennifer,Teague,Sofia Teague,P2110171,7P,Seventh Grade,Mrs. Carla Pardetti
+Chris,Teague,Genevieve Teague,P2120171,1G,First Grade,Mrs. Olga Griffin
+Chris,Teague,Sofia Teague,P2120171,7P,Seventh Grade,Mrs. Carla Pardetti
+Lynne,Siedsma,Genevieve Teague,P2130171,1G,First Grade,Mrs. Olga Griffin
+Lynne,Siedsma,Sofia Teague,P2130171,7P,Seventh Grade,Mrs. Carla Pardetti
+Paul,Siedsma,Genevieve Teague,P2140171,1G,First Grade,Mrs. Olga Griffin
+Paul,Siedsma,Sofia Teague,P2140171,7P,Seventh Grade,Mrs. Carla Pardetti
+Sarah,Barley,Grayson Barley,P2210172,1H,First Grade,Miss Jadyn Heinle
+Sarah,Barley,Ivy Barley,P2210172,2R,Second Grade,Mrs. Katy Ramos
+Michael,Barley,Grayson Barley,P7610282,1H,First Grade,Miss Jadyn Heinle
+Michael,Barley,Ivy Barley,P7610282,2R,Second Grade,Mrs. Katy Ramos
+John,Donahue,Grayson Barley,P2230172,1H,First Grade,Miss Jadyn Heinle
+John,Donahue,Ivy Barley,P2230172,2R,Second Grade,Mrs. Katy Ramos
+Rebecca,Donahue,Grayson Barley,P2240172,1H,First Grade,Miss Jadyn Heinle
+Rebecca,Donahue,Ivy Barley,P2240172,2R,Second Grade,Mrs. Katy Ramos
+Tammy,White,Grayson Barley,P2250172,1H,First Grade,Miss Jadyn Heinle
+Tammy,White,Ivy Barley,P2250172,2R,Second Grade,Mrs. Katy Ramos
+William (Ashley),White,Grayson Barley,P2260172,1H,First Grade,Miss Jadyn Heinle
+Laura,Koll,Hugh Koll,P2310171,1G,First Grade,Mrs. Olga Griffin
+Laura,Koll,Vincent Koll,P2310171,3L,Third Grade,Mrs. Ginny Luffman
+Laura,Koll,Fiona Koll,P2310171,5S,Fifth Grade,Mrs. Amanda Stephens
+Laura,Koll,Oscar Koll,P2310171,6G,Sixth Grade,Mrs. Karla Gollhofer
+Matthew,Koll,Hugh Koll,P2320171,1G,First Grade,Mrs. Olga Griffin
+Matthew,Koll,Vincent Koll,P2320171,3L,Third Grade,Mrs. Ginny Luffman
+Matthew,Koll,Fiona Koll,P2320171,5S,Fifth Grade,Mrs. Amanda Stephens
+Matthew,Koll,Oscar Koll,P2320171,6G,Sixth Grade,Mrs. Karla Gollhofer
+Anita,Schenkelberg,Hugh Koll,P2330171,1G,First Grade,Mrs. Olga Griffin
+Anita,Schenkelberg,Oscar Koll,P2330171,6G,Sixth Grade,Mrs. Karla Gollhofer
+John,Schenkelberg,Hugh Koll,P2340171,1G,First Grade,Mrs. Olga Griffin
+John,Schenkelberg,Oscar Koll,P2340171,6G,Sixth Grade,Mrs. Karla Gollhofer
+Tripp,Hollowell,Hughes Hollowell,P2410171,1G,First Grade,Mrs. Olga Griffin
+Tripp,Hollowell,Davis Hollowell,P2410171,3L,Third Grade,Mrs. Ginny Luffman
+Katie,Hollowell,Hughes Hollowell,P2420171,1G,First Grade,Mrs. Olga Griffin
+Beth,Collins,Hughes Hollowell,P2430171,1G,First Grade,Mrs. Olga Griffin
+Ellis,Collins,Hughes Hollowell,P2440171,1G,First Grade,Mrs. Olga Griffin
+Mary Ann,Hargraves,Hughes Hollowell,P2450171,1G,First Grade,Mrs. Olga Griffin
+Jay,Hollowell,Hughes Hollowell,P2460171,1G,First Grade,Mrs. Olga Griffin
+Jose,Mora,Isabel Mora,P2510172,1H,First Grade,Miss Jadyn Heinle
+Jose,Mora,Arlyn Mora,P2510172,8G,Eighth Grade,Mrs. Marisean Grom
+Maria,Mora,Isabel Mora,P2520172,1H,First Grade,Miss Jadyn Heinle
+Maria,Mora,Arlyn Mora,P2520172,8G,Eighth Grade,Mrs. Marisean Grom
+Martina,Sandoval,Isabel Mora,P2530172,1H,First Grade,Miss Jadyn Heinle
+Martina,Sandoval,Arlyn Mora,P2530172,8G,Eighth Grade,Mrs. Marisean Grom
+Silverio Sandoval,Sanchez,Isabel Mora,P2540172,1H,First Grade,Miss Jadyn Heinle
+Silverio Sandoval,Sanchez,Arlyn Mora,P2540172,8G,Eighth Grade,Mrs. Marisean Grom
+Gabriela,Mora,Isabel Mora,P2550172,1H,First Grade,Miss Jadyn Heinle
+Gabriela,Mora,Arlyn Mora,P2550172,8G,Eighth Grade,Mrs. Marisean Grom
+Hernan,Mora,Isabel Mora,P2560172,1H,First Grade,Miss Jadyn Heinle
+Hernan,Mora,Arlyn Mora,P2560172,8G,Eighth Grade,Mrs. Marisean Grom
+Froylan Mora,Sr.,Isabel Mora,P2570172,1H,First Grade,Miss Jadyn Heinle
+Froylan Mora,Sr.,Arlyn Mora,P2570172,8G,Eighth Grade,Mrs. Marisean Grom
+Adela,Ramirez,Isabel Mora,P2580172,1H,First Grade,Miss Jadyn Heinle
+Adela,Ramirez,Arlyn Mora,P2580172,8G,Eighth Grade,Mrs. Marisean Grom
+Maria Ana Soto De,Mora,Isabel Mora,P2590172,1H,First Grade,Miss Jadyn Heinle
+Maria Ana Soto De,Mora,Arlyn Mora,P2590172,8G,Eighth Grade,Mrs. Marisean Grom
+Ana,Bohr,Isabella Samayoa,P2610172,1H,First Grade,Miss Jadyn Heinle
+Francisco,Samayoa,Isabella Samayoa,P2620172,1H,First Grade,Miss Jadyn Heinle
+Carolina,Barbery,Isabella Samayoa,P2630172,1H,First Grade,Miss Jadyn Heinle
+Jazmin,Gonzalez,Isabella Samayoa,P2650172,1H,First Grade,Miss Jadyn Heinle
+Ana,Garcia,Isabella Samayoa,P2660172,1H,First Grade,Miss Jadyn Heinle
+J.R.,Wildman,Isabella Wildman,P2710171,1G,First Grade,Mrs. Olga Griffin
+J.R.,Wildman,Tomas Wildman,P2710171,6H,Sixth Grade,Mrs. Kaley Hefley
+Lucia,Llobet,Isabella Wildman,P2720171,1G,First Grade,Mrs. Olga Griffin
+Lucia,Llobet,Tomas Wildman,P2720171,6H,Sixth Grade,Mrs. Kaley Hefley
+Kalisa,Newton,Jace Newton,P2810171,1G,First Grade,Mrs. Olga Griffin
+Kalisa,Newton,Ezri Newton,P2810171,5S,Fifth Grade,Mrs. Amanda Stephens
+Byron,Newton,Jace Newton,P20310583,1G,First Grade,Mrs. Olga Griffin
+Byron,Newton,Ezri Newton,P20310583,5S,Fifth Grade,Mrs. Amanda Stephens
+Susan,Erny,Jace Newton,P2830171,1G,First Grade,Mrs. Olga Griffin
+Susan,Erny,Ezri Newton,P2830171,5S,Fifth Grade,Mrs. Amanda Stephens
+Christy,Earp,Jace Newton,P2840171,1G,First Grade,Mrs. Olga Griffin
+Christy,Earp,Ezri Newton,P2840171,5S,Fifth Grade,Mrs. Amanda Stephens
+Lori,Rhoads,Jace Newton,P2850171,1G,First Grade,Mrs. Olga Griffin
+Lori,Rhoads,Ezri Newton,P2850171,5S,Fifth Grade,Mrs. Amanda Stephens
+George,Erny,Jace Newton,P2860171,1G,First Grade,Mrs. Olga Griffin
+George,Erny,Ezri Newton,P2860171,5S,Fifth Grade,Mrs. Amanda Stephens
+Adriana,Rodriguez,Michael Rodriguez,P2870171,5W,Fifth Grade,Miss Grace Webb
+Rebecca,Leis,Genevieve Leis,P2880171,3L,Third Grade,Mrs. Ginny Luffman
+Rebecca,Leis,Eli Leis,P2880171,4C,Fourth Grade,Mrs. Roberta Casey
+Rebecca,Leis,Charlotte Leis,P2880171,8B,Eighth Grade,Miss Emily Boutin
+Rebecca,Leis,Elizabeth Leis,P2880171,KN,Kindergarten,Miss Julia Necessary
+Jennifer,Kaley,Benjamin Kaley,P19510583,3A,Third Grade,Mrs. Leigh Anne Aldama
+Jennifer,Kaley,Cora Kaley,P19510583,5S,Fifth Grade,Mrs. Amanda Stephens
+Stephanie,Brutus,Jasmine Brutus,P2910172,1H,First Grade,Miss Jadyn Heinle
+Stephanie,Brutus,Arielle Brutus,P2910172,2B,Second Grade,Mrs. Jamie Bell
+Patrick,Brutus,Jasmine Brutus,P2920172,1H,First Grade,Miss Jadyn Heinle
+Patrick,Brutus,Arielle Brutus,P2920172,2B,Second Grade,Mrs. Jamie Bell
+Briana,Sosa,Jasmine Brutus,P2930172,1H,First Grade,Miss Jadyn Heinle
+Briana,Sosa,Arielle Brutus,P2930172,2B,Second Grade,Mrs. Jamie Bell
+Amanda,Ervin,Jasmine Brutus,P2940172,1H,First Grade,Miss Jadyn Heinle
+Amanda,Ervin,Arielle Brutus,P2940172,2B,Second Grade,Mrs. Jamie Bell
+John,Brutus,Jasmine Brutus,P2950172,1H,First Grade,Miss Jadyn Heinle
+John,Brutus,Arielle Brutus,P2950172,2B,Second Grade,Mrs. Jamie Bell
+Betty,Brutus,Jasmine Brutus,P2960172,1H,First Grade,Miss Jadyn Heinle
+Betty,Brutus,Arielle Brutus,P2960172,2B,Second Grade,Mrs. Jamie Bell
+Marilyn & Brandon,Doggett,Jasmine Brutus,P2970172,1H,First Grade,Miss Jadyn Heinle
+Marilyn & Brandon,Doggett,Arielle Brutus,P2970172,2B,Second Grade,Mrs. Jamie Bell
+Brandon,Doggett,Jasmine Brutus,P2980172,1H,First Grade,Miss Jadyn Heinle
+Jordan,Jones,Laney Jones,P3010172,1H,First Grade,Miss Jadyn Heinle
+Leigh,Jones,Laney Jones,P3020172,1H,First Grade,Miss Jadyn Heinle
+Tom (Jr),Spaniol,Laney Jones,P3030172,1H,First Grade,Miss Jadyn Heinle
+Tom (Jr),Spaniol,Tenley Spaniol,P3030172,3L,Third Grade,Mrs. Ginny Luffman
+Tom (Jr),Spaniol,Thomas Spaniol,P3030172,5S,Fifth Grade,Mrs. Amanda Stephens
+Kelly,Spaniol,Laney Jones,P3040172,1H,First Grade,Miss Jadyn Heinle
+Kelly,Spaniol,Tenley Spaniol,P3040172,3L,Third Grade,Mrs. Ginny Luffman
+Kelly,Spaniol,Thomas Spaniol,P3040172,5S,Fifth Grade,Mrs. Amanda Stephens
+Becky,Jones,Laney Jones,P3050172,1H,First Grade,Miss Jadyn Heinle
+Ricky,Jones,Laney Jones,P3060172,1H,First Grade,Miss Jadyn Heinle
+Tori,Figueroa,Logan Figueroa,P3110171,1G,First Grade,Mrs. Olga Griffin
+Marcos,Figueroa,Logan Figueroa,P3120171,1G,First Grade,Mrs. Olga Griffin
+Jim,Lafferty,Logan Figueroa,P3130171,1G,First Grade,Mrs. Olga Griffin
+Kelsie,Paddon,Logan Figueroa,P3140171,1G,First Grade,Mrs. Olga Griffin
+Kristina Kilgore,Mullen,Lucas Mullen,P3210172,1H,First Grade,Miss Jadyn Heinle
+Kristina Kilgore,Mullen,Clara Mullen,P3210172,3L,Third Grade,Mrs. Ginny Luffman
+Kristina Kilgore,Mullen,Evelyn Mullen,P3210172,5W,Fifth Grade,Miss Grace Webb
+Zac,Mullen,Lucas Mullen,P3220172,1H,First Grade,Miss Jadyn Heinle
+Zac,Mullen,Clara Mullen,P3220172,3L,Third Grade,Mrs. Ginny Luffman
+Zac,Mullen,Evelyn Mullen,P3220172,5W,Fifth Grade,Miss Grace Webb
+Marylou,Kilgore,Lucas Mullen,P3230172,1H,First Grade,Miss Jadyn Heinle
+Marylou,Kilgore,Clara Mullen,P3230172,3L,Third Grade,Mrs. Ginny Luffman
+Marylou,Kilgore,Evelyn Mullen,P3230172,5W,Fifth Grade,Miss Grace Webb
+Allen,Kilgore,Lucas Mullen,P3240172,1H,First Grade,Miss Jadyn Heinle
+Allen,Kilgore,Clara Mullen,P3240172,3L,Third Grade,Mrs. Ginny Luffman
+Allen,Kilgore,Evelyn Mullen,P3240172,5W,Fifth Grade,Miss Grace Webb
+Andrew,Dennis,Lucy Dennis,P3310171,1G,First Grade,Mrs. Olga Griffin
+Andrew,Dennis,Mary Dennis,P3310171,4P,Fourth Grade,Miss Litzi Perea
+Andrew,Dennis,Joseph Dennis,P3310171,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Madelynn,Dennis,Lucy Dennis,P3320171,1G,First Grade,Mrs. Olga Griffin
+Madelynn,Dennis,Mary Dennis,P3320171,4P,Fourth Grade,Miss Litzi Perea
+Madelynn,Dennis,Joseph Dennis,P3320171,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Christen,DeRito,Lucy DeRito,P3410172,1H,First Grade,Miss Jadyn Heinle
+Christen,DeRito,Thomas DeRito,P3410172,3L,Third Grade,Mrs. Ginny Luffman
+Christen,DeRito,Matthew DeRito,P3410172,5S,Fifth Grade,Mrs. Amanda Stephens
+Andrew,DeRito,Lucy DeRito,P3420172,1H,First Grade,Miss Jadyn Heinle
+Andrew,DeRito,Thomas DeRito,P3420172,3L,Third Grade,Mrs. Ginny Luffman
+Andrew,DeRito,Matthew DeRito,P3420172,5S,Fifth Grade,Mrs. Amanda Stephens
+Andrew,DeRito,Matthew DeRito,P3420172,5S,Fifth Grade,Mrs. Amanda Stephens
+Suzanne,Rossowski,Lucy DeRito,P3430172,1H,First Grade,Miss Jadyn Heinle
+Suzanne,Rossowski,Thomas DeRito,P3430172,3L,Third Grade,Mrs. Ginny Luffman
+Suzanne,Rossowski,Matthew DeRito,P3430172,5S,Fifth Grade,Mrs. Amanda Stephens
+Joseph,Rossowski,Lucy DeRito,P3440172,1H,First Grade,Miss Jadyn Heinle
+Joseph,Rossowski,Thomas DeRito,P3440172,3L,Third Grade,Mrs. Ginny Luffman
+Joseph,Rossowski,Matthew DeRito,P3440172,5S,Fifth Grade,Mrs. Amanda Stephens
+Jim,DeRito,Lucy DeRito,P3450172,1H,First Grade,Miss Jadyn Heinle
+Jim,DeRito,Thomas DeRito,P3450172,3L,Third Grade,Mrs. Ginny Luffman
+Jim,DeRito,Matthew DeRito,P3450172,5S,Fifth Grade,Mrs. Amanda Stephens
+Paulette,DeRito,Lucy DeRito,P3460172,1H,First Grade,Miss Jadyn Heinle
+Paulette,DeRito,Thomas DeRito,P3460172,3L,Third Grade,Mrs. Ginny Luffman
+Paulette,DeRito,Matthew DeRito,P3460172,5S,Fifth Grade,Mrs. Amanda Stephens
+Emily,Wagner,Lucy Wagner,P3510172,1H,First Grade,Miss Jadyn Heinle
+Emily,Wagner,Caroline Wagner,P3510172,4P,Fourth Grade,Miss Litzi Perea
+Emily,Wagner,Theodore Wagner,P3510172,5S,Fifth Grade,Mrs. Amanda Stephens
+Brian,Wagner,Lucy Wagner,P3520172,1H,First Grade,Miss Jadyn Heinle
+Brian,Wagner,Caroline Wagner,P3520172,4P,Fourth Grade,Miss Litzi Perea
+Brian,Wagner,Theodore Wagner,P3520172,5S,Fifth Grade,Mrs. Amanda Stephens
+Jane,Harmon,Lucy Wagner,P3530172,1H,First Grade,Miss Jadyn Heinle
+Jane,Harmon,Caroline Wagner,P3530172,4P,Fourth Grade,Miss Litzi Perea
+Jane,Harmon,Theodore Wagner,P3530172,5S,Fifth Grade,Mrs. Amanda Stephens
+Matthew,Harmon,Lucy Wagner,P3540172,1H,First Grade,Miss Jadyn Heinle
+Matthew,Harmon,Caroline Wagner,P3540172,4P,Fourth Grade,Miss Litzi Perea
+Matthew,Harmon,Theodore Wagner,P3540172,5S,Fifth Grade,Mrs. Amanda Stephens
+Bridgette,Weisenbach,Mary Weisenbach,P3610171,1G,First Grade,Mrs. Olga Griffin
+Bridgette,Weisenbach,Garron Weisenbach,P3610171,3L,Third Grade,Mrs. Ginny Luffman
+Ryan,Weisenbach,Mary Weisenbach,P11510376,1G,First Grade,Mrs. Olga Griffin
+Ryan,Weisenbach,Garron Weisenbach,P11510376,3L,Third Grade,Mrs. Ginny Luffman
+Patti,Brunner,Mary Weisenbach,P3630171,1G,First Grade,Mrs. Olga Griffin
+Patti,Brunner,Garron Weisenbach,P3630171,3L,Third Grade,Mrs. Ginny Luffman
+Rick,Brunner,Mary Weisenbach,P3640171,1G,First Grade,Mrs. Olga Griffin
+Rick,Brunner,Garron Weisenbach,P3640171,3L,Third Grade,Mrs. Ginny Luffman
+Robert,Merrick,Michael Merrick,P3710171,1G,First Grade,Mrs. Olga Griffin
+Robert,Merrick,Charlotte Merrick,P3710171,5W,Fifth Grade,Miss Grace Webb
+Tina,Merrick,Michael Merrick,P3720171,1G,First Grade,Mrs. Olga Griffin
+Tina,Merrick,Charlotte Merrick,P3720171,5W,Fifth Grade,Miss Grace Webb
+Ashley,Hoyt,Nathan Hoyt,P3810172,1H,First Grade,Miss Jadyn Heinle
+Ashley,Hoyt,Emily Hoyt,P3810172,4C,Fourth Grade,Mrs. Roberta Casey
+Clay,Hoyt,Nathan Hoyt,P3820172,1H,First Grade,Miss Jadyn Heinle
+Clay,Hoyt,Emily Hoyt,P3820172,4C,Fourth Grade,Mrs. Roberta Casey
+Hillary,Hoyt,Nathan Hoyt,P3840172,1H,First Grade,Miss Jadyn Heinle
+Hillary,Hoyt,Emily Hoyt,P3840172,4C,Fourth Grade,Mrs. Roberta Casey
+Rebecca,Moix,Olivia Moix,P3910172,1H,First Grade,Miss Jadyn Heinle
+Rebecca,Moix,Sydney Moix,P3910172,KN,Kindergarten,Miss Julia Necessary
+Kyle,Moix,Olivia Moix,P3920172,1H,First Grade,Miss Jadyn Heinle
+Kyle,Moix,Sydney Moix,P3920172,KN,Kindergarten,Miss Julia Necessary
+Nita,Moix,Olivia Moix,P3930172,1H,First Grade,Miss Jadyn Heinle
+Nita,Moix,Sydney Moix,P3930172,KN,Kindergarten,Miss Julia Necessary
+Cherie,Moye,Olivia Moix,P3940172,1H,First Grade,Miss Jadyn Heinle
+Cherie,Moye,Sydney Moix,P3940172,KN,Kindergarten,Miss Julia Necessary
+Ed,Moix,Olivia Moix,P3950172,1H,First Grade,Miss Jadyn Heinle
+Ed,Moix,Sydney Moix,P3950172,KN,Kindergarten,Miss Julia Necessary
+Jerry,Moye,Olivia Moix,P3960172,1H,First Grade,Miss Jadyn Heinle
+Jerry,Moye,Sydney Moix,P3960172,KN,Kindergarten,Miss Julia Necessary
+Cassandra,Satterfield,Olivia Moix,P3970172,1H,First Grade,Miss Jadyn Heinle
+Cassandra,Satterfield,Sydney Moix,P3970172,KN,Kindergarten,Miss Julia Necessary
+Yesenia,Martinez,Orlando Aguillon,P4010172,1H,First Grade,Miss Jadyn Heinle
+Jorge,Martinez,Orlando Aguillon,P4030172,1H,First Grade,Miss Jadyn Heinle
+Gladis,Martinez,Orlando Aguillon,P4040172,1H,First Grade,Miss Jadyn Heinle
+Maria,Martinez,Orlando Aguillon,P4050172,1H,First Grade,Miss Jadyn Heinle
+Esmeralda,Aguillon,Orlando Aguillon,P4060172,1H,First Grade,Miss Jadyn Heinle
+Madison,Hewitt,Paislee Hewitt,P4110172,1H,First Grade,Miss Jadyn Heinle
+Jennifer,Hewitt,Paislee Hewitt,P4120172,1H,First Grade,Miss Jadyn Heinle
+Kevin,Hewitt,Paislee Hewitt,P4130172,1H,First Grade,Miss Jadyn Heinle
+Brittany,Ransom,Paul Ransom,P4210171,1G,First Grade,Mrs. Olga Griffin
+Brittany,Ransom,Wesley Ransom,P4210171,3A,Third Grade,Mrs. Leigh Anne Aldama
+Brittany,Ransom,Morris Ransom,P4210171,5W,Fifth Grade,Miss Grace Webb
+Susan,Robertson,Paul Ransom,P4220171,1G,First Grade,Mrs. Olga Griffin
+Susan,Robertson,Wesley Ransom,P4220171,3A,Third Grade,Mrs. Leigh Anne Aldama
+Susan,Robertson,Morris Ransom,P4220171,5W,Fifth Grade,Miss Grace Webb
+Russell,Robertson,Paul Ransom,P4230171,1G,First Grade,Mrs. Olga Griffin
+Russell,Robertson,Wesley Ransom,P4230171,3A,Third Grade,Mrs. Leigh Anne Aldama
+Russell,Robertson,Morris Ransom,P4230171,5W,Fifth Grade,Miss Grace Webb
+Eunice,Robertson,Paul Ransom,P4240171,1G,First Grade,Mrs. Olga Griffin
+Eunice,Robertson,Wesley Ransom,P4240171,3A,Third Grade,Mrs. Leigh Anne Aldama
+Eunice,Robertson,Morris Ransom,P4240171,5W,Fifth Grade,Miss Grace Webb
+Donald,Robertson,Paul Ransom,P4250171,1G,First Grade,Mrs. Olga Griffin
+Donald,Robertson,Wesley Ransom,P4250171,3A,Third Grade,Mrs. Leigh Anne Aldama
+Donald,Robertson,Morris Ransom,P4250171,5W,Fifth Grade,Miss Grace Webb
+Casey,Ransom,Paul Ransom,P4260171,1G,First Grade,Mrs. Olga Griffin
+Casey,Ransom,Wesley Ransom,P4260171,3A,Third Grade,Mrs. Leigh Anne Aldama
+Casey,Ransom,Morris Ransom,P4260171,5W,Fifth Grade,Miss Grace Webb
+Craig,Cockrell,Remy Cockrell,P4310172,1H,First Grade,Miss Jadyn Heinle
+Craig,Cockrell,Hayes Cockrell,P4310172,3A,Third Grade,Mrs. Leigh Anne Aldama
+Jacqueline,Cockrell,Remy Cockrell,P4320172,1H,First Grade,Miss Jadyn Heinle
+Jacqueline,Cockrell,Hayes Cockrell,P4320172,3A,Third Grade,Mrs. Leigh Anne Aldama
+Ben,Barry,Remy Cockrell,P4330172,1H,First Grade,Miss Jadyn Heinle
+Ben,Barry,Hayes Cockrell,P4330172,3A,Third Grade,Mrs. Leigh Anne Aldama
+Susan,Barry,Remy Cockrell,P4340172,1H,First Grade,Miss Jadyn Heinle
+Susan,Barry,Hayes Cockrell,P4340172,3A,Third Grade,Mrs. Leigh Anne Aldama
+Randy,Cockrell,Remy Cockrell,P4350172,1H,First Grade,Miss Jadyn Heinle
+Randy,Cockrell,Hayes Cockrell,P4350172,3A,Third Grade,Mrs. Leigh Anne Aldama
+Gail,Cockrell,Remy Cockrell,P4360172,1H,First Grade,Miss Jadyn Heinle
+Gail,Cockrell,Hayes Cockrell,P4360172,3A,Third Grade,Mrs. Leigh Anne Aldama
+Sarah,Kunzler,Sébastien Kunzler,P4410171,1G,First Grade,Mrs. Olga Griffin
+Matthew,Kunzler,Sébastien Kunzler,P4420171,1G,First Grade,Mrs. Olga Griffin
+Samantha,Sok,Teagan-Ezra Nguyen,P4510171,1G,First Grade,Mrs. Olga Griffin
+Vuong,Nguyen,Teagan-Ezra Nguyen,P4520171,1G,First Grade,Mrs. Olga Griffin
+Bryan,Nguyen,Teagan-Ezra Nguyen,P4530171,1G,First Grade,Mrs. Olga Griffin
+Caroline,Nguyen,Teagan-Ezra Nguyen,P4540171,1G,First Grade,Mrs. Olga Griffin
+Diane,Boehm,William Boehm,P4610172,1H,First Grade,Miss Jadyn Heinle
+Diane,Boehm,Peter Boehm,P4610172,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Paul,Boehm,William Boehm,P4620172,1H,First Grade,Miss Jadyn Heinle
+Paul,Boehm,Peter Boehm,P4620172,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Melissa,Roberts,William Boehm,P4630172,1H,First Grade,Miss Jadyn Heinle
+Melissa,Roberts,Peter Boehm,P4630172,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Rodney,Boehm,William Boehm,P4640172,1H,First Grade,Miss Jadyn Heinle
+Rodney,Boehm,Peter Boehm,P4640172,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Ann,Boehm,William Boehm,P4650172,1H,First Grade,Miss Jadyn Heinle
+Ann,Boehm,Peter Boehm,P4650172,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Guadalupe,Cruz,Abel Ayala,P4710282,2R,Second Grade,Mrs. Katy Ramos
+Guadalupe,Cruz,Jairo Ayala,P4710282,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Monica Cruz,Camarena,Abel Ayala,P4720282,2R,Second Grade,Mrs. Katy Ramos
+Monica Cruz,Camarena,Jairo Ayala,P4720282,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Javier,Ayala,Abel Ayala,P4730282,2R,Second Grade,Mrs. Katy Ramos
+Javier,Ayala,Jairo Ayala,P4730282,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Monica,Cruz,Abel Ayala,P4740282,2R,Second Grade,Mrs. Katy Ramos
+Ebelin,Cruz,Abel Ayala,P4750282,2R,Second Grade,Mrs. Katy Ramos
+Deyanira parra,cruz,Abel Ayala,P4760282,2R,Second Grade,Mrs. Katy Ramos
+Brian,Brinkmann,Abigail Brinkmann,P4810266,2B,Second Grade,Mrs. Jamie Bell
+Nicole,Brinkmann,Abigail Brinkmann,P4820266,2B,Second Grade,Mrs. Jamie Bell
+Rhonda,Bremer,Abigail Brinkmann,P4830266,2B,Second Grade,Mrs. Jamie Bell
+Robert,Bremer,Abigail Brinkmann,P4840266,2B,Second Grade,Mrs. Jamie Bell
+Lorenzo Perez,Lopez,Abigail Perez,P4910266,2B,Second Grade,Mrs. Jamie Bell
+Estela,Trejo,Abigail Perez,P4920266,2B,Second Grade,Mrs. Jamie Bell
+Estela,Trejo,Ayelen Trejo,P4920266,3L,Third Grade,Mrs. Ginny Luffman
+Juan,Trejo,Abigail Perez,P4930266,2B,Second Grade,Mrs. Jamie Bell
+Victoria,Trejo,Abigail Perez,P4940266,2B,Second Grade,Mrs. Jamie Bell
+Esperanaza,Lopez,Abigail Perez,P4950266,2B,Second Grade,Mrs. Jamie Bell
+Tammy,Stallings,Addison Stallings,P5010282,2R,Second Grade,Mrs. Katy Ramos
+Mark,Stallings,Addison Stallings,P5020282,2R,Second Grade,Mrs. Katy Ramos
+Sandy,Binz,Addison Stallings,P5030282,2R,Second Grade,Mrs. Katy Ramos
+Cory,Rush,Ainsley Rush,P5110266,2B,Second Grade,Mrs. Jamie Bell
+Cory,Rush,Nevan Rush,P5110266,5S,Fifth Grade,Mrs. Amanda Stephens
+Cory,Rush,Nathan Rush,P5110266,7M,Seventh Grade,Mrs. Melissa McCarty
+Katie,Rush,Ainsley Rush,P5120266,2B,Second Grade,Mrs. Jamie Bell
+Katie,Rush,Nevan Rush,P5120266,5S,Fifth Grade,Mrs. Amanda Stephens
+Katie,Rush,Nathan Rush,P5120266,7M,Seventh Grade,Mrs. Melissa McCarty
+Stefano,Rosso,Allegra Rosso,P5210282,2R,Second Grade,Mrs. Katy Ramos
+Stefano,Rosso,Francesco Rosso,P5210282,6G,Sixth Grade,Mrs. Karla Gollhofer
+Stefano,Rosso,Agustin Rosso,P5210282,8G,Eighth Grade,Mrs. Marisean Grom
+Araceli,Keen,Allegra Rosso,P5220282,2R,Second Grade,Mrs. Katy Ramos
+Araceli,Keen,Francesco Rosso,P5220282,6G,Sixth Grade,Mrs. Karla Gollhofer
+Araceli,Keen,Agustin Rosso,P5220282,8G,Eighth Grade,Mrs. Marisean Grom
+Brandy,Rios,Alythia Rios,P5310282,2R,Second Grade,Mrs. Katy Ramos
+Brandy,Rios,Aiden Rios,P5310282,5S,Fifth Grade,Mrs. Amanda Stephens
+Hector,Rios,Alythia Rios,P5320282,2R,Second Grade,Mrs. Katy Ramos
+Hector,Rios,Aiden Rios,P5320282,5S,Fifth Grade,Mrs. Amanda Stephens
+Margaret,Pillar,Alythia Rios,P5330282,2R,Second Grade,Mrs. Katy Ramos
+Margaret,Pillar,Aiden Rios,P5330282,5S,Fifth Grade,Mrs. Amanda Stephens
+Ross,Davis,Alythia Rios,P5340282,2R,Second Grade,Mrs. Katy Ramos
+Ross,Davis,Aiden Rios,P5340282,5S,Fifth Grade,Mrs. Amanda Stephens
+Dolores,Davis,Alythia Rios,P5350282,2R,Second Grade,Mrs. Katy Ramos
+Dolores,Davis,Aiden Rios,P5350282,5S,Fifth Grade,Mrs. Amanda Stephens
+Margaret,Sosa,Arielle Brutus,P5470266,2B,Second Grade,Mrs. Jamie Bell
+Casey,Torrez,Azalia Torrez,P5510282,2R,Second Grade,Mrs. Katy Ramos
+Casey,Torrez,Isabella Torrez,P5510282,6H,Sixth Grade,Mrs. Kaley Hefley
+Ninette,Sosa,Azalia Torrez,P5520282,2R,Second Grade,Mrs. Katy Ramos
+Ninette,Sosa,Azalia Torrez,P5520282,2R,Second Grade,Mrs. Katy Ramos
+Ninette,Sosa,Isabella Torrez,P5520282,6H,Sixth Grade,Mrs. Kaley Hefley
+Sabrina,Torrez,Azalia Torrez,P5540282,2R,Second Grade,Mrs. Katy Ramos
+Sabrina,Torrez,Isabella Torrez,P5540282,6H,Sixth Grade,Mrs. Kaley Hefley
+Robert,Cutsforth,Azalia Torrez,P5550282,2R,Second Grade,Mrs. Katy Ramos
+Robert,Cutsforth,Isabella Torrez,P5550282,6H,Sixth Grade,Mrs. Kaley Hefley
+Stephen,Torrez,Azalia Torrez,P5560282,2R,Second Grade,Mrs. Katy Ramos
+Stephen,Torrez,Isabella Torrez,P5560282,6H,Sixth Grade,Mrs. Kaley Hefley
+Ginny,Luffman,Beau Luffman,P5610266,2B,Second Grade,Mrs. Jamie Bell
+Scott,Luffman,Beau Luffman,P5620266,2B,Second Grade,Mrs. Jamie Bell
+Bryant,Lynn,Beau Luffman,P5630266,2B,Second Grade,Mrs. Jamie Bell
+Leah,Murphy,Benjamin Murphy,P5710282,2R,Second Grade,Mrs. Katy Ramos
+Leah,Murphy,William Murphy,P5710282,6H,Sixth Grade,Mrs. Kaley Hefley
+RJ,Murphy,Benjamin Murphy,P5720282,2R,Second Grade,Mrs. Katy Ramos
+RJ,Murphy,William Murphy,P5720282,6H,Sixth Grade,Mrs. Kaley Hefley
+Elizabeth,Webb,Benjamin Murphy,P5730282,2R,Second Grade,Mrs. Katy Ramos
+Elizabeth,Webb,William Murphy,P5730282,6H,Sixth Grade,Mrs. Kaley Hefley
+Gigi,Corley,Benjamin Murphy,P5740282,2R,Second Grade,Mrs. Katy Ramos
+Gigi,Corley,William Murphy,P5740282,6H,Sixth Grade,Mrs. Kaley Hefley
+Debbie,Doan,Benjamin Murphy,P5750282,2R,Second Grade,Mrs. Katy Ramos
+Debbie,Doan,William Murphy,P5750282,6H,Sixth Grade,Mrs. Kaley Hefley
+Mario,Almaras,Brenda Almaras,P5810266,2B,Second Grade,Mrs. Jamie Bell
+Mario,Almaras,Mario Almaras,P5810266,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Maria,Almaraz,Brenda Almaras,P5820266,2B,Second Grade,Mrs. Jamie Bell
+Maria,Almaraz,Mario Almaras,P5820266,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Elia,Morales,Brenda Almaras,P5830266,2B,Second Grade,Mrs. Jamie Bell
+Elia,Morales,Ketzali Retana,P5830266,8G,Eighth Grade,Mrs. Marisean Grom
+Elia,Morales,Mario Almaras,P5830266,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Maribel,Garcia,Brenda Almaras,P5840266,2B,Second Grade,Mrs. Jamie Bell
+Maribel,Garcia,Ketzali Retana,P5840266,8G,Eighth Grade,Mrs. Marisean Grom
+Maribel,Garcia,Mario Almaras,P5840266,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Brian,Ganey,Bridget Ganey,P5910266,2B,Second Grade,Mrs. Jamie Bell
+Brian,Ganey,Brennan Ganey,P5910266,5S,Fifth Grade,Mrs. Amanda Stephens
+Brian,Ganey,Brian Ganey,P5910266,7P,Seventh Grade,Mrs. Carla Pardetti
+Cheryle,Rae,Bridget Ganey,P5920266,2B,Second Grade,Mrs. Jamie Bell
+Cheryle,Rae,Brennan Ganey,P5920266,5S,Fifth Grade,Mrs. Amanda Stephens
+Cheryle,Rae,Brian Ganey,P5920266,7P,Seventh Grade,Mrs. Carla Pardetti
+Elizabeth,Ganey,Bridget Ganey,P5930266,2B,Second Grade,Mrs. Jamie Bell
+Elizabeth,Ganey,Brennan Ganey,P5930266,5S,Fifth Grade,Mrs. Amanda Stephens
+Elizabeth,Ganey,Brian Ganey,P5930266,7P,Seventh Grade,Mrs. Carla Pardetti
+Brandy,Murillo,Bryson Garcia,P6010266,2B,Second Grade,Mrs. Jamie Bell
+Brandy,Murillo,Lynelle Garcia,P6010266,7M,Seventh Grade,Mrs. Melissa McCarty
+Brandy,Murillo,Emry Mayfield,P6010266,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Madison,Mayfield,Bryson Garcia,P6020266,2B,Second Grade,Mrs. Jamie Bell
+Madison,Mayfield,Lynelle Garcia,P6020266,7M,Seventh Grade,Mrs. Melissa McCarty
+Madison,Mayfield,Emry Mayfield,P6020266,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Jose,Lomeli,Bryson Garcia,P6030266,2B,Second Grade,Mrs. Jamie Bell
+Jose,Lomeli,Lynelle Garcia,P6030266,7M,Seventh Grade,Mrs. Melissa McCarty
+Jannette,Murillo,Bryson Garcia,P6040266,2B,Second Grade,Mrs. Jamie Bell
+Jannette,Murillo,Lynelle Garcia,P6040266,7M,Seventh Grade,Mrs. Melissa McCarty
+Jannette,Murillo,Emry Mayfield,P6040266,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Elizabeth,Murillo,Bryson Garcia,P6050266,2B,Second Grade,Mrs. Jamie Bell
+Elizabeth,Murillo,Lynelle Garcia,P6050266,7M,Seventh Grade,Mrs. Melissa McCarty
+Elizabeth,Murillo,Emry Mayfield,P6050266,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Gabriela,Baltazar,Bryson Garcia,P6060266,2B,Second Grade,Mrs. Jamie Bell
+Gabriela,Baltazar,Lynelle Garcia,P6060266,7M,Seventh Grade,Mrs. Melissa McCarty
+Jenn,Reed,Caroline Reed,P6110282,2R,Second Grade,Mrs. Katy Ramos
+Jenn,Reed,Andrew Reed,P6110282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Nick,Reed,Caroline Reed,P6120282,2R,Second Grade,Mrs. Katy Ramos
+Nick,Reed,Andrew Reed,P6120282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Marianne,Parker,Caroline Reed,P6130282,2R,Second Grade,Mrs. Katy Ramos
+Marianne,Parker,Andrew Reed,P6130282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Rick,Parker,Caroline Reed,P6140282,2R,Second Grade,Mrs. Katy Ramos
+Rick,Parker,Andrew Reed,P6140282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Teresa,Reed,Caroline Reed,P6150282,2R,Second Grade,Mrs. Katy Ramos
+Teresa,Reed,Andrew Reed,P6150282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Stephen,Reed,Caroline Reed,P6160282,2R,Second Grade,Mrs. Katy Ramos
+Stephen,Reed,Andrew Reed,P6160282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+James,Parker,Caroline Reed,P6170282,2R,Second Grade,Mrs. Katy Ramos
+James,Parker,Andrew Reed,P6170282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Beatrice,Selva,Caroline Reed,P6180282,2R,Second Grade,Mrs. Katy Ramos
+Maribel,Hurtado,Cesar Hurtado,P6210266,2B,Second Grade,Mrs. Jamie Bell
+Maribel,Hurtado,Natalia Hurtado,P6210266,4C,Fourth Grade,Mrs. Roberta Casey
+Maribel,Hurtado,Marypaz Hurtado,P6210266,7M,Seventh Grade,Mrs. Melissa McCarty
+Adolfo,Hurtado,Cesar Hurtado,P6220266,2B,Second Grade,Mrs. Jamie Bell
+Adolfo,Hurtado,Natalia Hurtado,P6220266,4C,Fourth Grade,Mrs. Roberta Casey
+Adolfo,Hurtado,Marypaz Hurtado,P6220266,7M,Seventh Grade,Mrs. Melissa McCarty
+Clemencia,Albarran,Cesar Hurtado,P6230266,2B,Second Grade,Mrs. Jamie Bell
+Clemencia,Albarran,Natalia Hurtado,P6230266,4C,Fourth Grade,Mrs. Roberta Casey
+Clemencia,Albarran,Marypaz Hurtado,P6230266,7M,Seventh Grade,Mrs. Melissa McCarty
+Maria,Hurtado,Cesar Hurtado,P6240266,2B,Second Grade,Mrs. Jamie Bell
+Maria,Hurtado,Natalia Hurtado,P6240266,4C,Fourth Grade,Mrs. Roberta Casey
+Maria,Hurtado,Marypaz Hurtado,P6240266,7M,Seventh Grade,Mrs. Melissa McCarty
+Ana,Nava,Cesar Hurtado,P6250266,2B,Second Grade,Mrs. Jamie Bell
+Ana,Nava,Natalia Hurtado,P6250266,4C,Fourth Grade,Mrs. Roberta Casey
+Ana,Nava,Marypaz Hurtado,P6250266,7M,Seventh Grade,Mrs. Melissa McCarty
+Angelina,Albarran,Cesar Hurtado,P6260266,2B,Second Grade,Mrs. Jamie Bell
+Angelina,Albarran,Natalia Hurtado,P6260266,4C,Fourth Grade,Mrs. Roberta Casey
+Angelina,Albarran,Marypaz Hurtado,P6260266,7M,Seventh Grade,Mrs. Melissa McCarty
+Javier,Albarran,Cesar Hurtado,P6280266,2B,Second Grade,Mrs. Jamie Bell
+Javier,Albarran,Natalia Hurtado,P6280266,4C,Fourth Grade,Mrs. Roberta Casey
+Javier,Albarran,Marypaz Hurtado,P6280266,7M,Seventh Grade,Mrs. Melissa McCarty
+Roberta,Casey,Charlotte Casey,P6310282,2R,Second Grade,Mrs. Katy Ramos
+Sue,Pekel,Charlotte Casey,P6320282,2R,Second Grade,Mrs. Katy Ramos
+John,Casey,Charlotte Casey,P6330282,2R,Second Grade,Mrs. Katy Ramos
+Robert,Pekel,Charlotte Casey,P6340282,2R,Second Grade,Mrs. Katy Ramos
+Martha,Casey,Charlotte Casey,P6350282,2R,Second Grade,Mrs. Katy Ramos
+Sue Ann,Pekel,Charlotte Casey,P6360282,2R,Second Grade,Mrs. Katy Ramos
+James,Casey,Charlotte Casey,P6370282,2R,Second Grade,Mrs. Katy Ramos
+Elizabeth,White,Davis White,P6410266,2B,Second Grade,Mrs. Jamie Bell
+Michael,White,Davis White,P6420266,2B,Second Grade,Mrs. Jamie Bell
+Sylvia,White,Davis White,P6430266,2B,Second Grade,Mrs. Jamie Bell
+Dan,Murrell,Davis White,P6440266,2B,Second Grade,Mrs. Jamie Bell
+Diane,Davis,Davis White,P6450266,2B,Second Grade,Mrs. Jamie Bell
+Steve,Davis,Davis White,P6460266,2B,Second Grade,Mrs. Jamie Bell
+Luis,Colunga,Diana Colunga,P6510266,2B,Second Grade,Mrs. Jamie Bell
+Luis,Colunga,Sara Colunga,P6510266,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Vicky,Colunga,Diana Colunga,P6520266,2B,Second Grade,Mrs. Jamie Bell
+Vicky,Colunga,Andy Pina,P6520266,7P,Seventh Grade,Mrs. Carla Pardetti
+Vicky,Colunga,Sara Colunga,P6520266,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Cecilia,Pina,Diana Colunga,P6530266,2B,Second Grade,Mrs. Jamie Bell
+Cecilia,Pina,Andy Pina,P6530266,7P,Seventh Grade,Mrs. Carla Pardetti
+Cecilia,Pina,Sara Colunga,P6530266,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Ceci,Vega-Medrano,Diana Colunga,P6540266,2B,Second Grade,Mrs. Jamie Bell
+Ceci,Vega-Medrano,Sara Colunga,P6540266,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Jessica,VanBecelaere,Elliott VanBecelaere,P6610282,2R,Second Grade,Mrs. Katy Ramos
+Jessica,VanBecelaere,Audrey VanBecelaere,P6610282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Adam,VanBecelaere,Elliott VanBecelaere,P6620282,2R,Second Grade,Mrs. Katy Ramos
+Adam,VanBecelaere,Audrey VanBecelaere,P6620282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Lisa,Bauer,Elliott VanBecelaere,P6630282,2R,Second Grade,Mrs. Katy Ramos
+Lisa,Bauer,Audrey VanBecelaere,P6630282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Julie,Hobbs,Elliott VanBecelaere,P6640282,2R,Second Grade,Mrs. Katy Ramos
+Julie,Hobbs,Audrey VanBecelaere,P6640282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Steve,Hobbs,Elliott VanBecelaere,P6650282,2R,Second Grade,Mrs. Katy Ramos
+Steve,Hobbs,Audrey VanBecelaere,P6650282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Linda,VanBecelaere,Elliott VanBecelaere,P6660282,2R,Second Grade,Mrs. Katy Ramos
+Linda,VanBecelaere,Audrey VanBecelaere,P6660282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Karl,VanBecelaere,Elliott VanBecelaere,P6670282,2R,Second Grade,Mrs. Katy Ramos
+Karl,VanBecelaere,Audrey VanBecelaere,P6670282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Kelli,Piontek,Emma Piontek,P6710266,2B,Second Grade,Mrs. Jamie Bell
+Kelli,Piontek,Benjamin Piontek,P6710266,4P,Fourth Grade,Miss Litzi Perea
+Joseph,Piontek,Emma Piontek,P6720266,2B,Second Grade,Mrs. Jamie Bell
+Joseph,Piontek,Benjamin Piontek,P6720266,4P,Fourth Grade,Miss Litzi Perea
+Karen,Baguley,Emma Piontek,P6730266,2B,Second Grade,Mrs. Jamie Bell
+Karen,Baguley,Benjamin Piontek,P6730266,4P,Fourth Grade,Miss Litzi Perea
+Stewart,Baguley,Emma Piontek,P6740266,2B,Second Grade,Mrs. Jamie Bell
+Stewart,Baguley,Benjamin Piontek,P6740266,4P,Fourth Grade,Miss Litzi Perea
+Carol,Piontek,Emma Piontek,P6750266,2B,Second Grade,Mrs. Jamie Bell
+Carol,Piontek,Benjamin Piontek,P6750266,4P,Fourth Grade,Miss Litzi Perea
+Tom,Piontek,Emma Piontek,P6760266,2B,Second Grade,Mrs. Jamie Bell
+Tom,Piontek,Benjamin Piontek,P6760266,4P,Fourth Grade,Miss Litzi Perea
+Karla,Gollhofer,Emmalyn Gollhofer,P6810266,2B,Second Grade,Mrs. Jamie Bell
+Karla,Gollhofer,Isabel Gollhofer,P6810266,6H,Sixth Grade,Mrs. Kaley Hefley
+Drew,Gollhofer,Emmalyn Gollhofer,P6820266,2B,Second Grade,Mrs. Jamie Bell
+Drew,Gollhofer,Isabel Gollhofer,P6820266,6H,Sixth Grade,Mrs. Kaley Hefley
+Melinda,Brandenburg,Emmalyn Gollhofer,P6830266,2B,Second Grade,Mrs. Jamie Bell
+Melinda,Brandenburg,Isabel Gollhofer,P6830266,6H,Sixth Grade,Mrs. Kaley Hefley
+David,Brandenburg,Emmalyn Gollhofer,P6840266,2B,Second Grade,Mrs. Jamie Bell
+David,Brandenburg,Isabel Gollhofer,P6840266,6H,Sixth Grade,Mrs. Kaley Hefley
+Stephen,Gollhofer,Emmalyn Gollhofer,P6850266,2B,Second Grade,Mrs. Jamie Bell
+Stephen,Gollhofer,Isabel Gollhofer,P6850266,6H,Sixth Grade,Mrs. Kaley Hefley
+Pam,Gollhofer,Emmalyn Gollhofer,P6860266,2B,Second Grade,Mrs. Jamie Bell
+Pam,Gollhofer,Isabel Gollhofer,P6860266,6H,Sixth Grade,Mrs. Kaley Hefley
+Katie,Stamps,Eve Stamps,P6910266,2B,Second Grade,Mrs. Jamie Bell
+Katie,Stamps,Owen Stamps,P6910266,7P,Seventh Grade,Mrs. Carla Pardetti
+Bee,Stamps,Eve Stamps,P6920266,2B,Second Grade,Mrs. Jamie Bell
+Bee,Stamps,Owen Stamps,P6920266,7P,Seventh Grade,Mrs. Carla Pardetti
+Sherry,Asbell,Eve Stamps,P6930266,2B,Second Grade,Mrs. Jamie Bell
+Sherry,Asbell,Owen Stamps,P6930266,7P,Seventh Grade,Mrs. Carla Pardetti
+Greg,Asbell,Eve Stamps,P6940266,2B,Second Grade,Mrs. Jamie Bell
+Greg,Asbell,Owen Stamps,P6940266,7P,Seventh Grade,Mrs. Carla Pardetti
+Joseph,Obiri,Gabriella Obiri,P7010282,2R,Second Grade,Mrs. Katy Ramos
+Joseph,Obiri,Samuel Obiri,P7010282,6G,Sixth Grade,Mrs. Karla Gollhofer
+Anntoinette,Balthazar,Gabriella Obiri,P7020282,2R,Second Grade,Mrs. Katy Ramos
+Anntoinette,Balthazar,Samuel Obiri,P7020282,6G,Sixth Grade,Mrs. Karla Gollhofer
+Angelique,Obiri,Gabriella Obiri,P7030282,2R,Second Grade,Mrs. Katy Ramos
+Angelique,Obiri,Samuel Obiri,P7030282,6G,Sixth Grade,Mrs. Karla Gollhofer
+Lauany,Kramer,Gabriella Obiri,P7040282,2R,Second Grade,Mrs. Katy Ramos
+Lauany,Kramer,Samuel Obiri,P7040282,6G,Sixth Grade,Mrs. Karla Gollhofer
+Anne,Balthazar,Gabriella Obiri,P7050282,2R,Second Grade,Mrs. Katy Ramos
+Anne,Balthazar,Samuel Obiri,P7050282,6G,Sixth Grade,Mrs. Karla Gollhofer
+Patience,Essah,Gabriella Obiri,P7060282,2R,Second Grade,Mrs. Katy Ramos
+Patience,Essah,Samuel Obiri,P7060282,6G,Sixth Grade,Mrs. Karla Gollhofer
+Sebastian,Tesche,Gabriella Tesche,P7110282,2R,Second Grade,Mrs. Katy Ramos
+Christine,Sharp,Gabriella Tesche,P7120282,2R,Second Grade,Mrs. Katy Ramos
+Sue,Sharp,Gabriella Tesche,P7130282,2R,Second Grade,Mrs. Katy Ramos
+Tom,Heckenberg,Gabriella Tesche,P7140282,2R,Second Grade,Mrs. Katy Ramos
+Florentin,Tesche,Gabriella Tesche,P7150282,2R,Second Grade,Mrs. Katy Ramos
+Max,Tesche,Gabriella Tesche,P7160282,2R,Second Grade,Mrs. Katy Ramos
+Cristina,Butler,Gerard Butler,P7210282,2R,Second Grade,Mrs. Katy Ramos
+Cristina,Butler,Stella Butler,P7210282,4P,Fourth Grade,Miss Litzi Perea
+Cristina,Butler,Nicholas Butler,P7210282,5W,Fifth Grade,Miss Grace Webb
+Cristina,Butler,Agnes Butler,P7210282,KN,Kindergarten,Miss Julia Necessary
+Nicholas,Butler,Gerard Butler,P7220282,2R,Second Grade,Mrs. Katy Ramos
+Nicholas,Butler,Stella Butler,P7220282,4P,Fourth Grade,Miss Litzi Perea
+Nicholas,Butler,Nicholas Butler,P7220282,5W,Fifth Grade,Miss Grace Webb
+Nicholas,Butler,Agnes Butler,P7220282,KN,Kindergarten,Miss Julia Necessary
+Ken,Butler,Gerard Butler,P7230282,2R,Second Grade,Mrs. Katy Ramos
+Ken,Butler,Stella Butler,P7230282,4P,Fourth Grade,Miss Litzi Perea
+Ken,Butler,Nicholas Butler,P7230282,5W,Fifth Grade,Miss Grace Webb
+Ken,Butler,Agnes Butler,P7230282,KN,Kindergarten,Miss Julia Necessary
+Carol,Butler,Gerard Butler,P7240282,2R,Second Grade,Mrs. Katy Ramos
+Carol,Butler,Stella Butler,P7240282,4P,Fourth Grade,Miss Litzi Perea
+Carol,Butler,Nicholas Butler,P7240282,5W,Fifth Grade,Miss Grace Webb
+Carol,Butler,Agnes Butler,P7240282,KN,Kindergarten,Miss Julia Necessary
+Teresita,Harbaugh,Gerard Butler,P7250282,2R,Second Grade,Mrs. Katy Ramos
+Teresita,Harbaugh,Mary Felice Harbaugh,P7250282,2B,Second Grade,Mrs. Jamie Bell
+Teresita,Harbaugh,John Harbaugh,P7250282,4C,Fourth Grade,Mrs. Roberta Casey
+Teresita,Harbaugh,Nicholas Butler,P7250282,5W,Fifth Grade,Miss Grace Webb
+Teresita,Harbaugh,David Harbaugh,P7250282,6H,Sixth Grade,Mrs. Kaley Hefley
+Teresita,Harbaugh,George Harbaugh,P7250282,8B,Eighth Grade,Miss Emily Boutin
+Betsy,Harbaugh,Mary Felice Harbaugh,P8610266,2B,Second Grade,Mrs. Jamie Bell
+Betsy,Harbaugh,John Harbaugh,P8610266,4C,Fourth Grade,Mrs. Roberta Casey
+Betsy,Harbaugh,David Harbaugh,P8610266,6H,Sixth Grade,Mrs. Kaley Hefley
+Betsy,Harbaugh,George Harbaugh,P8610266,8B,Eighth Grade,Miss Emily Boutin
+Elisa,Montoya,Gionni Perez,P7310282,2R,Second Grade,Mrs. Katy Ramos
+Adan,Montoya,Gionni Perez,P7320282,2R,Second Grade,Mrs. Katy Ramos
+Elisa Gaspar,Montoya,Gionni Perez,P7330282,2R,Second Grade,Mrs. Katy Ramos
+Jessica,Montoya,Gionni Perez,P7340282,2R,Second Grade,Mrs. Katy Ramos
+Elizabeth,Jordan,Hadley Jordan,P7410266,2B,Second Grade,Mrs. Jamie Bell
+Josh,Jordan,Hadley Jordan,P7420266,2B,Second Grade,Mrs. Jamie Bell
+Lois,Jordan,Hadley Jordan,P7430266,2B,Second Grade,Mrs. Jamie Bell
+Nancy,Andrews,Hadley Jordan,P7440266,2B,Second Grade,Mrs. Jamie Bell
+Bill,Andrews,Hadley Jordan,P7450266,2B,Second Grade,Mrs. Jamie Bell
+Paul,Jordan,Hadley Jordan,P7460266,2B,Second Grade,Mrs. Jamie Bell
+Luke,Hill,Hendrix Hill,P7510282,2R,Second Grade,Mrs. Katy Ramos
+Darrel,Woodward,Hendrix Hill,P7520282,2R,Second Grade,Mrs. Katy Ramos
+Darrel,Woodward,Hendrix Hill,P7520282,2R,Second Grade,Mrs. Katy Ramos
+Holly,Hill,Hendrix Hill,P7530282,2R,Second Grade,Mrs. Katy Ramos
+Diana,Mahoney,Hendrix Hill,P7540282,2R,Second Grade,Mrs. Katy Ramos
+Juana,Almaraz,Jayden Almaraz,P7710282,2R,Second Grade,Mrs. Katy Ramos
+Francisco,Almaraz,Jayden Almaraz,P7720282,2R,Second Grade,Mrs. Katy Ramos
+Francisco,Almaraz,Jayden Almaraz,P7720282,2R,Second Grade,Mrs. Katy Ramos
+Michelle,Almaraz,Jayden Almaraz,P7730282,2R,Second Grade,Mrs. Katy Ramos
+William,Towle,John Towle,P7810266,2B,Second Grade,Mrs. Jamie Bell
+William,Towle,Alexis Towle,P7810266,7M,Seventh Grade,Mrs. Melissa McCarty
+Catherine,Towle,John Towle,P7820266,2B,Second Grade,Mrs. Jamie Bell
+Catherine,Towle,Alexis Towle,P7820266,7M,Seventh Grade,Mrs. Melissa McCarty
+Susan,Jasan,John Towle,P7830266,2B,Second Grade,Mrs. Jamie Bell
+Susan,Jasan,Alexis Towle,P7830266,7M,Seventh Grade,Mrs. Melissa McCarty
+Peter,Jasan,John Towle,P7840266,2B,Second Grade,Mrs. Jamie Bell
+Peter,Jasan,Alexis Towle,P7840266,7M,Seventh Grade,Mrs. Melissa McCarty
+Janice & Ray,Arnold,John Towle,P7850266,2B,Second Grade,Mrs. Jamie Bell
+Janice & Ray,Arnold,Alexis Towle,P7850266,7M,Seventh Grade,Mrs. Melissa McCarty
+Jennifer,Burtis,John Towle,P7860266,2B,Second Grade,Mrs. Jamie Bell
+Jennifer,Burtis,Alexis Towle,P7860266,7M,Seventh Grade,Mrs. Melissa McCarty
+Tyler,Brown,Johnathan Brown,P7910282,2R,Second Grade,Mrs. Katy Ramos
+Maggie,Brown,Johnathan Brown,P7920282,2R,Second Grade,Mrs. Katy Ramos
+Bruce,Butterfield,Johnathan Brown,P7930282,2R,Second Grade,Mrs. Katy Ramos
+Melinda,Butterfield,Johnathan Brown,P7940282,2R,Second Grade,Mrs. Katy Ramos
+Juan,Hernandez,Julie Hernandez,P8010282,2R,Second Grade,Mrs. Katy Ramos
+Sulema,Cruz,Julie Hernandez,P8020282,2R,Second Grade,Mrs. Katy Ramos
+Marlene,Sandoval,Julie Hernandez,P8030282,2R,Second Grade,Mrs. Katy Ramos
+Alfredo,Sandoval,Julie Hernandez,P8040282,2R,Second Grade,Mrs. Katy Ramos
+Alfredo,Sandoval,Sophia Sandoval,P8040282,3A,Third Grade,Mrs. Leigh Anne Aldama
+Rebeca,Cruz,Julie Hernandez,P8050282,2R,Second Grade,Mrs. Katy Ramos
+Sergio,Cruz,Julie Hernandez,P8060282,2R,Second Grade,Mrs. Katy Ramos
+Yadira,Uribe,Julie Hernandez,P8070282,2R,Second Grade,Mrs. Katy Ramos
+Maria Refugio,Rayon,Julie Hernandez,P8080282,2R,Second Grade,Mrs. Katy Ramos
+Alex,Cruz,Julie Hernandez,P8090282,2R,Second Grade,Mrs. Katy Ramos
+Maria Mota,Cedillo,Juliette Cedillo,P8110282,2R,Second Grade,Mrs. Katy Ramos
+Tony,Cedillo,Juliette Cedillo,P8120282,2R,Second Grade,Mrs. Katy Ramos
+Blanca,Flores,Juliette Cedillo,P8130282,2R,Second Grade,Mrs. Katy Ramos
+Nanci,Mota,Juliette Cedillo,P8140282,2R,Second Grade,Mrs. Katy Ramos
+Eleazar,Mota,Juliette Cedillo,P8150282,2R,Second Grade,Mrs. Katy Ramos
+Martha,Sosa,Juliette Cedillo,P8160282,2R,Second Grade,Mrs. Katy Ramos
+Dulce,Ortiz,Kalila Garcia Ortiz,P8210282,2R,Second Grade,Mrs. Katy Ramos
+Rosalba,Ortiz,Kalila Garcia Ortiz,P8220282,2R,Second Grade,Mrs. Katy Ramos
+Jose,Ortiz,Kalila Garcia Ortiz,P8230282,2R,Second Grade,Mrs. Katy Ramos
+Oliver,Garcia,Kalila Garcia Ortiz,P8240282,2R,Second Grade,Mrs. Katy Ramos
+Craig,Hellwig,Kasen Hellwig,P8310266,2B,Second Grade,Mrs. Jamie Bell
+Craig,Hellwig,Kruz Hellwig,P8310266,4C,Fourth Grade,Mrs. Roberta Casey
+Craig,Hellwig,Brynlee Hellwig,P8310266,7M,Seventh Grade,Mrs. Melissa McCarty
+Jessica,Hellwig,Kasen Hellwig,P8320266,2B,Second Grade,Mrs. Jamie Bell
+Jessica,Hellwig,Kruz Hellwig,P8320266,4C,Fourth Grade,Mrs. Roberta Casey
+Jessica,Hellwig,Brynlee Hellwig,P8320266,7M,Seventh Grade,Mrs. Melissa McCarty
+Katie,Harris,Margaret Harris,P8330266,2B,Second Grade,Mrs. Jamie Bell
+Katie,Harris,Samuel Harris,P8330266,4C,Fourth Grade,Mrs. Roberta Casey
+Katie,Harris,Lucas Harris,P8330266,6G,Sixth Grade,Mrs. Karla Gollhofer
+Lauren,Smith,Miles Smith,P8340266,2B,Second Grade,Mrs. Jamie Bell
+Lauren,Smith,Gus Smith,P8340266,6H,Sixth Grade,Mrs. Kaley Hefley
+Lauren,Smith,Sasha Smith,P8340266,7P,Seventh Grade,Mrs. Carla Pardetti
+Terri,Hellwig,Kasen Hellwig,P8350266,2B,Second Grade,Mrs. Jamie Bell
+Terri,Hellwig,Kruz Hellwig,P8350266,4C,Fourth Grade,Mrs. Roberta Casey
+Terri,Hellwig,Brynlee Hellwig,P8350266,7M,Seventh Grade,Mrs. Melissa McCarty
+Jim,VanBecelaere,Kasen Hellwig,P8360266,2B,Second Grade,Mrs. Jamie Bell
+Jim,VanBecelaere,Kruz Hellwig,P8360266,4C,Fourth Grade,Mrs. Roberta Casey
+Jim,VanBecelaere,Brynlee Hellwig,P8360266,7M,Seventh Grade,Mrs. Melissa McCarty
+Annette,VanBecelaere,Kasen Hellwig,P8370266,2B,Second Grade,Mrs. Jamie Bell
+Annette,VanBecelaere,Kruz Hellwig,P8370266,4C,Fourth Grade,Mrs. Roberta Casey
+Annette,VanBecelaere,Brynlee Hellwig,P8370266,7M,Seventh Grade,Mrs. Melissa McCarty
+Mark,Hellwig,Kasen Hellwig,P8380266,2B,Second Grade,Mrs. Jamie Bell
+Mark,Hellwig,Kruz Hellwig,P8380266,4C,Fourth Grade,Mrs. Roberta Casey
+Mark,Hellwig,Brynlee Hellwig,P8380266,7M,Seventh Grade,Mrs. Melissa McCarty
+Morgan,Kleine,Kimberly Kleine,P8410266,2B,Second Grade,Mrs. Jamie Bell
+Morgan,Kleine,Daniel Kleine,P8410266,4P,Fourth Grade,Miss Litzi Perea
+Daniel,Kleine,Kimberly Kleine,P8420266,2B,Second Grade,Mrs. Jamie Bell
+Daniel,Kleine,Daniel Kleine,P8420266,4P,Fourth Grade,Miss Litzi Perea
+Joe,Kleine,Kimberly Kleine,P8430266,2B,Second Grade,Mrs. Jamie Bell
+Joe,Kleine,Daniel Kleine,P8430266,4P,Fourth Grade,Miss Litzi Perea
+Dana,Kleine,Kimberly Kleine,P8440266,2B,Second Grade,Mrs. Jamie Bell
+Dana,Kleine,Daniel Kleine,P8440266,4P,Fourth Grade,Miss Litzi Perea
+Kim,Minihan,Kimberly Kleine,P8450266,2B,Second Grade,Mrs. Jamie Bell
+Kim,Minihan,Daniel Kleine,P8450266,4P,Fourth Grade,Miss Litzi Perea
+Tim,Minihan,Kimberly Kleine,P8460266,2B,Second Grade,Mrs. Jamie Bell
+Tim,Minihan,Daniel Kleine,P8460266,4P,Fourth Grade,Miss Litzi Perea
+Andrew,Harris,Margaret Harris,P8520266,2B,Second Grade,Mrs. Jamie Bell
+Andrew,Harris,Samuel Harris,P8520266,4C,Fourth Grade,Mrs. Roberta Casey
+Andrew,Harris,Lucas Harris,P8520266,6G,Sixth Grade,Mrs. Karla Gollhofer
+Emily,Maniace,Margaret Harris,P8530266,2B,Second Grade,Mrs. Jamie Bell
+Emily,Maniace,Samuel Harris,P8530266,4C,Fourth Grade,Mrs. Roberta Casey
+Emily,Maniace,Lucas Harris,P8530266,6G,Sixth Grade,Mrs. Karla Gollhofer
+Cindy,Hiegel,Margaret Harris,P8540266,2B,Second Grade,Mrs. Jamie Bell
+Cindy,Hiegel,Samuel Harris,P8540266,4C,Fourth Grade,Mrs. Roberta Casey
+Cindy,Hiegel,Lucas Harris,P8540266,6G,Sixth Grade,Mrs. Karla Gollhofer
+Jerry,Hiegel,Margaret Harris,P8550266,2B,Second Grade,Mrs. Jamie Bell
+Jerry,Hiegel,Samuel Harris,P8550266,4C,Fourth Grade,Mrs. Roberta Casey
+Jerry,Hiegel,Lucas Harris,P8550266,6G,Sixth Grade,Mrs. Karla Gollhofer
+Barbara,Harris,Margaret Harris,P8560266,2B,Second Grade,Mrs. Jamie Bell
+Barbara,Harris,Samuel Harris,P8560266,4C,Fourth Grade,Mrs. Roberta Casey
+Barbara,Harris,Lucas Harris,P8560266,6G,Sixth Grade,Mrs. Karla Gollhofer
+Roger,Harris,Margaret Harris,P8570266,2B,Second Grade,Mrs. Jamie Bell
+Roger,Harris,Samuel Harris,P8570266,4C,Fourth Grade,Mrs. Roberta Casey
+Roger,Harris,Lucas Harris,P8570266,6G,Sixth Grade,Mrs. Karla Gollhofer
+Joseph,Harbaugh,Mary Felice Harbaugh,P23810672,2B,Second Grade,Mrs. Jamie Bell
+Joseph,Harbaugh,John Harbaugh,P23810672,4C,Fourth Grade,Mrs. Roberta Casey
+Joseph,Harbaugh,David Harbaugh,P23810672,6H,Sixth Grade,Mrs. Kaley Hefley
+Joseph,Harbaugh,George Harbaugh,P23810672,8B,Eighth Grade,Miss Emily Boutin
+Tina,Butler,Mary Felice Harbaugh,P8630266,2B,Second Grade,Mrs. Jamie Bell
+Tina,Butler,John Harbaugh,P8630266,4C,Fourth Grade,Mrs. Roberta Casey
+Tina,Butler,George Harbaugh,P8630266,8B,Eighth Grade,Miss Emily Boutin
+John,Pandl,Mary Felice Harbaugh,P8640266,2B,Second Grade,Mrs. Jamie Bell
+John,Pandl,John Harbaugh,P8640266,4C,Fourth Grade,Mrs. Roberta Casey
+John,Pandl,David Harbaugh,P8640266,6H,Sixth Grade,Mrs. Kaley Hefley
+John,Pandl,George Harbaugh,P8640266,8B,Eighth Grade,Miss Emily Boutin
+Luke,Smith,Miles Smith,P8720266,2B,Second Grade,Mrs. Jamie Bell
+Luke,Smith,Gus Smith,P8720266,6H,Sixth Grade,Mrs. Kaley Hefley
+Luke,Smith,Sasha Smith,P8720266,7P,Seventh Grade,Mrs. Carla Pardetti
+Megan,Lane,Katherine Lane,P8740266,4C,Fourth Grade,Mrs. Roberta Casey
+Megan,Lane,Jace Lane,P8740266,6H,Sixth Grade,Mrs. Kaley Hefley
+Alton,Davis,Miles Smith,P8750266,2B,Second Grade,Mrs. Jamie Bell
+Alton,Davis,Gus Smith,P8750266,6H,Sixth Grade,Mrs. Kaley Hefley
+Alton,Davis,Sasha Smith,P8750266,7P,Seventh Grade,Mrs. Carla Pardetti
+Peggy,Smith,Miles Smith,P8760266,2B,Second Grade,Mrs. Jamie Bell
+Peggy,Smith,Gus Smith,P8760266,6H,Sixth Grade,Mrs. Kaley Hefley
+Peggy,Smith,Sasha Smith,P8760266,7P,Seventh Grade,Mrs. Carla Pardetti
+Elizabeth-Ann,Lee,Nash Lee,P8810266,2B,Second Grade,Mrs. Jamie Bell
+Sarah,Bright,Nash Lee,P8820266,2B,Second Grade,Mrs. Jamie Bell
+Matthew,Lee,Nash Lee,P8830266,2B,Second Grade,Mrs. Jamie Bell
+Carol “Ann”,Sanders,Nash Lee,P8840266,2B,Second Grade,Mrs. Jamie Bell
+Lindsay,Pardun,Nash Lee,P8850266,2B,Second Grade,Mrs. Jamie Bell
+Lorri,Lee,Nash Lee,P8860266,2B,Second Grade,Mrs. Jamie Bell
+Kara,Harvey,Nash Lee,P8870266,2B,Second Grade,Mrs. Jamie Bell
+David,Lee,Nash Lee,P8880266,2B,Second Grade,Mrs. Jamie Bell
+Lauren “Olivia”,Jones,Nash Lee,P8890266,2B,Second Grade,Mrs. Jamie Bell
+Danielle,Mooney,Olivia Mooney,P8910282,2R,Second Grade,Mrs. Katy Ramos
+Robert,Mooney,Olivia Mooney,P8920282,2R,Second Grade,Mrs. Katy Ramos
+Jean,Wolf,Olivia Mooney,P8930282,2R,Second Grade,Mrs. Katy Ramos
+Steve,Wolf,Olivia Mooney,P8940282,2R,Second Grade,Mrs. Katy Ramos
+Chris,Mooney,Olivia Mooney,P8950282,2R,Second Grade,Mrs. Katy Ramos
+Carmen,Mooney,Olivia Mooney,P8960282,2R,Second Grade,Mrs. Katy Ramos
+Danielle,Ryan,Paige Ryan,P9010282,2R,Second Grade,Mrs. Katy Ramos
+Danielle,Ryan,Andrew Ryan,P9010282,4P,Fourth Grade,Miss Litzi Perea
+Colin,Ryan,Paige Ryan,P9020282,2R,Second Grade,Mrs. Katy Ramos
+Colin,Ryan,Andrew Ryan,P9020282,4P,Fourth Grade,Miss Litzi Perea
+Helen,Ryan,Paige Ryan,P9030282,2R,Second Grade,Mrs. Katy Ramos
+Helen,Ryan,Andrew Ryan,P9030282,4P,Fourth Grade,Miss Litzi Perea
+John,Ryan,Paige Ryan,P9040282,2R,Second Grade,Mrs. Katy Ramos
+John,Ryan,Andrew Ryan,P9040282,4P,Fourth Grade,Miss Litzi Perea
+Diane,Waddington,Paige Ryan,P9050282,2R,Second Grade,Mrs. Katy Ramos
+Diane,Waddington,Andrew Ryan,P9050282,4P,Fourth Grade,Miss Litzi Perea
+MacKenzie,Ginn,Paige Voss,P9110266,2B,Second Grade,Mrs. Jamie Bell
+MacKenzie,Ginn,Kate Voss,P9110266,6H,Sixth Grade,Mrs. Kaley Hefley
+Megan,Voss,Paige Voss,P25010672,2B,Second Grade,Mrs. Jamie Bell
+Megan,Voss,Kate Voss,P25010672,6H,Sixth Grade,Mrs. Kaley Hefley
+Nick,Voss,Paige Voss,P9130266,2B,Second Grade,Mrs. Jamie Bell
+Nick,Voss,Kate Voss,P9130266,6H,Sixth Grade,Mrs. Kaley Hefley
+Nancy,Holland,Paige Voss,P9140266,2B,Second Grade,Mrs. Jamie Bell
+Nancy,Holland,Kate Voss,P9140266,6H,Sixth Grade,Mrs. Kaley Hefley
+Bob,Holland,Paige Voss,P9150266,2B,Second Grade,Mrs. Jamie Bell
+Bob,Holland,Kate Voss,P9150266,6H,Sixth Grade,Mrs. Kaley Hefley
+Britta,Rheem,Skylar Rheem,P9210282,2R,Second Grade,Mrs. Katy Ramos
+Britta,Rheem,Cameron Rheem,P9210282,4C,Fourth Grade,Mrs. Roberta Casey
+Britta,Rheem,Lily Rheem,P9210282,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Jamie,Rheem,Skylar Rheem,P9220282,2R,Second Grade,Mrs. Katy Ramos
+Jamie,Rheem,Cameron Rheem,P9220282,4C,Fourth Grade,Mrs. Roberta Casey
+Jamie,Rheem,Lily Rheem,P9220282,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Diane,Blackwood,Skylar Rheem,P9230282,2R,Second Grade,Mrs. Katy Ramos
+Diane,Blackwood,Skylar Rheem,P9230282,2R,Second Grade,Mrs. Katy Ramos
+Diane,Blackwood,Cameron Rheem,P9230282,4C,Fourth Grade,Mrs. Roberta Casey
+Diane,Blackwood,Cameron Rheem,P9230282,4C,Fourth Grade,Mrs. Roberta Casey
+Diane,Blackwood,Lily Rheem,P9230282,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Diane,Blackwood,Lily Rheem,P9230282,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Nikki,Truong,Tayden Pham,P9310266,2B,Second Grade,Mrs. Jamie Bell
+Nikki,Truong,Tyler Pham,P9310266,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Trung,Pham,Tayden Pham,P9320266,2B,Second Grade,Mrs. Jamie Bell
+Trung,Pham,Tyler Pham,P9320266,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Mike,Truong,Tayden Pham,P9330266,2B,Second Grade,Mrs. Jamie Bell
+Mike,Truong,Tyler Pham,P9330266,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Valerie,Talafuse,Thomas Talafuse,P9410266,2B,Second Grade,Mrs. Jamie Bell
+Valerie,Talafuse,Abigail Talafuse,P9410266,5S,Fifth Grade,Mrs. Amanda Stephens
+Valerie,Talafuse,Madelyn Talafuse,P9410266,7P,Seventh Grade,Mrs. Carla Pardetti
+Samantha,Kaminski,Thomas Talafuse,P9430266,2B,Second Grade,Mrs. Jamie Bell
+Samantha,Kaminski,Madelyn Talafuse,P9430266,7P,Seventh Grade,Mrs. Carla Pardetti
+David,Talafuse,Thomas Talafuse,P9440266,2B,Second Grade,Mrs. Jamie Bell
+David,Talafuse,Abigail Talafuse,P9440266,5S,Fifth Grade,Mrs. Amanda Stephens
+David,Talafuse,Madelyn Talafuse,P9440266,7P,Seventh Grade,Mrs. Carla Pardetti
+Rose,Talafuse,Thomas Talafuse,P9450266,2B,Second Grade,Mrs. Jamie Bell
+Rose,Talafuse,Abigail Talafuse,P9450266,5S,Fifth Grade,Mrs. Amanda Stephens
+Rose,Talafuse,Madelyn Talafuse,P9450266,7P,Seventh Grade,Mrs. Carla Pardetti
+Robert,Kossler,Thomas Talafuse,P9460266,2B,Second Grade,Mrs. Jamie Bell
+Robert,Kossler,Abigail Talafuse,P9460266,5S,Fifth Grade,Mrs. Amanda Stephens
+Robert,Kossler,Madelyn Talafuse,P9460266,7P,Seventh Grade,Mrs. Carla Pardetti
+Elizabeth,Kossler,Thomas Talafuse,P9470266,2B,Second Grade,Mrs. Jamie Bell
+Elizabeth,Kossler,Abigail Talafuse,P9470266,5S,Fifth Grade,Mrs. Amanda Stephens
+Elizabeth,Kossler,Madelyn Talafuse,P9470266,7P,Seventh Grade,Mrs. Carla Pardetti
+Jamie,Krusewicz,Tucker Martin,P9510282,2R,Second Grade,Mrs. Katy Ramos
+Troy,Martin,Tucker Martin,P9520282,2R,Second Grade,Mrs. Katy Ramos
+Alisha,Park,Tucker Martin,P9530282,2R,Second Grade,Mrs. Katy Ramos
+Annette,Krusewicz,Tucker Martin,P9540282,2R,Second Grade,Mrs. Katy Ramos
+Courtney,Spence,Tucker Martin,P9550282,2R,Second Grade,Mrs. Katy Ramos
+Maria Landin,Escamilla,Ximena Gonzalez Egea Landin,P9610282,2R,Second Grade,Mrs. Katy Ramos
+Alvaro Gonzalez Egea,Rubio,Ximena Gonzalez Egea Landin,P9620282,2R,Second Grade,Mrs. Katy Ramos
+Joseph,Do,Abella Do,P9710365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Thuy,Nguyen,Abella Do,P9720365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Binh,Nguyen,Abella Do,P9730365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Lien,Nguyen,Abella Do,P9740365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Anthony,Cardarelli,Alexander Cardarelli,P9810365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Emi (Maria),Cardarelli,Alexander Cardarelli,P9820365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Darlene,Schultz,Alexander Cardarelli,P9830365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Mary Michele Michael,Mansour,Alexander Cardarelli,P9840365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Miguel,Beltran,Alexander Cardarelli,P9850365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Christine,Ranatza,Austin Ranatza,P9910376,3L,Third Grade,Mrs. Ginny Luffman
+Christine,Ranatza,Avery Ranatza,P9910376,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Mark,Ranatza,Austin Ranatza,P9920376,3L,Third Grade,Mrs. Ginny Luffman
+Mark,Ranatza,Avery Ranatza,P9920376,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Karen,Ranatza,Austin Ranatza,P9930376,3L,Third Grade,Mrs. Ginny Luffman
+Karen,Ranatza,Avery Ranatza,P9930376,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Kathleen,Juhas,Austin Ranatza,P9940376,3L,Third Grade,Mrs. Ginny Luffman
+Kathleen,Juhas,Avery Ranatza,P9940376,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Mike,Juhas,Austin Ranatza,P9950376,3L,Third Grade,Mrs. Ginny Luffman
+Michael,Ranatza,Austin Ranatza,P9960376,3L,Third Grade,Mrs. Ginny Luffman
+Michael,Ranatza,Avery Ranatza,P9960376,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Sheryl,Ranatza,Austin Ranatza,P9970376,3L,Third Grade,Mrs. Ginny Luffman
+Sheryl,Ranatza,Avery Ranatza,P9970376,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Linda,Hamidi,Ava Hamidi,P10010376,3L,Third Grade,Mrs. Ginny Luffman
+Kamiar,Hamidi,Ava Hamidi,P10020376,3L,Third Grade,Mrs. Ginny Luffman
+Alberto,Trejo,Ayelen Trejo,P10110376,3L,Third Grade,Mrs. Ginny Luffman
+Raquel,Franco,Ayelen Trejo,P10120376,3L,Third Grade,Mrs. Ginny Luffman
+Lorenza,Franco,Ayelen Trejo,P10140376,3L,Third Grade,Mrs. Ginny Luffman
+Aidan,Trejo,Ayelen Trejo,P10150376,3L,Third Grade,Mrs. Ginny Luffman
+Sean,Kaley,Benjamin Kaley,P10210365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Sean,Kaley,Cora Kaley,P10210365,5S,Fifth Grade,Mrs. Amanda Stephens
+Pam,Raible,Benjamin Kaley,P10230365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Pam,Raible,Cora Kaley,P10230365,5S,Fifth Grade,Mrs. Amanda Stephens
+David,Raible,Benjamin Kaley,P10240365,3A,Third Grade,Mrs. Leigh Anne Aldama
+David,Raible,Cora Kaley,P10240365,5S,Fifth Grade,Mrs. Amanda Stephens
+Denise,Navarre,Blaize Thayer,P10350365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Kathryn,Bell,Bryce Bell,P10410376,3L,Third Grade,Mrs. Ginny Luffman
+Chad,Bell,Bryce Bell,P10420376,3L,Third Grade,Mrs. Ginny Luffman
+Vince,Biondo,Bryce Bell,P10430376,3L,Third Grade,Mrs. Ginny Luffman
+Vince Biondo,Jr,Bryce Bell,P10440376,3L,Third Grade,Mrs. Ginny Luffman
+Barbara,Bell,Bryce Bell,P10450376,3L,Third Grade,Mrs. Ginny Luffman
+Amy,Grimes,Charlotte Grimes,P10510365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Amy,Grimes,Landon Grimes,P10510365,6G,Sixth Grade,Mrs. Karla Gollhofer
+Amy,Grimes,Aiden Grimes,P10510365,8G,Eighth Grade,Mrs. Marisean Grom
+Jason,Grimes,Charlotte Grimes,P25510671,3A,Third Grade,Mrs. Leigh Anne Aldama
+Jason,Grimes,Landon Grimes,P25510671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Jason,Grimes,Aiden Grimes,P25510671,8G,Eighth Grade,Mrs. Marisean Grom
+Martha,Bearden,Charlotte Grimes,P10530365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Martha,Bearden,Landon Grimes,P10530365,6G,Sixth Grade,Mrs. Karla Gollhofer
+Martha,Bearden,Aiden Grimes,P10530365,8G,Eighth Grade,Mrs. Marisean Grom
+Alan,Bearden,Charlotte Grimes,P10540365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Alan,Bearden,Landon Grimes,P10540365,6G,Sixth Grade,Mrs. Karla Gollhofer
+Alan,Bearden,Aiden Grimes,P10540365,8G,Eighth Grade,Mrs. Marisean Grom
+Kathy,Grimes,Charlotte Grimes,P10550365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Kathy,Grimes,Aiden Grimes,P10550365,8G,Eighth Grade,Mrs. Marisean Grom
+Abby,McAdams,Charlotte McAdams,P10610365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Dan,McAdams,Charlotte McAdams,P10620365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Stanley,Doherty,Charlotte McAdams,P10630365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Virginia,Doherty,Charlotte McAdams,P10640365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Deana,McAdams,Charlotte McAdams,P10650365,3A,Third Grade,Mrs. Leigh Anne Aldama
+David,McAdams,Charlotte McAdams,P10660365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Jason,Phetrakoun,Charlotte McAdams,P10670365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Bill,Mullen,Clara Mullen,P10750376,3L,Third Grade,Mrs. Ginny Luffman
+Bill,Mullen,Evelyn Mullen,P10750376,5W,Fifth Grade,Miss Grace Webb
+Melody,Hoyt,Elin Hoyt,P11010376,3L,Third Grade,Mrs. Ginny Luffman
+Melody,Hoyt,Abel Hoyt,P11010376,4P,Fourth Grade,Miss Litzi Perea
+Andrew,Hoyt,Elin Hoyt,P11020376,3L,Third Grade,Mrs. Ginny Luffman
+Andrew,Hoyt,Abel Hoyt,P11020376,4P,Fourth Grade,Miss Litzi Perea
+Dena,Awbrey,Elin Hoyt,P11030376,3L,Third Grade,Mrs. Ginny Luffman
+Dena,Awbrey,Abel Hoyt,P11030376,4P,Fourth Grade,Miss Litzi Perea
+Sharon,Hoyt,Elin Hoyt,P11040376,3L,Third Grade,Mrs. Ginny Luffman
+Sharon,Hoyt,Abel Hoyt,P11040376,4P,Fourth Grade,Miss Litzi Perea
+Ronnie,Hoyt,Elin Hoyt,P11050376,3L,Third Grade,Mrs. Ginny Luffman
+Ronnie,Hoyt,Abel Hoyt,P11050376,4P,Fourth Grade,Miss Litzi Perea
+David,Beauchamp,Elin Hoyt,P11060376,3L,Third Grade,Mrs. Ginny Luffman
+David,Beauchamp,Abel Hoyt,P11060376,4P,Fourth Grade,Miss Litzi Perea
+Amanda,Benafield,Elizabeth Benafield,P11110365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Robert,Benafield,Elizabeth Benafield,P11120365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Mike,Tubbs,Elizabeth Benafield,P11130365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Betty,Story,Elizabeth Benafield,P11140365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Annabelle,Cornelius,Elizabeth Benafield,P11150365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Sarah,Cobb,Elizabeth Cobb,P11210365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Sarah,Cobb,Benjamin Cobb,P11210365,5S,Fifth Grade,Mrs. Amanda Stephens
+Dylan,Cobb,Elizabeth Cobb,P11220365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Dylan,Cobb,Benjamin Cobb,P11220365,5S,Fifth Grade,Mrs. Amanda Stephens
+Becky,Brothers,Elizabeth Cobb,P11230365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Becky,Brothers,Benjamin Cobb,P11230365,5S,Fifth Grade,Mrs. Amanda Stephens
+Becky,Brothers,Eleanor Creed,P11230365,5W,Fifth Grade,Miss Grace Webb
+Becky,Brothers,Ethan Creed,P11230365,7M,Seventh Grade,Mrs. Melissa McCarty
+Becky,Brothers,Emma Cate Brothers,P11230365,8B,Eighth Grade,Miss Emily Boutin
+Katie,Creed,Eleanor Creed,P19810587,5W,Fifth Grade,Miss Grace Webb
+Katie,Creed,Ethan Creed,P19810587,7M,Seventh Grade,Mrs. Melissa McCarty
+Allyson,Brothers,Elizabeth Cobb,P11250365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Allyson,Brothers,Benjamin Cobb,P11250365,5S,Fifth Grade,Mrs. Amanda Stephens
+Allyson,Brothers,Emma Cate Brothers,P11250365,8B,Eighth Grade,Miss Emily Boutin
+Rob,Brothers,Elizabeth Cobb,P11260365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Rob,Brothers,Benjamin Cobb,P11260365,5S,Fifth Grade,Mrs. Amanda Stephens
+Rob,Brothers,Eleanor Creed,P11260365,5W,Fifth Grade,Miss Grace Webb
+Rob,Brothers,Ethan Creed,P11260365,7M,Seventh Grade,Mrs. Melissa McCarty
+Rob,Brothers,Emma Cate Brothers,P11260365,8B,Eighth Grade,Miss Emily Boutin
+Kristie,Garner,Elizabeth Cobb,P11270365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Kristie,Garner,Benjamin Cobb,P11270365,5S,Fifth Grade,Mrs. Amanda Stephens
+Sarah,Bresnahan,Emma Bresnahan,P11310365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Sarah,Bresnahan,John Bresnahan,P11310365,5W,Fifth Grade,Miss Grace Webb
+Cory,Bresnahan,Emma Bresnahan,P21310587,3A,Third Grade,Mrs. Leigh Anne Aldama
+Cory,Bresnahan,John Bresnahan,P21310587,5W,Fifth Grade,Miss Grace Webb
+Kristen,Seiler,Lucy Seiler,P20710587,3L,Third Grade,Mrs. Ginny Luffman
+Kristen,Seiler,Haddie Seiler,P20710587,5W,Fifth Grade,Miss Grace Webb
+Kristen,Seiler,Benjamin Seiler,P20710587,6H,Sixth Grade,Mrs. Kaley Hefley
+Julie,Fitzpatrick,Emma Bresnahan,P11360365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Julie,Fitzpatrick,John Bresnahan,P11360365,5W,Fifth Grade,Miss Grace Webb
+Rita,Gibbons,Emma Bresnahan,P11370365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Rita,Gibbons,John Bresnahan,P11370365,5W,Fifth Grade,Miss Grace Webb
+James,Gibbons,Emma Bresnahan,P11380365,3A,Third Grade,Mrs. Leigh Anne Aldama
+James,Gibbons,John Bresnahan,P11380365,5W,Fifth Grade,Miss Grace Webb
+Gerald,Bresnahan,Emma Bresnahan,P11390365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Gerald,Bresnahan,John Bresnahan,P11390365,5W,Fifth Grade,Miss Grace Webb
+Courtney,Myers,Finnley Romesburg,P11410376,3L,Third Grade,Mrs. Ginny Luffman
+Nathan,Romesburg,Finnley Romesburg,P11420376,3L,Third Grade,Mrs. Ginny Luffman
+Mark,Myers,Finnley Romesburg,P11430376,3L,Third Grade,Mrs. Ginny Luffman
+Heather,Decker,Finnley Romesburg,P11440376,3L,Third Grade,Mrs. Ginny Luffman
+Jimmy,Huff,Finnley Romesburg,P11450376,3L,Third Grade,Mrs. Ginny Luffman
+Colton,Myers,Finnley Romesburg,P11460376,3L,Third Grade,Mrs. Ginny Luffman
+Jordan,Yancey,Finnley Romesburg,P11470376,3L,Third Grade,Mrs. Ginny Luffman
+Carissa,Reckenbecker,Finnley Romesburg,P11480376,3L,Third Grade,Mrs. Ginny Luffman
+Jessica,Nelson,Finnley Romesburg,P11490376,3L,Third Grade,Mrs. Ginny Luffman
+Sheri,Weisenbach,Garron Weisenbach,P11550376,3L,Third Grade,Mrs. Ginny Luffman
+Matt,Leis,Genevieve Leis,P11610376,3L,Third Grade,Mrs. Ginny Luffman
+Matt,Leis,Eli Leis,P11610376,4C,Fourth Grade,Mrs. Roberta Casey
+Matt,Leis,Charlotte Leis,P11610376,8B,Eighth Grade,Miss Emily Boutin
+Matt,Leis,Elizabeth Leis,P11610376,KN,Kindergarten,Miss Julia Necessary
+Daniel,Leis,Genevieve Leis,P11630376,3L,Third Grade,Mrs. Ginny Luffman
+Daniel,Leis,Eli Leis,P11630376,4C,Fourth Grade,Mrs. Roberta Casey
+Daniel,Leis,Charlotte Leis,P11630376,8B,Eighth Grade,Miss Emily Boutin
+Katy,Leis,Genevieve Leis,P11640376,3L,Third Grade,Mrs. Ginny Luffman
+Katy,Leis,Eli Leis,P11640376,4C,Fourth Grade,Mrs. Roberta Casey
+Katy,Leis,Charlotte Leis,P11640376,8B,Eighth Grade,Miss Emily Boutin
+Katy,Leis,Elizabeth Leis,P11640376,KN,Kindergarten,Miss Julia Necessary
+Mark,Zabinski,Genevieve Leis,P11650376,3L,Third Grade,Mrs. Ginny Luffman
+Mark,Zabinski,Eli Leis,P11650376,4C,Fourth Grade,Mrs. Roberta Casey
+Mark,Zabinski,Charlotte Leis,P11650376,8B,Eighth Grade,Miss Emily Boutin
+Mark,Zabinski,Elizabeth Leis,P11650376,KN,Kindergarten,Miss Julia Necessary
+Beth,Zabinski,Genevieve Leis,P11660376,3L,Third Grade,Mrs. Ginny Luffman
+Beth,Zabinski,Eli Leis,P11660376,4C,Fourth Grade,Mrs. Roberta Casey
+Beth,Zabinski,Charlotte Leis,P11660376,8B,Eighth Grade,Miss Emily Boutin
+Beth,Zabinski,Elizabeth Leis,P11660376,KN,Kindergarten,Miss Julia Necessary
+Susan,Anderson,Genevieve Leis,P11670376,3L,Third Grade,Mrs. Ginny Luffman
+Susan,Anderson,Eli Leis,P11670376,4C,Fourth Grade,Mrs. Roberta Casey
+Susan,Anderson,Charlotte Leis,P11670376,8B,Eighth Grade,Miss Emily Boutin
+Manna,Koopman,Harlow Koopman,P11710376,3L,Third Grade,Mrs. Ginny Luffman
+Manna,Koopman,Marlie Koopman,P11710376,6G,Sixth Grade,Mrs. Karla Gollhofer
+Sandy,Koopman,Harlow Koopman,P11720376,3L,Third Grade,Mrs. Ginny Luffman
+Sandy,Koopman,Marlie Koopman,P11720376,6G,Sixth Grade,Mrs. Karla Gollhofer
+Dan,Koopman,Harlow Koopman,P11730376,3L,Third Grade,Mrs. Ginny Luffman
+Dan,Koopman,Marlie Koopman,P11730376,6G,Sixth Grade,Mrs. Karla Gollhofer
+Shirley,Curl,Harlow Koopman,P11740376,3L,Third Grade,Mrs. Ginny Luffman
+Shirley,Curl,Marlie Koopman,P11740376,6G,Sixth Grade,Mrs. Karla Gollhofer
+Sarah,Dietle,Harlow Koopman,P11760376,3L,Third Grade,Mrs. Ginny Luffman
+Sarah,Dietle,Marlie Koopman,P11760376,6G,Sixth Grade,Mrs. Karla Gollhofer
+Dj,Koopman,Harlow Koopman,P11770376,3L,Third Grade,Mrs. Ginny Luffman
+Dj,Koopman,Marlie Koopman,P11770376,6G,Sixth Grade,Mrs. Karla Gollhofer
+Kayla,Keith,Hayden Sheets,P11830376,3L,Third Grade,Mrs. Ginny Luffman
+Kayla,Keith,Hope Sheets,P11830376,3A,Third Grade,Mrs. Leigh Anne Aldama
+Fred,Briggler,Hayden Sheets,P11840376,3L,Third Grade,Mrs. Ginny Luffman
+Fred,Briggler,Hope Sheets,P11840376,3A,Third Grade,Mrs. Leigh Anne Aldama
+Martha,Briggler,Hayden Sheets,P11850376,3L,Third Grade,Mrs. Ginny Luffman
+Martha,Briggler,Hope Sheets,P11850376,3A,Third Grade,Mrs. Leigh Anne Aldama
+Angela,Grogan,Hayden Sheets,P11860376,3L,Third Grade,Mrs. Ginny Luffman
+Angela,Grogan,Hope Sheets,P11860376,3A,Third Grade,Mrs. Leigh Anne Aldama
+Christopher,Vore,Jackson Vore,P12110376,3L,Third Grade,Mrs. Ginny Luffman
+Renee,Vickers,Jackson Vore,P12120376,3L,Third Grade,Mrs. Ginny Luffman
+Christel,Vore,Jackson Vore,P12130376,3L,Third Grade,Mrs. Ginny Luffman
+Lisa,Craft,Jackson Vore,P12140376,3L,Third Grade,Mrs. Ginny Luffman
+John,Hutchinson,John Pablo Hutchinson,P12210365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Selina,Aguirre,John Pablo Hutchinson,P12220365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Nubia,Hutchinson,John Pablo Hutchinson,P12230365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Beatriz,Aguirre,John Pablo Hutchinson,P12240365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Susan,Hutchinson,John Pablo Hutchinson,P12250365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Jacinto,Aguirre,John Pablo Hutchinson,P12260365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Asa,Hutchinson,John Pablo Hutchinson,P12270365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Sonia,Aguilar,Joshua Aguilar,P12310376,3L,Third Grade,Mrs. Ginny Luffman
+Rodrigo,Aguilar,Joshua Aguilar,P12320376,3L,Third Grade,Mrs. Ginny Luffman
+Erick,Aguilar,Joshua Aguilar,P12330376,3L,Third Grade,Mrs. Ginny Luffman
+Vanessa,Aguilar,Joshua Aguilar,P12340376,3L,Third Grade,Mrs. Ginny Luffman
+Julie,Mulcare,Kayden Mulcare,P12410365,3A,Third Grade,Mrs. Leigh Anne Aldama
+James,Mulcare,Kayden Mulcare,P12420365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Brittany,Mulcare,Kayden Mulcare,P12430365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Thomas,Mulcare,Kayden Mulcare,P12440365,3A,Third Grade,Mrs. Leigh Anne Aldama
+David,Mulcare,Kayden Mulcare,P12450365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Lauren,Clare,Liam Clare,P12510365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Lauren,Clare,Liam Clare,P12510365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Lauren,Clare,Michael Clare,P12510365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Lauren,Clare,Michael Clare,P12510365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Ralph,Clare,Liam Clare,P12530365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Ralph,Clare,Liam Clare,P12530365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Ralph,Clare,Michael Clare,P12530365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Ralph,Clare,Michael Clare,P12530365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Maud,King,Liam Clare,P12540365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Maud,King,Michael Clare,P12540365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Kelsey,Arnold,Liam Clare,P12560365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Kelsey,Arnold,Michael Clare,P12560365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Kris,King,Liam Clare,P12570365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Kris,King,Michael Clare,P12570365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Chanta,Clare,Liam Clare,P12580365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Chanta,Clare,Michael Clare,P12580365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Kayla,Holmes,Linus Holmes,P12610365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Andrew,Holmes,Linus Holmes,P12620365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Diane,Holmes,Linus Holmes,P12630365,3A,Third Grade,Mrs. Leigh Anne Aldama
+George,Holmes,Linus Holmes,P12640365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Cathy,Taylor,Linus Holmes,P12650365,3A,Third Grade,Mrs. Leigh Anne Aldama
+George,Melo,Livia Berardo Melo,P12710365,3A,Third Grade,Mrs. Leigh Anne Aldama
+George,Melo,Sofia Berardo Melo,P12710365,5W,Fifth Grade,Miss Grace Webb
+Telma Berardo,Melo,Livia Berardo Melo,P12720365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Telma Berardo,Melo,Sofia Berardo Melo,P12720365,5W,Fifth Grade,Miss Grace Webb
+Corban,Wilson,Livia Berardo Melo,P12730365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Corban,Wilson,Sofia Berardo Melo,P12730365,5W,Fifth Grade,Miss Grace Webb
+Bruna,Biazolo,Livia Berardo Melo,P12740365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Bruna,Biazolo,Sofia Berardo Melo,P12740365,5W,Fifth Grade,Miss Grace Webb
+Julie,Kientz,Lucy Kientz,P12810376,3L,Third Grade,Mrs. Ginny Luffman
+John,Kientz,Lucy Kientz,P12820376,3L,Third Grade,Mrs. Ginny Luffman
+Mary Jane,Corbett,Lucy Kientz,P12830376,3L,Third Grade,Mrs. Ginny Luffman
+Lucius,Corbett,Lucy Kientz,P12840376,3L,Third Grade,Mrs. Ginny Luffman
+Matthew,Seiler,Lucy Seiler,P12920376,3L,Third Grade,Mrs. Ginny Luffman
+Matthew,Seiler,Haddie Seiler,P12920376,5W,Fifth Grade,Miss Grace Webb
+Matthew,Seiler,Benjamin Seiler,P12920376,6H,Sixth Grade,Mrs. Kaley Hefley
+Mary Kay,Koenen,Lucy Seiler,P12930376,3L,Third Grade,Mrs. Ginny Luffman
+Mary Kay,Koenen,Haddie Seiler,P12930376,5W,Fifth Grade,Miss Grace Webb
+Mary Kay,Koenen,Benjamin Seiler,P12930376,6H,Sixth Grade,Mrs. Kaley Hefley
+Alexander,Koenen,Lucy Seiler,P12940376,3L,Third Grade,Mrs. Ginny Luffman
+Alexander,Koenen,Haddie Seiler,P12940376,5W,Fifth Grade,Miss Grace Webb
+Alexander,Koenen,Benjamin Seiler,P12940376,6H,Sixth Grade,Mrs. Kaley Hefley
+G. Reine,Seiler,Lucy Seiler,P12960376,3L,Third Grade,Mrs. Ginny Luffman
+G. Reine,Seiler,Haddie Seiler,P12960376,5W,Fifth Grade,Miss Grace Webb
+G. Reine,Seiler,Benjamin Seiler,P12960376,6H,Sixth Grade,Mrs. Kaley Hefley
+John,Seiler,Lucy Seiler,P12970376,3L,Third Grade,Mrs. Ginny Luffman
+John,Seiler,Haddie Seiler,P12970376,5W,Fifth Grade,Miss Grace Webb
+John,Seiler,Benjamin Seiler,P12970376,6H,Sixth Grade,Mrs. Kaley Hefley
+Erin,Bergman,Oliver Bergman,P13110365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Erin,Bergman,Harrison Bergman,P13110365,5S,Fifth Grade,Mrs. Amanda Stephens
+Christian,Bergman,Oliver Bergman,P13120365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Christian,Bergman,Harrison Bergman,P13120365,5S,Fifth Grade,Mrs. Amanda Stephens
+Margaret,Hoeger,Oliver Bergman,P13130365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Margaret,Hoeger,Harrison Bergman,P13130365,5S,Fifth Grade,Mrs. Amanda Stephens
+Carol,Bergman,Oliver Bergman,P13140365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Carol,Bergman,Harrison Bergman,P13140365,5S,Fifth Grade,Mrs. Amanda Stephens
+Chastity,Maloney,Oliver Maloney,P13210365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Justin,Maloney,Oliver Maloney,P13220365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Elizabeth,Jenkins,Oliver Maloney,P13230365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Virginia,Maloney,Oliver Maloney,P13240365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Steve,Maloney,Oliver Maloney,P13250365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Stephanie,Manns,Oliver Manns,P13310376,3L,Third Grade,Mrs. Ginny Luffman
+Paul,Manns,Oliver Manns,P13320376,3L,Third Grade,Mrs. Ginny Luffman
+Jon,Manns,Oliver Manns,P13330376,3L,Third Grade,Mrs. Ginny Luffman
+Carma,Manns,Oliver Manns,P13340376,3L,Third Grade,Mrs. Ginny Luffman
+Beverly,Mellen,Oliver Manns,P13350376,3L,Third Grade,Mrs. Ginny Luffman
+Therese,Olenberger,Raphael Olenberger,P13410365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Therese,Olenberger,Sofia Olenberger,P13410365,5W,Fifth Grade,Miss Grace Webb
+Therese,Olenberger,Eva Olenberger,P13410365,8B,Eighth Grade,Miss Emily Boutin
+Daniel,Olenberger,Raphael Olenberger,P13420365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Daniel,Olenberger,Sofia Olenberger,P13420365,5W,Fifth Grade,Miss Grace Webb
+Daniel,Olenberger,Eva Olenberger,P13420365,8B,Eighth Grade,Miss Emily Boutin
+Cassie,Stout,Raphael Olenberger,P13430365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Cassie,Stout,Sofia Olenberger,P13430365,5W,Fifth Grade,Miss Grace Webb
+Cassie,Stout,Eva Olenberger,P13430365,8B,Eighth Grade,Miss Emily Boutin
+Matt,Mendenhall,Raphael Olenberger,P13440365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Matt,Mendenhall,Sofia Olenberger,P13440365,5W,Fifth Grade,Miss Grace Webb
+Matt,Mendenhall,Eva Olenberger,P13440365,8B,Eighth Grade,Miss Emily Boutin
+Fred,Olenberger,Raphael Olenberger,P13450365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Fred,Olenberger,Sofia Olenberger,P13450365,5W,Fifth Grade,Miss Grace Webb
+Fred,Olenberger,Eva Olenberger,P13450365,8B,Eighth Grade,Miss Emily Boutin
+Tonya,Olenberger,Raphael Olenberger,P13460365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Tonya,Olenberger,Sofia Olenberger,P13460365,5W,Fifth Grade,Miss Grace Webb
+Tonya,Olenberger,Eva Olenberger,P13460365,8B,Eighth Grade,Miss Emily Boutin
+Harry,Biltz,Raphael Olenberger,P13470365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Harry,Biltz,Sofia Olenberger,P13470365,5W,Fifth Grade,Miss Grace Webb
+Harry,Biltz,Eva Olenberger,P13470365,8B,Eighth Grade,Miss Emily Boutin
+Melanie,Biltz,Raphael Olenberger,P13480365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Melanie,Biltz,Sofia Olenberger,P13480365,5W,Fifth Grade,Miss Grace Webb
+Melanie,Biltz,Eva Olenberger,P13480365,8B,Eighth Grade,Miss Emily Boutin
+Lynn,French,Raphael Olenberger,P13490365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Lynn,French,Sofia Olenberger,P13490365,5W,Fifth Grade,Miss Grace Webb
+Lynn,French,Eva Olenberger,P13490365,8B,Eighth Grade,Miss Emily Boutin
+Violeta Nunez,Saenz,Regina Alarcon,P13510376,3L,Third Grade,Mrs. Ginny Luffman
+Gerardo,Ugalde,Regina Alarcon,P13520376,3L,Third Grade,Mrs. Ginny Luffman
+Liliana,Barajas,Regina Alarcon,P13530376,3L,Third Grade,Mrs. Ginny Luffman
+Liliana,Barajas,Aranza Barajas,P13530376,KN,Kindergarten,Miss Julia Necessary
+Alarcon,Luis,Regina Alarcon,P13540376,3L,Third Grade,Mrs. Ginny Luffman
+Alarcon,Luis,Regina Alarcon,P13540376,3L,Third Grade,Mrs. Ginny Luffman
+Luis,Alarcon,Regina Alarcon,P13550376,3L,Third Grade,Mrs. Ginny Luffman
+Romina,Franco,Regina Alarcon,P13560376,3L,Third Grade,Mrs. Ginny Luffman
+Katharine,Wood,Roman Wood,P13610376,3L,Third Grade,Mrs. Ginny Luffman
+Zac,Wood,Roman Wood,P13620376,3L,Third Grade,Mrs. Ginny Luffman
+Jennifer,Wood,Roman Wood,P13630376,3L,Third Grade,Mrs. Ginny Luffman
+Jessica,Schnur,Roman Wood,P13640376,3L,Third Grade,Mrs. Ginny Luffman
+Evan,Schnur,Roman Wood,P13650376,3L,Third Grade,Mrs. Ginny Luffman
+Sam,Gildehaus,Roman Wood,P13660376,3L,Third Grade,Mrs. Ginny Luffman
+Shannon,Wood,Roman Wood,P13670376,3L,Third Grade,Mrs. Ginny Luffman
+Elizabeth,Cervantes,Roman Wood,P13680376,3L,Third Grade,Mrs. Ginny Luffman
+Kirk,Pischel,Roman Wood,P13690376,3L,Third Grade,Mrs. Ginny Luffman
+Alan,Lomax,Sloane Lomax,P13710365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Alan,Lomax,Nash Lomax,P13710365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Jaclyn,Lomax,Sloane Lomax,P13720365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Jaclyn,Lomax,Nash Lomax,P13720365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Julia,Gomez,Sloane Lomax,P13730365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Julia,Gomez,Nash Lomax,P13730365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Chauviere,Monica,Sloane Lomax,P13740365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Chauviere,Monica,Nash Lomax,P13740365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Gloria,Lomax,Sloane Lomax,P13750365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Gloria,Lomax,Nash Lomax,P13750365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Henk,Tenbrink,Sloane Lomax,P13760365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Bruce,Lomax,Sloane Lomax,P13770365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Glenn,Chauviere,Sloane Lomax,P13780365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Glenn,Chauviere,Nash Lomax,P13780365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Carmen,Chauviere,Sloane Lomax,P13790365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Carmen,Chauviere,Nash Lomax,P13790365,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Maria,Rayon,Sophia Sandoval,P13810365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Guadalupe,Sandoval,Sophia Sandoval,P13830365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Marlen,Sandoval,Sophia Sandoval,P13840365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Maribel,Cruz,Sophia Sandoval,P13850365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Sarah,Strickert,Sophia Strickert,P13910365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Sarah,Strickert,Riley Strickert,P13910365,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Calvin,Strickert,Sophia Strickert,P13920365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Calvin,Strickert,Riley Strickert,P13920365,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Shelly,Strickert,Sophia Strickert,P13930365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Luke,Strickert,Sophia Strickert,P13940365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Luke,Strickert,Riley Strickert,P13940365,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Zoe,Strickert,Sophia Strickert,P13950365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Zoe,Strickert,Riley Strickert,P13950365,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Mary,Stroupe,Sophia Strickert,P13960365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Mary,Stroupe,Riley Strickert,P13960365,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Robert,Stroupe,Sophia Strickert,P13970365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Ivan,Lopez,Susy Lopez,P14010365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Veronica,Toledo,Susy Lopez,P14020365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Kristina,Spaniol,Tenley Spaniol,P14110376,3L,Third Grade,Mrs. Ginny Luffman
+Kristina,Spaniol,Thomas Spaniol,P14110376,5S,Fifth Grade,Mrs. Amanda Stephens
+Tom,Spaniol,Tenley Spaniol,P14120376,3L,Third Grade,Mrs. Ginny Luffman
+Tom,Spaniol,Thomas Spaniol,P14120376,5S,Fifth Grade,Mrs. Amanda Stephens
+Juan,Serrano,Andres Serrano,P14610467,4C,Fourth Grade,Mrs. Roberta Casey
+Juan,Serrano,Adrian Serrano,P14610467,7M,Seventh Grade,Mrs. Melissa McCarty
+Vanessa,Serrano,Andres Serrano,P14620467,4C,Fourth Grade,Mrs. Roberta Casey
+Vanessa,Serrano,Adrian Serrano,P14620467,7M,Seventh Grade,Mrs. Melissa McCarty
+J Guadalupe,Carrillo,Andres Serrano,P14630467,4C,Fourth Grade,Mrs. Roberta Casey
+J Guadalupe,Carrillo,Adrian Serrano,P14630467,7M,Seventh Grade,Mrs. Melissa McCarty
+J Guadalupe,Carrillo,Thiago Carrillo,P14630467,KN,Kindergarten,Miss Julia Necessary
+Antonia,Carrillo,Andres Serrano,P14640467,4C,Fourth Grade,Mrs. Roberta Casey
+Antonia,Carrillo,Adrian Serrano,P14640467,7M,Seventh Grade,Mrs. Melissa McCarty
+Antonia,Carrillo,Thiago Carrillo,P14640467,KN,Kindergarten,Miss Julia Necessary
+Concepcion,Serrano,Andres Serrano,P14650467,4C,Fourth Grade,Mrs. Roberta Casey
+Concepcion,Serrano,Adrian Serrano,P14650467,7M,Seventh Grade,Mrs. Melissa McCarty
+Olga,Serrano,Andres Serrano,P14660467,4C,Fourth Grade,Mrs. Roberta Casey
+Olga,Serrano,Adrian Serrano,P14660467,7M,Seventh Grade,Mrs. Melissa McCarty
+Steve,Smith,Anna Smith,P14810480,4P,Fourth Grade,Miss Litzi Perea
+Steve,Smith,Austin Smith,P14810480,7M,Seventh Grade,Mrs. Melissa McCarty
+Lisa,Smith,Anna Smith,P14820480,4P,Fourth Grade,Miss Litzi Perea
+Lisa,Smith,Austin Smith,P14820480,7M,Seventh Grade,Mrs. Melissa McCarty
+Dan,Barnes,Anna Smith,P14830480,4P,Fourth Grade,Miss Litzi Perea
+Dan,Barnes,Austin Smith,P14830480,7M,Seventh Grade,Mrs. Melissa McCarty
+Marie,Barnes,Anna Smith,P14840480,4P,Fourth Grade,Miss Litzi Perea
+Marie,Barnes,Austin Smith,P14840480,7M,Seventh Grade,Mrs. Melissa McCarty
+Marsha,Farmer,Anna Smith,P14850480,4P,Fourth Grade,Miss Litzi Perea
+Marsha,Farmer,Austin Smith,P14850480,7M,Seventh Grade,Mrs. Melissa McCarty
+Kelly,Finer,Benjamin Finer,P15010480,4P,Fourth Grade,Miss Litzi Perea
+Barbara,Kordsmeier,Benjamin Finer,P15020480,4P,Fourth Grade,Miss Litzi Perea
+Kent,Kordsmeier,Benjamin Finer,P15030480,4P,Fourth Grade,Miss Litzi Perea
+Hank,McCollum,Benjamin Finer,P15040480,4P,Fourth Grade,Miss Litzi Perea
+Nathan,Threet,Benjamin Finer,P15050480,4P,Fourth Grade,Miss Litzi Perea
+Michael,McCollum,Benjamin Finer,P15060480,4P,Fourth Grade,Miss Litzi Perea
+Theresa,Harrell,Christopher Harrell,P15410467,4C,Fourth Grade,Mrs. Roberta Casey
+Theresa,Harrell,Elizabeth Harrell,P15410467,6H,Sixth Grade,Mrs. Kaley Hefley
+Emma,Roomey,Christopher Harrell,P15420467,4C,Fourth Grade,Mrs. Roberta Casey
+Emma,Roomey,Elizabeth Harrell,P15420467,6H,Sixth Grade,Mrs. Kaley Hefley
+Chris,Harrell,Christopher Harrell,P15430467,4C,Fourth Grade,Mrs. Roberta Casey
+Chris,Harrell,Elizabeth Harrell,P15430467,6H,Sixth Grade,Mrs. Kaley Hefley
+"Elizabeth ""Dianne""",Lincicome,Christopher Harrell,P15440467,4C,Fourth Grade,Mrs. Roberta Casey
+"Elizabeth ""Dianne""",Lincicome,Elizabeth Harrell,P15440467,6H,Sixth Grade,Mrs. Kaley Hefley
+"James ""Jim""",Lincicome,Christopher Harrell,P15450467,4C,Fourth Grade,Mrs. Roberta Casey
+"James ""Jim""",Lincicome,Elizabeth Harrell,P15450467,6H,Sixth Grade,Mrs. Kaley Hefley
+Kam,Harrell,Christopher Harrell,P15460467,4C,Fourth Grade,Mrs. Roberta Casey
+Kam,Harrell,Elizabeth Harrell,P15460467,6H,Sixth Grade,Mrs. Kaley Hefley
+Aubrynn,Kimes,Christopher Harrell,P15470467,4C,Fourth Grade,Mrs. Roberta Casey
+Aubrynn,Kimes,Elizabeth Harrell,P15470467,6H,Sixth Grade,Mrs. Kaley Hefley
+Jeff,Harrell,Christopher Harrell,P15480467,4C,Fourth Grade,Mrs. Roberta Casey
+Jeff,Harrell,Elizabeth Harrell,P15480467,6H,Sixth Grade,Mrs. Kaley Hefley
+Jessica,Gallegos,Citlali Gallegos,P15510480,4P,Fourth Grade,Miss Litzi Perea
+Jessica,Gallegos,Anthony Gallegos,P15510480,6H,Sixth Grade,Mrs. Kaley Hefley
+George,Gallegos,Citlali Gallegos,P15520480,4P,Fourth Grade,Miss Litzi Perea
+George,Gallegos,Anthony Gallegos,P15520480,6H,Sixth Grade,Mrs. Kaley Hefley
+Rosario,Castrejon,Citlali Gallegos,P15530480,4P,Fourth Grade,Miss Litzi Perea
+Rosario,Castrejon,Anthony Gallegos,P15530480,6H,Sixth Grade,Mrs. Kaley Hefley
+Arturo,Castrejon,Citlali Gallegos,P15540480,4P,Fourth Grade,Miss Litzi Perea
+Arturo,Castrejon,Anthony Gallegos,P15540480,6H,Sixth Grade,Mrs. Kaley Hefley
+Arturo Jr,Castrejon,Citlali Gallegos,P15550480,4P,Fourth Grade,Miss Litzi Perea
+Arturo Jr,Castrejon,Anthony Gallegos,P15550480,6H,Sixth Grade,Mrs. Kaley Hefley
+Martha,Gallegos,Citlali Gallegos,P15560480,4P,Fourth Grade,Miss Litzi Perea
+Javier,Gallegos,Citlali Gallegos,P15570480,4P,Fourth Grade,Miss Litzi Perea
+Mary,Spice,Clayton Spice,P15710480,4P,Fourth Grade,Miss Litzi Perea
+Mary,Spice,Emme Spice,P15710480,6G,Sixth Grade,Mrs. Karla Gollhofer
+Andrew,Spice,Clayton Spice,P24010671,4P,Fourth Grade,Miss Litzi Perea
+Andrew,Spice,Emme Spice,P24010671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Tommie,Lewis,Clayton Spice,P15730480,4P,Fourth Grade,Miss Litzi Perea
+Tommie,Lewis,Emme Spice,P15730480,6G,Sixth Grade,Mrs. Karla Gollhofer
+Elizabeth,Lewis,Clayton Spice,P15740480,4P,Fourth Grade,Miss Litzi Perea
+Elizabeth,Lewis,Emme Spice,P15740480,6G,Sixth Grade,Mrs. Karla Gollhofer
+Susan,Spice,Clayton Spice,P15750480,4P,Fourth Grade,Miss Litzi Perea
+Susan,Spice,Emme Spice,P15750480,6G,Sixth Grade,Mrs. Karla Gollhofer
+John,Spice,Clayton Spice,P15760480,4P,Fourth Grade,Miss Litzi Perea
+John,Spice,Emme Spice,P15760480,6G,Sixth Grade,Mrs. Karla Gollhofer
+Thomas,Zoretic,Daniel Zoretic,P15910467,4C,Fourth Grade,Mrs. Roberta Casey
+Thomas,Zoretic,Joseph Zoretic,P15910467,7P,Seventh Grade,Mrs. Carla Pardetti
+Lauren Zoretic,(powell),Daniel Zoretic,P15920467,4C,Fourth Grade,Mrs. Roberta Casey
+Lauren Zoretic,(powell),Joseph Zoretic,P15920467,7P,Seventh Grade,Mrs. Carla Pardetti
+Karen,Zoretic,Daniel Zoretic,P15930467,4C,Fourth Grade,Mrs. Roberta Casey
+Karen,Zoretic,Joseph Zoretic,P15930467,7P,Seventh Grade,Mrs. Carla Pardetti
+Jim,Powell,Daniel Zoretic,P15940467,4C,Fourth Grade,Mrs. Roberta Casey
+Jim,Powell,Joseph Zoretic,P15940467,7P,Seventh Grade,Mrs. Carla Pardetti
+Jane,Powell,Daniel Zoretic,P15950467,4C,Fourth Grade,Mrs. Roberta Casey
+Jane,Powell,Joseph Zoretic,P15950467,7P,Seventh Grade,Mrs. Carla Pardetti
+Kerry,Laman,Daniel Zoretic,P15960467,4C,Fourth Grade,Mrs. Roberta Casey
+Kerry,Laman,Joseph Zoretic,P15960467,7P,Seventh Grade,Mrs. Carla Pardetti
+Tara,Scott,Daniel Zoretic,P15970467,4C,Fourth Grade,Mrs. Roberta Casey
+Tara,Scott,Joseph Zoretic,P15970467,7P,Seventh Grade,Mrs. Carla Pardetti
+Tina,Young,Ellis Young,P16110480,4P,Fourth Grade,Miss Litzi Perea
+Tina,Young,Dominic Young,P16110480,5W,Fifth Grade,Miss Grace Webb
+Nicholas,Young,Ellis Young,P16120480,4P,Fourth Grade,Miss Litzi Perea
+Nicholas,Young,Dominic Young,P16120480,5W,Fifth Grade,Miss Grace Webb
+Georgiana,Young,Ellis Young,P16130480,4P,Fourth Grade,Miss Litzi Perea
+Georgiana,Young,Dominic Young,P16130480,5W,Fifth Grade,Miss Grace Webb
+Tessa,Nguyen,Ellis Young,P16140480,4P,Fourth Grade,Miss Litzi Perea
+Tessa,Nguyen,Dominic Young,P16140480,5W,Fifth Grade,Miss Grace Webb
+Toan,Nguyen,Ellis Young,P16150480,4P,Fourth Grade,Miss Litzi Perea
+Toan,Nguyen,Dominic Young,P16150480,5W,Fifth Grade,Miss Grace Webb
+Ai,Nguyen,Ellis Young,P16160480,4P,Fourth Grade,Miss Litzi Perea
+Ai,Nguyen,Dominic Young,P16160480,5W,Fifth Grade,Miss Grace Webb
+Theresa,Goncalves,Gideon Goncalves,P16310480,4P,Fourth Grade,Miss Litzi Perea
+Gerik,Goncalves,Gideon Goncalves,P16320480,4P,Fourth Grade,Miss Litzi Perea
+Lisa,Zlatovic,Gideon Goncalves,P16330480,4P,Fourth Grade,Miss Litzi Perea
+June,Brennan,Gideon Goncalves,P16340480,4P,Fourth Grade,Miss Litzi Perea
+Thomas,Brennan,Gideon Goncalves,P16350480,4P,Fourth Grade,Miss Litzi Perea
+Imelda,Giron,Haley Alvarenga,P16410467,4C,Fourth Grade,Mrs. Roberta Casey
+Imelda,Giron,Briana Alvarenga,P16410467,6G,Sixth Grade,Mrs. Karla Gollhofer
+Carlos,Alvarenga,Haley Alvarenga,P16420467,4C,Fourth Grade,Mrs. Roberta Casey
+Carlos,Alvarenga,Briana Alvarenga,P16420467,6G,Sixth Grade,Mrs. Karla Gollhofer
+Pablo,Garcia,Isabella Garcia,P16510480,4P,Fourth Grade,Miss Litzi Perea
+Pablo,Garcia,Jose Garcia,P16510480,7P,Seventh Grade,Mrs. Carla Pardetti
+Michelle,Leon,Isabella Garcia,P16520480,4P,Fourth Grade,Miss Litzi Perea
+Michelle,Leon,Jose Garcia,P16520480,7P,Seventh Grade,Mrs. Carla Pardetti
+Cynthia,Redix,Isabella Garcia,P16530480,4P,Fourth Grade,Miss Litzi Perea
+Cynthia,Redix,Jose Garcia,P16530480,7P,Seventh Grade,Mrs. Carla Pardetti
+Dean,Vlaovich,Ivan Vlaovich,P16610480,4P,Fourth Grade,Miss Litzi Perea
+Cinthia,Vlaovich,Ivan Vlaovich,P16620480,4P,Fourth Grade,Miss Litzi Perea
+Carol,Laforte,Ivan Vlaovich,P16630480,4P,Fourth Grade,Miss Litzi Perea
+Douglas,Easley,Ivan Vlaovich,P16640480,4P,Fourth Grade,Miss Litzi Perea
+Michael,Easley,Ivan Vlaovich,P16650480,4P,Fourth Grade,Miss Litzi Perea
+Samuel,Hernandez,Jairo Hernandez,P16710480,4P,Fourth Grade,Miss Litzi Perea
+Carol,Hernandez,Jairo Hernandez,P16720480,4P,Fourth Grade,Miss Litzi Perea
+Ashley,Dodds,Jameson Dodds,P16810480,4P,Fourth Grade,Miss Litzi Perea
+Joe,Dodds,Jameson Dodds,P16820480,4P,Fourth Grade,Miss Litzi Perea
+Laurie,Felker,Jameson Dodds,P16830480,4P,Fourth Grade,Miss Litzi Perea
+Kerry,Meyers,Jameson Dodds,P16840480,4P,Fourth Grade,Miss Litzi Perea
+Josh,Lane,Katherine Lane,P17010467,4C,Fourth Grade,Mrs. Roberta Casey
+Josh,Lane,Jace Lane,P17010467,6H,Sixth Grade,Mrs. Kaley Hefley
+Karen,Wenzelburger,Katherine Lane,P17030467,4C,Fourth Grade,Mrs. Roberta Casey
+Karen,Wenzelburger,Jace Lane,P17030467,6H,Sixth Grade,Mrs. Kaley Hefley
+Mark,Wenzelburger,Katherine Lane,P17060467,4C,Fourth Grade,Mrs. Roberta Casey
+James,Thomson,Leo Thomson,P17210467,4C,Fourth Grade,Mrs. Roberta Casey
+Kerri,Thomson,Leo Thomson,P17220467,4C,Fourth Grade,Mrs. Roberta Casey
+Mike,Wood,Leo Thomson,P17230467,4C,Fourth Grade,Mrs. Roberta Casey
+Jami,Walts,Maxwell Walts,P17410480,4P,Fourth Grade,Miss Litzi Perea
+Jami,Walts,Lane Walts,P17410480,6H,Sixth Grade,Mrs. Kaley Hefley
+Taylor,Walts,Maxwell Walts,P17420480,4P,Fourth Grade,Miss Litzi Perea
+Taylor,Walts,Lane Walts,P17420480,6H,Sixth Grade,Mrs. Kaley Hefley
+Susan,Stricklan,Maxwell Walts,P17430480,4P,Fourth Grade,Miss Litzi Perea
+Susan,Stricklan,Lane Walts,P17430480,6H,Sixth Grade,Mrs. Kaley Hefley
+Mary,Dikeman,Maxwell Walts,P17440480,4P,Fourth Grade,Miss Litzi Perea
+Mary,Dikeman,Lane Walts,P17440480,6H,Sixth Grade,Mrs. Kaley Hefley
+Gene,Dikeman,Maxwell Walts,P17450480,4P,Fourth Grade,Miss Litzi Perea
+Gene,Dikeman,Lane Walts,P17450480,6H,Sixth Grade,Mrs. Kaley Hefley
+Kristin,Passantino,Michael Passantino,P17510467,4C,Fourth Grade,Mrs. Roberta Casey
+Alex,Passantino,Michael Passantino,P17520467,4C,Fourth Grade,Mrs. Roberta Casey
+Krissa,Mentuis,Michael Passantino,P17530467,4C,Fourth Grade,Mrs. Roberta Casey
+Krissa,Mentuis,Boden Roberts,P17530467,5W,Fifth Grade,Miss Grace Webb
+Krissa,Mentuis,Jensen Roberts,P17530467,8B,Eighth Grade,Miss Emily Boutin
+Krissa,Mentuis,Karsyn Mentuis,P17530467,8G,Eighth Grade,Mrs. Marisean Grom
+Allison,Clark,Warren Clark,P38110078,6G,Sixth Grade,Mrs. Karla Gollhofer
+Allison,Clark,Evelyn Clark,P38110078,8B,Eighth Grade,Miss Emily Boutin
+Allison,Clark,Shane Clark,P38110078,KN,Kindergarten,Miss Julia Necessary
+Jim,Blackstock,Michael Passantino,P17550467,4C,Fourth Grade,Mrs. Roberta Casey
+Kathy,Blackstock,Michael Passantino,P17560467,4C,Fourth Grade,Mrs. Roberta Casey
+Al,Passantino,Michael Passantino,P17570467,4C,Fourth Grade,Mrs. Roberta Casey
+Louise,Passantino,Michael Passantino,P17580467,4C,Fourth Grade,Mrs. Roberta Casey
+Mia,Passantino,Michael Passantino,P17590467,4C,Fourth Grade,Mrs. Roberta Casey
+Natalia,Perez,Nathalie Aguilar,P17710467,4C,Fourth Grade,Mrs. Roberta Casey
+Bryan Cruz,Perez,Nathalie Aguilar,P17720467,4C,Fourth Grade,Mrs. Roberta Casey
+Maria,Macias,Nathalie Aguilar,P17730467,4C,Fourth Grade,Mrs. Roberta Casey
+Alondra Silva,Cruz,Nathalie Aguilar,P17740467,4C,Fourth Grade,Mrs. Roberta Casey
+Byron,Aguilar,Nathalie Aguilar,P17750467,4C,Fourth Grade,Mrs. Roberta Casey
+Byron,Aguilar,Nathalie Aguilar,P17750467,4C,Fourth Grade,Mrs. Roberta Casey
+Jose,Anzora,Sarai Anzora,P17910467,4C,Fourth Grade,Mrs. Roberta Casey
+Maria,Sanchez,Sarai Anzora,P17920467,4C,Fourth Grade,Mrs. Roberta Casey
+Elena,Gonzalez,Sarai Anzora,P17930467,4C,Fourth Grade,Mrs. Roberta Casey
+Franklin,Anzora,Sarai Anzora,P17940467,4C,Fourth Grade,Mrs. Roberta Casey
+Melissa,Baxter,Stella Butler,P18050480,4P,Fourth Grade,Miss Litzi Perea
+Melissa,Baxter,Nicholas Butler,P18050480,5W,Fifth Grade,Miss Grace Webb
+Melissa,Baxter,Darren Meier,P18050480,7P,Seventh Grade,Mrs. Carla Pardetti
+Merry,Cannon,Stella Cannon,P18110467,4C,Fourth Grade,Mrs. Roberta Casey
+Merry,Cannon,Maximus Cannon,P18110467,7P,Seventh Grade,Mrs. Carla Pardetti
+Merry,Cannon,Michael McFadden III,P18110467,7P,Seventh Grade,Mrs. Carla Pardetti
+Merry,Cannon,Jensen Roberts,P18110467,8B,Eighth Grade,Miss Emily Boutin
+Leighton,Cannon,Stella Cannon,P18120467,4C,Fourth Grade,Mrs. Roberta Casey
+Leighton,Cannon,Maximus Cannon,P18120467,7P,Seventh Grade,Mrs. Carla Pardetti
+Crissi,Roberts,Boden Roberts,P18130467,5W,Fifth Grade,Miss Grace Webb
+Crissi,Roberts,Jensen Roberts,P18130467,8B,Eighth Grade,Miss Emily Boutin
+Bridget,Price,Stella Cannon,P18140467,4C,Fourth Grade,Mrs. Roberta Casey
+Bridget,Price,Maximus Cannon,P18140467,7P,Seventh Grade,Mrs. Carla Pardetti
+Jessica,Tarbell,Stella Cannon,P18150467,4C,Fourth Grade,Mrs. Roberta Casey
+Sarah,Le,Tye Le,P18210467,4C,Fourth Grade,Mrs. Roberta Casey
+Sarah,Le,Trey Le,P18210467,6G,Sixth Grade,Mrs. Karla Gollhofer
+Qui,Le,Tye Le,P18220467,4C,Fourth Grade,Mrs. Roberta Casey
+Qui,Le,Trey Le,P18220467,6G,Sixth Grade,Mrs. Karla Gollhofer
+Michelle,Lunn,Tye Le,P18230467,4C,Fourth Grade,Mrs. Roberta Casey
+Michelle,Lunn,Trey Le,P18230467,6G,Sixth Grade,Mrs. Karla Gollhofer
+Agnes,Russell,Tye Le,P18240467,4C,Fourth Grade,Mrs. Roberta Casey
+Agnes,Russell,Trey Le,P18240467,6G,Sixth Grade,Mrs. Karla Gollhofer
+Eduardo,Chew,Tye Le,P18250467,4C,Fourth Grade,Mrs. Roberta Casey
+Eduardo,Chew,Trey Le,P18250467,6G,Sixth Grade,Mrs. Karla Gollhofer
+Jennifer,Guzman,Valerie Almaraz,P18310480,4P,Fourth Grade,Miss Litzi Perea
+Carmen,Guzman,Valerie Almaraz,P18320480,4P,Fourth Grade,Miss Litzi Perea
+Evelyn,Sanchez,Valerie Almaraz,P18330480,4P,Fourth Grade,Miss Litzi Perea
+Karol,Almaraz,Valerie Almaraz,P18340480,4P,Fourth Grade,Miss Litzi Perea
+Veronica,Serrano,William Perez-Serrano,P18410467,4C,Fourth Grade,Mrs. Roberta Casey
+Veronica,Serrano,Sofia Perez-Serrano,P18410467,7M,Seventh Grade,Mrs. Melissa McCarty
+Efrain,Perez,William Perez-Serrano,P18420467,4C,Fourth Grade,Mrs. Roberta Casey
+Efrain,Perez,Sofia Perez-Serrano,P18420467,7M,Seventh Grade,Mrs. Melissa McCarty
+Moises,Serrano-Rosales,William Perez-Serrano,P18430467,4C,Fourth Grade,Mrs. Roberta Casey
+Moises,Serrano-Rosales,Sofia Perez-Serrano,P18430467,7M,Seventh Grade,Mrs. Melissa McCarty
+Maria,Serrano,William Perez-Serrano,P18440467,4C,Fourth Grade,Mrs. Roberta Casey
+Maria,Serrano,Sofia Perez-Serrano,P18440467,7M,Seventh Grade,Mrs. Melissa McCarty
+Teresa,Silva,William Perez-Serrano,P18450467,4C,Fourth Grade,Mrs. Roberta Casey
+Teresa,Silva,Sofia Perez-Serrano,P18450467,7M,Seventh Grade,Mrs. Melissa McCarty
+alfredo,serrano,William Perez-Serrano,P18460467,4C,Fourth Grade,Mrs. Roberta Casey
+alfredo,serrano,Sofia Perez-Serrano,P18460467,7M,Seventh Grade,Mrs. Melissa McCarty
+Kaminski,Samantha,Abigail Talafuse,P18540583,5S,Fifth Grade,Mrs. Amanda Stephens
+Fulvio Salman,Manente,Alice Gulkas Manente,P18710587,5W,Fifth Grade,Miss Grace Webb
+Fulvio Salman,Manente,Rafael Gulkas Manente,P18710587,7M,Seventh Grade,Mrs. Melissa McCarty
+Maria Gabriela Gulkas,Manente,Alice Gulkas Manente,P18720587,5W,Fifth Grade,Miss Grace Webb
+Maria Gabriela Gulkas,Manente,Rafael Gulkas Manente,P18720587,7M,Seventh Grade,Mrs. Melissa McCarty
+Betsy,Arguelles,Alyssa Reynoso,P18810587,5W,Fifth Grade,Miss Grace Webb
+Nathaly,Reynoso,Alyssa Reynoso,P18820587,5W,Fifth Grade,Miss Grace Webb
+Betsy,Pacherres,Alyssa Reynoso,P18830587,5W,Fifth Grade,Miss Grace Webb
+Mariztella,Salinas,Alyssa Reynoso,P18840587,5W,Fifth Grade,Miss Grace Webb
+Nilton,Reynoso,Alyssa Reynoso,P18850587,5W,Fifth Grade,Miss Grace Webb
+Reynoso,Nilton,Alyssa Reynoso,P18860587,5W,Fifth Grade,Miss Grace Webb
+Orlando,Silva,Arthur Silva,P18910583,5S,Fifth Grade,Mrs. Amanda Stephens
+Luciana,Silva,Arthur Silva,P18920583,5S,Fifth Grade,Mrs. Amanda Stephens
+Carolina,Fuentes,Arthur Silva,P18930583,5S,Fifth Grade,Mrs. Amanda Stephens
+Molly,Davidson,Augustus Davidson,P19010587,5W,Fifth Grade,Miss Grace Webb
+Molly,Davidson,Henry Davidson,P19010587,7M,Seventh Grade,Mrs. Melissa McCarty
+Anthony,Roberts,Boden Roberts,P19210587,5W,Fifth Grade,Miss Grace Webb
+Anthony,Roberts,Jensen Roberts,P19210587,8B,Eighth Grade,Miss Emily Boutin
+Lonnie,Bachand,Boden Roberts,P19230587,5W,Fifth Grade,Miss Grace Webb
+Lonnie,Bachand,Jensen Roberts,P19230587,8B,Eighth Grade,Miss Emily Boutin
+Virginia (Jean),Bachand,Boden Roberts,P19250587,5W,Fifth Grade,Miss Grace Webb
+Virginia (Jean),Bachand,Jensen Roberts,P19250587,8B,Eighth Grade,Miss Emily Boutin
+Kasie,Yokley,Crew Yokley,P19610587,5W,Fifth Grade,Miss Grace Webb
+Colby,Yokley,Crew Yokley,P19620587,5W,Fifth Grade,Miss Grace Webb
+Pelty,Benson,Crew Yokley,P19630587,5W,Fifth Grade,Miss Grace Webb
+Vicky,Yokley,Crew Yokley,P19640587,5W,Fifth Grade,Miss Grace Webb
+Sophie,Burtis,Crew Yokley,P19650587,5W,Fifth Grade,Miss Grace Webb
+Melinda,Parkey,Crew Yokley,P19660587,5W,Fifth Grade,Miss Grace Webb
+Kristina,Mullen,Crew Yokley,P19670587,5W,Fifth Grade,Miss Grace Webb
+Travis,Creed,Eleanor Creed,P28510777,5W,Fifth Grade,Miss Grace Webb
+Travis,Creed,Eleanor Creed,P28510777,5W,Fifth Grade,Miss Grace Webb
+Gail,Creed,Eleanor Creed,P19860587,5W,Fifth Grade,Miss Grace Webb
+Gail,Creed,Ethan Creed,P19860587,7M,Seventh Grade,Mrs. Melissa McCarty
+Kenny,Creed,Eleanor Creed,P19870587,5W,Fifth Grade,Miss Grace Webb
+Kenny,Creed,Ethan Creed,P19870587,7M,Seventh Grade,Mrs. Melissa McCarty
+Lisa,Griggs,Emma Griggs,P19910583,5S,Fifth Grade,Mrs. Amanda Stephens
+Kristopher,Griggs,Emma Griggs,P19920583,5S,Fifth Grade,Mrs. Amanda Stephens
+Carol,Sutterfield,Emma Griggs,P19930583,5S,Fifth Grade,Mrs. Amanda Stephens
+Carolyn,Griggs,Emma Griggs,P19950583,5S,Fifth Grade,Mrs. Amanda Stephens
+Terry,Griggs,Emma Griggs,P19970583,5S,Fifth Grade,Mrs. Amanda Stephens
+Kim,Nix,Emma Griggs,P19980583,5S,Fifth Grade,Mrs. Amanda Stephens
+Laura,LaFave,Emma LaFave,P20010583,5S,Fifth Grade,Mrs. Amanda Stephens
+Jason,LaFave,Emma LaFave,P20020583,5S,Fifth Grade,Mrs. Amanda Stephens
+Debra,Olson,Emma LaFave,P20030583,5S,Fifth Grade,Mrs. Amanda Stephens
+Blake,Olson,Emma LaFave,P20040583,5S,Fifth Grade,Mrs. Amanda Stephens
+Kim,Hampton,Emma LaFave,P20050583,5S,Fifth Grade,Mrs. Amanda Stephens
+Craig,Hampton,Emma LaFave,P20060583,5S,Fifth Grade,Mrs. Amanda Stephens
+Joy,LaFave,Emma LaFave,P20070583,5S,Fifth Grade,Mrs. Amanda Stephens
+Gregg,LaFave,Emma LaFave,P20080583,5S,Fifth Grade,Mrs. Amanda Stephens
+Rodolfo,Gonzalez,Evelynn Gonzalez,P20210583,5S,Fifth Grade,Mrs. Amanda Stephens
+Maria,Gonzalez,Evelynn Gonzalez,P20220583,5S,Fifth Grade,Mrs. Amanda Stephens
+Oscar,Castaneda,Evelynn Gonzalez,P20230583,5S,Fifth Grade,Mrs. Amanda Stephens
+Hilda,Castaneda,Evelynn Gonzalez,P20240583,5S,Fifth Grade,Mrs. Amanda Stephens
+Adrian,Gonzalez,Evelynn Gonzalez,P20250583,5S,Fifth Grade,Mrs. Amanda Stephens
+Omar,Gonzalez,Evelynn Gonzalez,P20260583,5S,Fifth Grade,Mrs. Amanda Stephens
+Haley,Kuettel,George Kuettel,P20510587,5W,Fifth Grade,Miss Grace Webb
+Haley,Kuettel,Emersyn Kuettel,P20510587,8B,Eighth Grade,Miss Emily Boutin
+Alyce,Hubbard,George Kuettel,P20520587,5W,Fifth Grade,Miss Grace Webb
+Alyce,Hubbard,Emersyn Kuettel,P20520587,8B,Eighth Grade,Miss Emily Boutin
+Todd,Hubbard,George Kuettel,P20530587,5W,Fifth Grade,Miss Grace Webb
+Todd,Hubbard,Emersyn Kuettel,P20530587,8B,Eighth Grade,Miss Emily Boutin
+Tom,Georges,George Kuettel,P20540587,5W,Fifth Grade,Miss Grace Webb
+Tom,Georges,Emersyn Kuettel,P20540587,8B,Eighth Grade,Miss Emily Boutin
+Melissa,Georges,George Kuettel,P20550587,5W,Fifth Grade,Miss Grace Webb
+Melissa,Georges,Emersyn Kuettel,P20550587,8B,Eighth Grade,Miss Emily Boutin
+Gene,Kuettel,George Kuettel,P20560587,5W,Fifth Grade,Miss Grace Webb
+Gene,Kuettel,Emersyn Kuettel,P20560587,8B,Eighth Grade,Miss Emily Boutin
+Candy,Kuettel,George Kuettel,P20570587,5W,Fifth Grade,Miss Grace Webb
+Candy,Kuettel,Emersyn Kuettel,P20570587,8B,Eighth Grade,Miss Emily Boutin
+Nat,Duque,Gianna Duque,P20610583,5S,Fifth Grade,Mrs. Amanda Stephens
+Sergio,Duque,Gianna Duque,P20620583,5S,Fifth Grade,Mrs. Amanda Stephens
+Mary,King-Hill,Gianna Duque,P20630583,5S,Fifth Grade,Mrs. Amanda Stephens
+Brandy,Arnold,Ingrid Arnold,P21010583,5S,Fifth Grade,Mrs. Amanda Stephens
+Nick,Arnold,Ingrid Arnold,P21020583,5S,Fifth Grade,Mrs. Amanda Stephens
+Barbara,Arnold,Ingrid Arnold,P21030583,5S,Fifth Grade,Mrs. Amanda Stephens
+George,Arnold,Ingrid Arnold,P21040583,5S,Fifth Grade,Mrs. Amanda Stephens
+Betty,Parker,Ingrid Arnold,P21050583,5S,Fifth Grade,Mrs. Amanda Stephens
+Larry,Kern,Ingrid Arnold,P21060583,5S,Fifth Grade,Mrs. Amanda Stephens
+Monica,Sanchez,Isabella Sanchez,P21110583,5S,Fifth Grade,Mrs. Amanda Stephens
+Ernesto,Sanchez,Isabella Sanchez,P21120583,5S,Fifth Grade,Mrs. Amanda Stephens
+Melanie,Sanchez,Isabella Sanchez,P21130583,5S,Fifth Grade,Mrs. Amanda Stephens
+Patrick,Overbey,Jack Overbey,P21210587,5W,Fifth Grade,Miss Grace Webb
+Patrick,Overbey,Avey Overbey,P21210587,6G,Sixth Grade,Mrs. Karla Gollhofer
+Megan,Overbey,Jack Overbey,P21220587,5W,Fifth Grade,Miss Grace Webb
+Megan,Overbey,Avey Overbey,P21220587,6G,Sixth Grade,Mrs. Karla Gollhofer
+Terry,Muldoon,Jack Overbey,P21230587,5W,Fifth Grade,Miss Grace Webb
+Terry,Muldoon,Avey Overbey,P21230587,6G,Sixth Grade,Mrs. Karla Gollhofer
+Kathy,Muldoon,Jack Overbey,P21240587,5W,Fifth Grade,Miss Grace Webb
+Kathy,Muldoon,Avey Overbey,P21240587,6G,Sixth Grade,Mrs. Karla Gollhofer
+Terry,Overbey,Jack Overbey,P21250587,5W,Fifth Grade,Miss Grace Webb
+Terry,Overbey,Avey Overbey,P21250587,6G,Sixth Grade,Mrs. Karla Gollhofer
+Neal,Overbey,Jack Overbey,P21260587,5W,Fifth Grade,Miss Grace Webb
+Neal,Overbey,Avey Overbey,P21260587,6G,Sixth Grade,Mrs. Karla Gollhofer
+Sally Croft,(Davis),Jack Overbey,P21270587,5W,Fifth Grade,Miss Grace Webb
+Sally Croft,(Davis),Avey Overbey,P21270587,6G,Sixth Grade,Mrs. Karla Gollhofer
+Amparina,Guirl,Jack Overbey,P21280587,5W,Fifth Grade,Miss Grace Webb
+Amparina,Guirl,Avey Overbey,P21280587,6G,Sixth Grade,Mrs. Karla Gollhofer
+Hortensia,Ramsey,Julia Ramsey,P21410587,5W,Fifth Grade,Miss Grace Webb
+Hortensia,Ramsey,Justin Ramsey,P21410587,6G,Sixth Grade,Mrs. Karla Gollhofer
+Justin,Ramsey,Julia Ramsey,P21420587,5W,Fifth Grade,Miss Grace Webb
+Justin,Ramsey,Justin Ramsey,P21420587,6G,Sixth Grade,Mrs. Karla Gollhofer
+Chris,Curtiss,Julia Ramsey,P21430587,5W,Fifth Grade,Miss Grace Webb
+Jacquelyn,Brigance,Liam Brigance,P33410871,6H,Sixth Grade,Mrs. Kaley Hefley
+Jacquelyn,Brigance,Lola Brigance,P33410871,8G,Eighth Grade,Mrs. Marisean Grom
+Christie,Gallo,Charles Gallo,P21680583,8B,Eighth Grade,Miss Emily Boutin
+Ricardo,Rodriguez,Michael Rodriguez,P21820587,5W,Fifth Grade,Miss Grace Webb
+Hannah,Lastra,Michael Rodriguez,P21830587,5W,Fifth Grade,Miss Grace Webb
+Chris,Lastra,Michael Rodriguez,P21840587,5W,Fifth Grade,Miss Grace Webb
+Austin,Rodriguez,Michael Rodriguez,P21850587,5W,Fifth Grade,Miss Grace Webb
+Hilda,Pena,Natalia Kamar,P22010587,5W,Fifth Grade,Miss Grace Webb
+Hilda,Pena,William Kamar,P22010587,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Anthony,Kamar,Natalia Kamar,P22020587,5W,Fifth Grade,Miss Grace Webb
+Anthony,Kamar,William Kamar,P22020587,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Francisco,Pena,Natalia Kamar,P22030587,5W,Fifth Grade,Miss Grace Webb
+Francisco,Pena,William Kamar,P22030587,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Diaz,Delia,Natalia Kamar,P22040587,5W,Fifth Grade,Miss Grace Webb
+Milad,Kamar,Natalia Kamar,P22050587,5W,Fifth Grade,Miss Grace Webb
+Milad,Kamar,William Kamar,P22050587,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Vania,Jarjour,Natalia Kamar,P22060587,5W,Fifth Grade,Miss Grace Webb
+Nicole,Jost,Noah Jost-Schexnailder,P22310583,5S,Fifth Grade,Mrs. Amanda Stephens
+Peter,Jost,Noah Jost-Schexnailder,P22320583,5S,Fifth Grade,Mrs. Amanda Stephens
+Quyen,Nguyen,Phison Nguyen,P22410587,5W,Fifth Grade,Miss Grace Webb
+Phi,Nguyen,Phison Nguyen,P22420587,5W,Fifth Grade,Miss Grace Webb
+Van,Nguyen,Phison Nguyen,P22430587,5W,Fifth Grade,Miss Grace Webb
+Hong,Huynh,Phison Nguyen,P22440587,5W,Fifth Grade,Miss Grace Webb
+Michelle,Tjandra,Raphael Winata,P22510583,5S,Fifth Grade,Mrs. Amanda Stephens
+Michelle,Tjandra,Gabriel Winata,P22510583,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Reinard,Winata,Raphael Winata,P22520583,5S,Fifth Grade,Mrs. Amanda Stephens
+Reinard,Winata,Gabriel Winata,P22520583,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Kristia,Tjandra,Raphael Winata,P22530583,5S,Fifth Grade,Mrs. Amanda Stephens
+Kristia,Tjandra,Gabriel Winata,P22530583,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Christina,Tanuwidjaja,Raphael Winata,P22540583,5S,Fifth Grade,Mrs. Amanda Stephens
+Christina,Tanuwidjaja,Gabriel Winata,P22540583,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Jamie,Bell,Ruby Bell,P22610587,5W,Fifth Grade,Miss Grace Webb
+Andrew,Bell,Ruby Bell,P22620587,5W,Fifth Grade,Miss Grace Webb
+Maria,Bell,Ruby Bell,P22630587,5W,Fifth Grade,Miss Grace Webb
+Jeremy Sta,Ana,Amanda Sta Ana,P23110672,6H,Sixth Grade,Mrs. Kaley Hefley
+Jeremy Sta,Ana,Jericho Sta Ana,P23110672,7P,Seventh Grade,Mrs. Carla Pardetti
+Avigail Sta,Ana,Amanda Sta Ana,P23120672,6H,Sixth Grade,Mrs. Kaley Hefley
+Avigail Sta,Ana,Jericho Sta Ana,P23120672,7P,Seventh Grade,Mrs. Carla Pardetti
+Jason Sta,Ana,Amanda Sta Ana,P23130672,6H,Sixth Grade,Mrs. Kaley Hefley
+Jason Sta,Ana,Jericho Sta Ana,P23130672,7P,Seventh Grade,Mrs. Carla Pardetti
+Czarina Soriano,Uy,Amanda Sta Ana,P23140672,6H,Sixth Grade,Mrs. Kaley Hefley
+Czarina Soriano,Uy,Jericho Sta Ana,P23140672,7P,Seventh Grade,Mrs. Carla Pardetti
+Leah,Ani,Amanda Sta Ana,P23150672,6H,Sixth Grade,Mrs. Kaley Hefley
+Leah,Ani,Jericho Sta Ana,P23150672,7P,Seventh Grade,Mrs. Carla Pardetti
+Juan,Urdaneta,Amanda Urdaneta,P23210671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Anviolet,Nava,Amanda Urdaneta,P23220671,6G,Sixth Grade,Mrs. Karla Gollhofer
+faviana,ramos,Amanda Urdaneta,P23230671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Fanny,Fernandez,Amanda Urdaneta,P23240671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Brandy,Rodgers,Avery Rodgers,P23410672,6H,Sixth Grade,Mrs. Kaley Hefley
+Becky,Craig,Avery Rodgers,P23420672,6H,Sixth Grade,Mrs. Kaley Hefley
+Dawn,Przytulski,Avery Rodgers,P23430672,6H,Sixth Grade,Mrs. Kaley Hefley
+Garry,Craig,Avery Rodgers,P23440672,6H,Sixth Grade,Mrs. Kaley Hefley
+Robert,Giron,Briana Alvarenga,P23730671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Jennifer,Harbaugh,David Harbaugh,P23850672,6H,Sixth Grade,Mrs. Kaley Hefley
+Joan,Quinn,David Harbaugh,P23860672,6H,Sixth Grade,Mrs. Kaley Hefley
+Robert,Lewis,Emme Spice,P24050671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Giovane,Santini,Gabriela Santini,P24210671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Xavier,Pushparaj,Jeronin Xavier,P24710671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Ninsha,Bose,Jeronin Xavier,P24720671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Jennifer,Harrington,John Harrington,P24810671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Nathan,Harrington,John Harrington,P24820671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Leacadia,Harrington,John Harrington,P24830671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Erin,Pierson,John Harrington,P24840671,6G,Sixth Grade,Mrs. Karla Gollhofer
+christopher,curtiss,Justin Ramsey,P24920671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Brooke,Johnston,Katherine Johnston,P25110671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Heath,Johnston,Katherine Johnston,P25120671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Kristine,Baird,Katherine Johnston,P25130671,6G,Sixth Grade,Mrs. Karla Gollhofer
+William,Baird,Katherine Johnston,P25140671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Judy,Johnston,Katherine Johnston,P25150671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Carolyn,Horine,Katie Horine,P25210671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Janice,Horine,Katie Horine,P25220671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Larry,Horine,Katie Horine,P25230671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Michael,Nichols,Katie Horine,P25240671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Evelyn,Osorio,Kellen Osorio,P25310672,6H,Sixth Grade,Mrs. Kaley Hefley
+Edwin,Osorio,Kellen Osorio,P25320672,6H,Sixth Grade,Mrs. Kaley Hefley
+Claudia,Osorio,Kellen Osorio,P25330672,6H,Sixth Grade,Mrs. Kaley Hefley
+Jorge,Osorio,Kellen Osorio,P25340672,6H,Sixth Grade,Mrs. Kaley Hefley
+Ronald (Chris),Crosby,Kenedi Pardue,P25410672,6H,Sixth Grade,Mrs. Kaley Hefley
+Shea,Crosby,Kenedi Pardue,P25420672,6H,Sixth Grade,Mrs. Kaley Hefley
+Tonya,Wilhelms,Kenedi Pardue,P25430672,6H,Sixth Grade,Mrs. Kaley Hefley
+Gabriella,Miller,Liam Brigance,P25710672,6H,Sixth Grade,Mrs. Kaley Hefley
+Gabriella,Miller,Lola Brigance,P25710672,8G,Eighth Grade,Mrs. Marisean Grom
+Michael,Brigance,Liam Brigance,P25730672,6H,Sixth Grade,Mrs. Kaley Hefley
+Michael,Brigance,Lola Brigance,P25730672,8G,Eighth Grade,Mrs. Marisean Grom
+Nicole,Gneiting,Liam Brigance,P25740672,6H,Sixth Grade,Mrs. Kaley Hefley
+Nicole,Gneiting,Lola Brigance,P25740672,8G,Eighth Grade,Mrs. Marisean Grom
+Mary,Schaefer,Liam Brigance,P25750672,6H,Sixth Grade,Mrs. Kaley Hefley
+Mary,Schaefer,Lola Brigance,P25750672,8G,Eighth Grade,Mrs. Marisean Grom
+Paula,Basek,Liam Brigance,P25760672,6H,Sixth Grade,Mrs. Kaley Hefley
+Paula,Basek,Lola Brigance,P25760672,8G,Eighth Grade,Mrs. Marisean Grom
+Carol,Brigance,Liam Brigance,P25770672,6H,Sixth Grade,Mrs. Kaley Hefley
+Carol,Brigance,Lola Brigance,P25770672,8G,Eighth Grade,Mrs. Marisean Grom
+Stephanie,Wheelock,Luis Wheelock,P25910672,6H,Sixth Grade,Mrs. Kaley Hefley
+James,Wheelock,Luis Wheelock,P25920672,6H,Sixth Grade,Mrs. Kaley Hefley
+Jeanna,Giordano,Presley Roach,P26210671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Karen,Thompson,Presley Roach,P26220671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Dewey,Roach,Presley Roach,P26230671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Sandra,Roach,Presley Roach,P26240671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Steven,Hartman,Presley Roach,P26250671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Calvin,Roach,Presley Roach,P26260671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Steve,Hartman,Presley Roach,P26270671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Nakole,Neumeier,Preston Neumeier,P26310671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Betty Rose,Neumeier,Preston Neumeier,P26320671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Kurt,Neumeier,Preston Neumeier,P26330671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Alana,Burns,Robert Burns,P26410671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Wesley,Burns,Robert Burns,P26420671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Sara Jo,Dorland,Rylee Dorland,P26510672,6H,Sixth Grade,Mrs. Kaley Hefley
+Matt,Murphy,Samuel Murphy,P26610671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Andrea,Murphy,Samuel Murphy,P26620671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Zach,Stevens,Samuel Murphy,P26630671,6G,Sixth Grade,Mrs. Karla Gollhofer
+JoAnn,Stevens,Samuel Murphy,P26640671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Nancy,Bodine,Samuel Murphy,P26650671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Chuck,Castle,Samuel Murphy,P26660671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Margaret,Castle,Samuel Murphy,P26670671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Ed,Murphy,Samuel Murphy,P26680671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Joanne,Murphy,Samuel Murphy,P26690671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Arthur,Lipski,Thomas Lipski,P26810672,6H,Sixth Grade,Mrs. Kaley Hefley
+Angela,Lipski,Thomas Lipski,P26820672,6H,Sixth Grade,Mrs. Kaley Hefley
+Maria Elena,Matamoros,Tomas Wildman,P26930672,6H,Sixth Grade,Mrs. Kaley Hefley
+Lucas,Clark,Warren Clark,P27160671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Lucas,Clark,Evelyn Clark,P27160671,8B,Eighth Grade,Miss Emily Boutin
+Lucas,Clark,Shane Clark,P27160671,KN,Kindergarten,Miss Julia Necessary
+Pamela,Leonard,Warren Clark,P27130671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Pamela,Leonard,Evelyn Clark,P27130671,8B,Eighth Grade,Miss Emily Boutin
+Pamela,Leonard,Shane Clark,P27130671,KN,Kindergarten,Miss Julia Necessary
+Bernard,Leonard,Warren Clark,P27140671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Bernard,Leonard,Evelyn Clark,P27140671,8B,Eighth Grade,Miss Emily Boutin
+Bernard,Leonard,Shane Clark,P27140671,KN,Kindergarten,Miss Julia Necessary
+Karen,Clark,Warren Clark,P27150671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Karen,Clark,Evelyn Clark,P27150671,8B,Eighth Grade,Miss Emily Boutin
+Karen,Clark,Shane Clark,P27150671,KN,Kindergarten,Miss Julia Necessary
+Greg,Clark,Warren Clark,P32410866,6G,Sixth Grade,Mrs. Karla Gollhofer
+Greg,Clark,Evelyn Clark,P32410866,8B,Eighth Grade,Miss Emily Boutin
+Greg,Clark,Shane Clark,P32410866,KN,Kindergarten,Miss Julia Necessary
+Germain,Pina,Andy Pina,P27710780,7P,Seventh Grade,Mrs. Carla Pardetti
+Emily,Medrano,Andy Pina,P27730780,7P,Seventh Grade,Mrs. Carla Pardetti
+Ceci Vega,Medrano,Andy Pina,P27740780,7P,Seventh Grade,Mrs. Carla Pardetti
+Elvira,Medrano,Andy Pina,P27760780,7P,Seventh Grade,Mrs. Carla Pardetti
+Chrissy,Burke,Andy Pina,P27770780,7P,Seventh Grade,Mrs. Carla Pardetti
+Heath,Geiger,Brandon Geiger,P27910777,7M,Seventh Grade,Mrs. Melissa McCarty
+Heath,Geiger,Jonathan Geiger,P27910777,7P,Seventh Grade,Mrs. Carla Pardetti
+Nicole,Geiger,Brandon Geiger,P27920777,7M,Seventh Grade,Mrs. Melissa McCarty
+Nicole,Geiger,Jonathan Geiger,P27920777,7P,Seventh Grade,Mrs. Carla Pardetti
+Kristi,Geiger,Brandon Geiger,P27930777,7M,Seventh Grade,Mrs. Melissa McCarty
+Kristi,Geiger,Jonathan Geiger,P27930777,7P,Seventh Grade,Mrs. Carla Pardetti
+Darlene,Koesters,Brandon Geiger,P27940777,7M,Seventh Grade,Mrs. Melissa McCarty
+Darlene,Koesters,Jonathan Geiger,P27940777,7P,Seventh Grade,Mrs. Carla Pardetti
+Nick,Koesters,Brandon Geiger,P27950777,7M,Seventh Grade,Mrs. Melissa McCarty
+Nick,Koesters,Jonathan Geiger,P27950777,7P,Seventh Grade,Mrs. Carla Pardetti
+Debbie,Geiger,Brandon Geiger,P27960777,7M,Seventh Grade,Mrs. Melissa McCarty
+Debbie,Geiger,Jonathan Geiger,P27960777,7P,Seventh Grade,Mrs. Carla Pardetti
+William,Geiger,Brandon Geiger,P27970777,7M,Seventh Grade,Mrs. Melissa McCarty
+William,Geiger,Jonathan Geiger,P27970777,7P,Seventh Grade,Mrs. Carla Pardetti
+Deborah,Geiger,Brandon Geiger,P27980777,7M,Seventh Grade,Mrs. Melissa McCarty
+Deborah,Geiger,Jonathan Geiger,P27980777,7P,Seventh Grade,Mrs. Carla Pardetti
+LeAnne,Meier,Darren Meier,P28210780,7P,Seventh Grade,Mrs. Carla Pardetti
+Jim,Meier,Darren Meier,P28220780,7P,Seventh Grade,Mrs. Carla Pardetti
+MaryKathryn,DiGiacomo,Darren Meier,P28230780,7P,Seventh Grade,Mrs. Carla Pardetti
+Patricia,Torres,Erick Almaraz-Torres,P28410780,7P,Seventh Grade,Mrs. Carla Pardetti
+Gabriel,Almaraz,Erick Almaraz-Torres,P28420780,7P,Seventh Grade,Mrs. Carla Pardetti
+Cristin,Hall,Ethan Hall,P28610777,7M,Seventh Grade,Mrs. Melissa McCarty
+Mark,Hall,Ethan Hall,P28620777,7M,Seventh Grade,Mrs. Melissa McCarty
+Mark,Reichhardt,Ethan Hall,P28630777,7M,Seventh Grade,Mrs. Melissa McCarty
+Victor,Hall,Ethan Hall,P28640777,7M,Seventh Grade,Mrs. Melissa McCarty
+Gwen,Seamans,Ethan Hall,P28650777,7M,Seventh Grade,Mrs. Melissa McCarty
+Anne,Hall,Ethan Hall,P28660777,7M,Seventh Grade,Mrs. Melissa McCarty
+David,Reichhardt,Ethan Hall,P28670777,7M,Seventh Grade,Mrs. Melissa McCarty
+Vicente,Chong,Jacqueline Chong,P28810777,7M,Seventh Grade,Mrs. Melissa McCarty
+Thu,Vo,Jacqueline Chong,P28820777,7M,Seventh Grade,Mrs. Melissa McCarty
+Quang,Vo,Jacqueline Chong,P28830777,7M,Seventh Grade,Mrs. Melissa McCarty
+Hoa,Nguyen,Jacqueline Chong,P28840777,7M,Seventh Grade,Mrs. Melissa McCarty
+Maryl Van,Hoek,Jason Van Hoek,P28910777,7M,Seventh Grade,Mrs. Melissa McCarty
+Remko Van,Hoek,Jason Van Hoek,P28920777,7M,Seventh Grade,Mrs. Melissa McCarty
+Caitlin,Shemin,Jason Van Hoek,P28930777,7M,Seventh Grade,Mrs. Melissa McCarty
+Robert (Bob),Weissblatt,Jason Van Hoek,P28940777,7M,Seventh Grade,Mrs. Melissa McCarty
+Mary Catherine (Cathy),Weissblatt,Jason Van Hoek,P28950777,7M,Seventh Grade,Mrs. Melissa McCarty
+Karla,Munkel,Kadence Munkel,P29410780,7P,Seventh Grade,Mrs. Carla Pardetti
+Nate,Munkel,Kadence Munkel,P29420780,7P,Seventh Grade,Mrs. Carla Pardetti
+Marge,Smith,Kadence Munkel,P29430780,7P,Seventh Grade,Mrs. Carla Pardetti
+Gordy,Smith,Kadence Munkel,P29440780,7P,Seventh Grade,Mrs. Carla Pardetti
+Rose,Munkel,Kadence Munkel,P29450780,7P,Seventh Grade,Mrs. Carla Pardetti
+Bob,Munkel,Kadence Munkel,P29460780,7P,Seventh Grade,Mrs. Carla Pardetti
+Janelle,Maples,Keaton Maples,P29510780,7P,Seventh Grade,Mrs. Carla Pardetti
+Janelle,Maples,Michael McFadden III,P29510780,7P,Seventh Grade,Mrs. Carla Pardetti
+Daniel,Maples,Keaton Maples,P29520780,7P,Seventh Grade,Mrs. Carla Pardetti
+Tyler,Casteel,Keaton Maples,P29530780,7P,Seventh Grade,Mrs. Carla Pardetti
+Karlene,Maples,Keaton Maples,P29540780,7P,Seventh Grade,Mrs. Carla Pardetti
+Judy,Barnes,Keaton Maples,P29550780,7P,Seventh Grade,Mrs. Carla Pardetti
+Arthur,Maples,Keaton Maples,P29560780,7P,Seventh Grade,Mrs. Carla Pardetti
+Jim,Barnes,Keaton Maples,P29570780,7P,Seventh Grade,Mrs. Carla Pardetti
+Jackie,Wallace,Maximus Cannon,P30050780,7P,Seventh Grade,Mrs. Carla Pardetti
+Marian,Stuhlsatz,Maximus Cannon,P30060780,7P,Seventh Grade,Mrs. Carla Pardetti
+William,Stuhlsatz,Maximus Cannon,P30070780,7P,Seventh Grade,Mrs. Carla Pardetti
+Melissa,McFadden,Michael McFadden III,P30110780,7P,Seventh Grade,Mrs. Carla Pardetti
+Michael,McFadden,Michael McFadden III,P30120780,7P,Seventh Grade,Mrs. Carla Pardetti
+Debbie,McFadden,Michael McFadden III,P30130780,7P,Seventh Grade,Mrs. Carla Pardetti
+Claire,Jones,Michael McFadden III,P30150780,7P,Seventh Grade,Mrs. Carla Pardetti
+Joan,Dorsey,Nora Dorsey,P30310780,7P,Seventh Grade,Mrs. Carla Pardetti
+Michael,Dorsey,Nora Dorsey,P30320780,7P,Seventh Grade,Mrs. Carla Pardetti
+Cindy,Youngblood,Nora Dorsey,P30330780,7P,Seventh Grade,Mrs. Carla Pardetti
+Tom,Youngblood,Nora Dorsey,P30340780,7P,Seventh Grade,Mrs. Carla Pardetti
+Annie,Dorsey,Nora Dorsey,P30350780,7P,Seventh Grade,Mrs. Carla Pardetti
+Robert,Dorsey,Nora Dorsey,P30360780,7P,Seventh Grade,Mrs. Carla Pardetti
+Pele,Phaxay,Paxson Phaxay,P30510777,7M,Seventh Grade,Mrs. Melissa McCarty
+Pheth,Philaly,Paxson Phaxay,P30520777,7M,Seventh Grade,Mrs. Melissa McCarty
+Viengxay,Philaly,Paxson Phaxay,P30530777,7M,Seventh Grade,Mrs. Melissa McCarty
+Boualaphanh,Phaxay,Paxson Phaxay,P30540777,7M,Seventh Grade,Mrs. Melissa McCarty
+Samuel,Robinson,Samantha Robinson,P30710777,7M,Seventh Grade,Mrs. Melissa McCarty
+Samuel,Robinson,Samantha Robinson,P30710777,7M,Seventh Grade,Mrs. Melissa McCarty
+Samuel,Robinson,Nathan Robinson,P30710777,8B,Eighth Grade,Miss Emily Boutin
+Samuel,Robinson,Nathan Robinson,P30710777,8B,Eighth Grade,Miss Emily Boutin
+Marsha,Robinson,Samantha Robinson,P30720777,7M,Seventh Grade,Mrs. Melissa McCarty
+Marsha,Robinson,Nathan Robinson,P30720777,8B,Eighth Grade,Miss Emily Boutin
+Purita,Robinson,Samantha Robinson,P30740777,7M,Seventh Grade,Mrs. Melissa McCarty
+Purita,Robinson,Nathan Robinson,P30740777,8B,Eighth Grade,Miss Emily Boutin
+Harris,Katie,Sasha Smith,P30830780,7P,Seventh Grade,Mrs. Carla Pardetti
+Teresa Silva,Cabrera,Sofia Perez-Serrano,P30950777,7M,Seventh Grade,Mrs. Melissa McCarty
+Elsa,Saavedra,Sofia Teague,P31050780,7P,Seventh Grade,Mrs. Carla Pardetti
+Teresa,Dus,Sophia Dus,P31110780,7P,Seventh Grade,Mrs. Carla Pardetti
+Stephen,Dus,Sophia Dus,P31120780,7P,Seventh Grade,Mrs. Carla Pardetti
+Amanda,Gibson,Zane Gibson,P31210777,7M,Seventh Grade,Mrs. Melissa McCarty
+Robert,Gibson,Zane Gibson,P31220777,7M,Seventh Grade,Mrs. Melissa McCarty
+Mikayla,Greenlee,Zane Gibson,P31230777,7M,Seventh Grade,Mrs. Melissa McCarty
+Tracy,Wenzinger,Zane Gibson,P31240777,7M,Seventh Grade,Mrs. Melissa McCarty
+Andrea,Tubbs,Zane Gibson,P31250777,7M,Seventh Grade,Mrs. Melissa McCarty
+Guillermo,Mendoza,Aaron Mendoza,P31310866,8B,Eighth Grade,Miss Emily Boutin
+Maria,Mendoza,Aaron Mendoza,P31320866,8B,Eighth Grade,Miss Emily Boutin
+Dulce,Alvarez,Aaron Mendoza,P31330866,8B,Eighth Grade,Miss Emily Boutin
+Artemisa,Morales,Aaron Mendoza,P31340866,8B,Eighth Grade,Miss Emily Boutin
+Guillermo jr,Mendoza,Aaron Mendoza,P31350866,8B,Eighth Grade,Miss Emily Boutin
+Adrian,Mendoza,Aaron Mendoza,P31360866,8B,Eighth Grade,Miss Emily Boutin
+Stefany,Mendoza,Aaron Mendoza,P31370866,8B,Eighth Grade,Miss Emily Boutin
+Annie,Alvarez,Aaron Mendoza,P31380866,8B,Eighth Grade,Miss Emily Boutin
+Jennifer,Jones,Buck Mason,P31710871,8G,Eighth Grade,Mrs. Marisean Grom
+Mark,Mason,Buck Mason,P31720871,8G,Eighth Grade,Mrs. Marisean Grom
+Kinty,Jones,Buck Mason,P31730871,8G,Eighth Grade,Mrs. Marisean Grom
+Joseph,Gallo,Charles Gallo,P31820866,8B,Eighth Grade,Miss Emily Boutin
+Levi,Dixon,Emersyn Kuettel,P32030866,8B,Eighth Grade,Miss Emily Boutin
+Rob Brothers,I,Emma Cate Brothers,P32140866,8B,Eighth Grade,Miss Emily Boutin
+Nickolas,Newnham,Emma Cate Brothers,P32150866,8B,Eighth Grade,Miss Emily Boutin
+Andrew,Brothers,Emma Cate Brothers,P32160866,8B,Eighth Grade,Miss Emily Boutin
+Marty,Strohfus,Emmersyn Strohfus,P32210866,8B,Eighth Grade,Miss Emily Boutin
+Mark,Strohfus,Emmersyn Strohfus,P32220866,8B,Eighth Grade,Miss Emily Boutin
+Melissa,Knoedl,Emmersyn Strohfus,P32230866,8B,Eighth Grade,Miss Emily Boutin
+Chris,Buzzelli,Jacob Buzzelli,P32610871,8G,Eighth Grade,Mrs. Marisean Grom
+Tihesha,Trower,Jacob Buzzelli,P32620871,8G,Eighth Grade,Mrs. Marisean Grom
+Marie,Trower,Jacob Buzzelli,P32630871,8G,Eighth Grade,Mrs. Marisean Grom
+Debbie,Buzzelli,Jacob Buzzelli,P32640871,8G,Eighth Grade,Mrs. Marisean Grom
+Andrew,Buzzelli,Jacob Buzzelli,P32650871,8G,Eighth Grade,Mrs. Marisean Grom
+Diane,Buzzelli,Jacob Buzzelli,P32660871,8G,Eighth Grade,Mrs. Marisean Grom
+Diane,Buzzelli,Jacob Buzzelli,P32660871,8G,Eighth Grade,Mrs. Marisean Grom
+John,Trower,Jacob Buzzelli,P32680871,8G,Eighth Grade,Mrs. Marisean Grom
+JoAnn,Joy,Jacob Buzzelli,P32690871,8G,Eighth Grade,Mrs. Marisean Grom
+Anthony,Poland,Jillinda Poland,P32810871,8G,Eighth Grade,Mrs. Marisean Grom
+Michelle,Poland,Jillinda Poland,P32820871,8G,Eighth Grade,Mrs. Marisean Grom
+Eric,Tee,Jillinda Poland,P32830871,8G,Eighth Grade,Mrs. Marisean Grom
+Eddie,Tee,Jillinda Poland,P32840871,8G,Eighth Grade,Mrs. Marisean Grom
+Lily,Tee,Jillinda Poland,P32850871,8G,Eighth Grade,Mrs. Marisean Grom
+Maria,Tolan,Jillinda Poland,P32860871,8G,Eighth Grade,Mrs. Marisean Grom
+JoAnn,Nygard,"John Nygard, IV",P32910866,8B,Eighth Grade,Miss Emily Boutin
+John,Nygard,"John Nygard, IV",P32920866,8B,Eighth Grade,Miss Emily Boutin
+Joshua,Bryant,"John Nygard, IV",P32930866,8B,Eighth Grade,Miss Emily Boutin
+Jordan,Bryant,"John Nygard, IV",P32940866,8B,Eighth Grade,Miss Emily Boutin
+Kylie,Bryant,"John Nygard, IV",P32950866,8B,Eighth Grade,Miss Emily Boutin
+Chad,Mentuis,Karsyn Mentuis,P33120871,8G,Eighth Grade,Mrs. Marisean Grom
+Luanne,Jankowski,Karsyn Mentuis,P33130871,8G,Eighth Grade,Mrs. Marisean Grom
+Stan,Jankowski,Karsyn Mentuis,P33140871,8G,Eighth Grade,Mrs. Marisean Grom
+Brian,Lang,Keegan Lang,P33210866,8B,Eighth Grade,Miss Emily Boutin
+Rebecca,Lang,Keegan Lang,P33220866,8B,Eighth Grade,Miss Emily Boutin
+David,Retana,Ketzali Retana,P33310871,8G,Eighth Grade,Mrs. Marisean Grom
+María,Almaraz,Ketzali Retana,P33320871,8G,Eighth Grade,Mrs. Marisean Grom
+David,Garcia,Ketzali Retana,P33340871,8G,Eighth Grade,Mrs. Marisean Grom
+Mario,Almaraz,Ketzali Retana,P33360871,8G,Eighth Grade,Mrs. Marisean Grom
+Basek,Paula,Lola Brigance,P33490871,8G,Eighth Grade,Mrs. Marisean Grom
+Delia,Loring,Lucy Loring,P33510871,8G,Eighth Grade,Mrs. Marisean Grom
+George,Loring,Lucy Loring,P33520871,8G,Eighth Grade,Mrs. Marisean Grom
+Cecile,Chen,Lucy Loring,P33530871,8G,Eighth Grade,Mrs. Marisean Grom
+Kim,Ginn,Lucy Loring,P33540871,8G,Eighth Grade,Mrs. Marisean Grom
+Connie,Parker,Lucy Loring,P33550871,8G,Eighth Grade,Mrs. Marisean Grom
+Zhixian,Wang,Lucy Loring,P33560871,8G,Eighth Grade,Mrs. Marisean Grom
+XiaoSheng,Huang,Lucy Loring,P33570871,8G,Eighth Grade,Mrs. Marisean Grom
+Fredy,Martinez,Sarai Martinez,P36210078,8G,Eighth Grade,Mrs. Marisean Grom
+Fredy,Martinez,Jese Martinez,P36210078,KN,Kindergarten,Miss Julia Necessary
+Rosa Mejia de,Martinez,Sarai Martinez,P33730871,8G,Eighth Grade,Mrs. Marisean Grom
+Anthony,Ventolieri,Toni Ventolieri,P33810871,8G,Eighth Grade,Mrs. Marisean Grom
+Chantel,Arroyo,Toni Ventolieri,P33820871,8G,Eighth Grade,Mrs. Marisean Grom
+Dee,Arroyo,Toni Ventolieri,P33830871,8G,Eighth Grade,Mrs. Marisean Grom
+Norreen,Ventolieri,Toni Ventolieri,P33840871,8G,Eighth Grade,Mrs. Marisean Grom
+Sergio,Perez,Abraham Perez,P33910078,KN,Kindergarten,Miss Julia Necessary
+Nallely,Perez,Abraham Perez,P33920078,KN,Kindergarten,Miss Julia Necessary
+Colton,Holland,Alice Holland,P34110067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Stephen,Holland,Alice Holland,P34120067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Angela,Holland,Alice Holland,P34130067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Itzamar,Overstreet,Amelia Overstreet,P34210078,KN,Kindergarten,Miss Julia Necessary
+Tyler,Overstreet,Amelia Overstreet,P34220078,KN,Kindergarten,Miss Julia Necessary
+Nayeli,Witcher,Amelia Overstreet,P34230078,KN,Kindergarten,Miss Julia Necessary
+Itzel,Leon,Amelia Overstreet,P34240078,KN,Kindergarten,Miss Julia Necessary
+Bea,Selva,Andrew Reed,P34380067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Cecilia,Barajas-Rubio,Aranza Barajas,P34410078,KN,Kindergarten,Miss Julia Necessary
+Alfredo,Barajas,Aranza Barajas,P34430078,KN,Kindergarten,Miss Julia Necessary
+Josefina,Barajas,Aranza Barajas,P34440078,KN,Kindergarten,Miss Julia Necessary
+Roberto,Barajas,Aranza Barajas,P34450078,KN,Kindergarten,Miss Julia Necessary
+César Barajas,Rubio,Aranza Barajas,P34460078,KN,Kindergarten,Miss Julia Necessary
+Megan,Alarcon,Aranza Barajas,P34470078,KN,Kindergarten,Miss Julia Necessary
+Faviola,Barajas,Aranza Barajas,P34480078,KN,Kindergarten,Miss Julia Necessary
+Violeta,Nunez,Aranza Barajas,P34490078,KN,Kindergarten,Miss Julia Necessary
+Quincy,Scott,Audrey Scott,P34510067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Zeb,Scott,Audrey Scott,P34520067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+CeCe,Smith,Audrey Scott,P34530067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Tom,Scott,Audrey Scott,P34540067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Rosemary,Ezell,Audrey Scott,P34550067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Jon,Plafcan,Audrey Scott,P34560067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Cathy,Plafcan,Audrey Scott,P34570067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Michael,Juhas,Avery Ranatza,P34750067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Morgan,Mitchell,Bella Dipippa,P34810067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Morgan,Mitchell,Valentino Valdez Salinas,P34810067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Morgan,Mitchell,Valentino Valdez Salinas,P34810067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Andrew,DiPippa,Bella Dipippa,P34820067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Beatriz,Islas,Camila Muñoz,P34910067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Muñoz,Angel,Camila Muñoz,P34920067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Catalina,Flores,Catherine Haynes,P35010078,KN,Kindergarten,Miss Julia Necessary
+Katy,Ramos,Edgar Ramos,P35110078,KN,Kindergarten,Miss Julia Necessary
+Karina,Merlos,Edgar Ramos,P35130078,KN,Kindergarten,Miss Julia Necessary
+Merlos,Johny,Edgar Ramos,P35140078,KN,Kindergarten,Miss Julia Necessary
+Efrain,Merlos,Edgar Ramos,P35150078,KN,Kindergarten,Miss Julia Necessary
+Sandra,Ramos,Edgar Ramos,P35160078,KN,Kindergarten,Miss Julia Necessary
+Mariana,Santiago,Edgar Ramos,P35170078,KN,Kindergarten,Miss Julia Necessary
+Norma,Marin,Edgar Ramos,P35180078,KN,Kindergarten,Miss Julia Necessary
+Jesus,Ramos,Edgar Ramos,P35190078,KN,Kindergarten,Miss Julia Necessary
+Carolina,Schneider,Elijah Schneider,P35210078,KN,Kindergarten,Miss Julia Necessary
+Christian,Schneider,Elijah Schneider,P35220078,KN,Kindergarten,Miss Julia Necessary
+Teresa,Schneider,Elijah Schneider,P35230078,KN,Kindergarten,Miss Julia Necessary
+Kevin,Schneider,Elijah Schneider,P35240078,KN,Kindergarten,Miss Julia Necessary
+Concepcion,Italiano,Elijah Schneider,P35250078,KN,Kindergarten,Miss Julia Necessary
+Dan,Leis,Elizabeth Leis,P35330078,KN,Kindergarten,Miss Julia Necessary
+Tasha,Stricklin,Elsie Strickland,P35410067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Anika,Hingerl,Elsie Strickland,P35420067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Charles,Strickland,Elsie Strickland,P35430067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Janis De la,Houssaye,Elsie Strickland,P35440067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Kathy,Speckman,Elsie Strickland,P35450067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Caroline De Lima,Soares,Elsie Strickland,P35460067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Fatima,Espinoza,Emry Mayfield,P35550067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Monique,Palomares,Emry Mayfield,P35560067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Nikita,Rackers,Everley Tellman,P35610078,KN,Kindergarten,Miss Julia Necessary
+Evan,Rackers,Everley Tellman,P35620078,KN,Kindergarten,Miss Julia Necessary
+Janett,Merlos,Everly Merlos,P35710067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Luis,Merlos,Everly Merlos,P35720067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Luis,Merlos,Everly Merlos,P35720067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Jose,Merlos,Everly Merlos,P35730067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Beatriz,Cardona,Everly Merlos,P35740067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Osmin,Sanabria,Everly Merlos,P35750067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Rosa,Merlos,Everly Merlos,P35770067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Maria,Sanabria,Everly Merlos,P35780067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Mark,Marchetti,Harper Marchetti,P35910067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Ashley,Marchetti,Harper Marchetti,P35920067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Kristy,Jacobelli,Jack Jacobelli,P36010078,KN,Kindergarten,Miss Julia Necessary
+Dominic,Jacobelli,Jack Jacobelli,P36020078,KN,Kindergarten,Miss Julia Necessary
+Dennis,Jacobelli,Jack Jacobelli,P36030078,KN,Kindergarten,Miss Julia Necessary
+Morgan,Hunt,Jack Jacobelli,P36040078,KN,Kindergarten,Miss Julia Necessary
+Leslie,Jacobelli,Jack Jacobelli,P36050078,KN,Kindergarten,Miss Julia Necessary
+Sandra,Wilkinson,Jack Jacobelli,P36060078,KN,Kindergarten,Miss Julia Necessary
+Bradley,Wilkinson,Jack Jacobelli,P36070078,KN,Kindergarten,Miss Julia Necessary
+Ronald,Blaskowski,Jack Jacobelli,P36080078,KN,Kindergarten,Miss Julia Necessary
+MONICA,CRUZ,Jairo Ayala,P36140067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+EBELIN,CRUZ,Jairo Ayala,P36150067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Deyanira Parra,Cruz,Jairo Ayala,P36160067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Sydney,McKenzie,John McKenzie,P36320078,KN,Kindergarten,Miss Julia Necessary
+Sydney,McKenzie,Palmer McKenzie,P36320078,KN,Kindergarten,Miss Julia Necessary
+Ken,McKenzie,John McKenzie,P36330078,KN,Kindergarten,Miss Julia Necessary
+Ken,McKenzie,Palmer McKenzie,P36330078,KN,Kindergarten,Miss Julia Necessary
+Julie,McKenzie,John McKenzie,P36340078,KN,Kindergarten,Miss Julia Necessary
+Julie,McKenzie,Palmer McKenzie,P36340078,KN,Kindergarten,Miss Julia Necessary
+Scott,Maxwell,John McKenzie,P36350078,KN,Kindergarten,Miss Julia Necessary
+Christi,Maxwell,John McKenzie,P36360078,KN,Kindergarten,Miss Julia Necessary
+Lauren,Anderson,Lucas Anderson,P36610067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Scott,Anderson,Lucas Anderson,P36620067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Kevin,Honn,Lucas Anderson,P36630067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Rosa,Honn,Lucas Anderson,P36640067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Emily,Hayes,Magnolia Hayes,P36710067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Chase,Hayes,Magnolia Hayes,P36720067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Jane,Spendio,Magnolia Hayes,P36730067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Mike,Spendio,Magnolia Hayes,P36740067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Elizabeth,Villines,Miller Villines,P37010067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Michael,Villines,Miller Villines,P37020067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Jerri,Miller,Miller Villines,P37030067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Kinley,Miller,Miller Villines,P37040067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Marisela,Carroll,Miranda Carroll,P37110067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Dustin,Carroll,Miranda Carroll,P37120067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Debbie,Carroll,Miranda Carroll,P37130067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Sierra,Marta,Noa Marroquin,P37310067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Alex,Marroquin,Noa Marroquin,P37320067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Hoai,Pham,Princeton Pham,P37610067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Ngoc,Nguyen,Princeton Pham,P37620067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Strickert,Shelly,Riley Strickert,P37740067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Stroupe,Robert,Riley Strickert,P37750067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Mackenzie,Williams,Samantha Williams,P37810078,KN,Kindergarten,Miss Julia Necessary
+Nicolas,Williams,Samantha Williams,P37820078,KN,Kindergarten,Miss Julia Necessary
+Linda,Williams,Samantha Williams,P37830078,KN,Kindergarten,Miss Julia Necessary
+Jim,Williams,Samantha Williams,P37840078,KN,Kindergarten,Miss Julia Necessary
+Julie,Gossett,Samantha Williams,P37850078,KN,Kindergarten,Miss Julia Necessary
+Steve,Gossett,Samantha Williams,P37860078,KN,Kindergarten,Miss Julia Necessary
+Corey,Flax,Samuel Flax,P37910067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Elizabeth,Flax,Samuel Flax,P37920067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Jennifer,Cheatham,Samuel Flax,P37930067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Linda,Wink,Samuel Flax,P37940067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+John,Wink,Samuel Flax,P37950067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Judy,Flax,Samuel Flax,P37960067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Jeannine,Stuart,Sloan Stuart,P38210067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Stuart,Christopher,Sloan Stuart,P38220067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Frances,Edwards,Sloan Stuart,P38230067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Hope,Hightower,Sloan Stuart,P38240067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Chris,Stuart,Sloan Stuart,P38250067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Eva,Hart,Sloan Stuart,P38260067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Stacey,Stuart,Sloan Stuart,P38270067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Omar,Carrillo,Thiago Carrillo,P38410078,KN,Kindergarten,Miss Julia Necessary
+Mariana,Carrillo,Thiago Carrillo,P38420078,KN,Kindergarten,Miss Julia Necessary
+Apolinar,Hernandez,Thiago Carrillo,P38450078,KN,Kindergarten,Miss Julia Necessary
+Maria,Hernandez,Thiago Carrillo,P38460078,KN,Kindergarten,Miss Julia Necessary
+Ana Laura Salinas,Guerrero,Valentino Valdez Salinas,P38630067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Salinas,Julian,Valentino Valdez Salinas,P38640067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Salinas,Araceli,Valentino Valdez Salinas,P38650067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Julian,Salinas,Valentino Valdez Salinas,P38660067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Emma,Salinas,Valentino Valdez Salinas,P38670067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Jose,Valdez,Valentino Valdez Salinas,P38680067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Brenda,Salinas-Valdez,Valentino Valdez Salinas,P38690067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Karla,Diaz,Victoria Mora,P38710067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Leo,Mora,Victoria Mora,P38720067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+William,Diaz,Victoria Mora,P38730067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Daysi,Diaz,Victoria Mora,P38740067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Sergio,Mora,Victoria Mora,P38750067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Lucia,Albarran,Victoria Mora,P38760067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Nancy,Diaz,Victoria Mora,P38770067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Delia,Diaz,William Kamar,P38830067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Vania Jarjour De,Kamar,William Kamar,P38860067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Melissa,OCarrol,Maeve OCarrol,P13163058,5S,Fifth Grade,Mrs. Amanda Stephens
+Melissa,OCarrol,Liam OCarrol,P13163058,7M,Seventh Grade,Mrs. Melissa McCarty
+Generic,QRCode,Jasmine Brutus,2910172,1H,First Grade,Miss Jadyn Heinle
+Generic,QRCode,Arielle Brutus,2910172,2B,Second Grade,Mrs. Jamie Bell
+Generic,QRCode,Isabella Samayoa,2610172,1H,First Grade,Miss Jadyn Heinle
+Generic,QRCode,Sloan Stuart,38210067,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Generic,QRCode,Elizabeth Cobb,11210365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Generic,QRCode,Emma Bresnahan,11210365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Generic,QRCode,Harlow Koopman,11210365,3L,Third Grade,Mrs. Ginny Luffman
+Generic,QRCode,Benjamin Cobb,11210365,5S,Fifth Grade,Mrs. Amanda Stephens
+Generic,QRCode,Eleanor Creed,11210365,5W,Fifth Grade,Miss Grace Webb
+Generic,QRCode,John Bresnahan,11210365,5W,Fifth Grade,Miss Grace Webb
+Generic,QRCode,Marlie Koopman,11210365,6G,Sixth Grade,Mrs. Karla Gollhofer
+Generic,QRCode,Ethan Creed,11210365,7M,Seventh Grade,Mrs. Melissa McCarty
+Generic,QRCode,Mary Weisenbach,3610171,1G,First Grade,Mrs. Olga Griffin
+Generic,QRCode,Garron Weisenbach,3610171,3L,Third Grade,Mrs. Ginny Luffman
+Generic,QRCode,Davis White,6410266,2B,Second Grade,Mrs. Jamie Bell
+Generic,QRCode,George Kuettel,6410266,5W,Fifth Grade,Miss Grace Webb
+Generic,QRCode,Emersyn Kuettel,6410266,8B,Eighth Grade,Miss Emily Boutin
+Generic,QRCode,Katherine Lane,P24610672,4C,Fourth Grade,Mrs. Roberta Casey
+Generic,QRCode,Jace Lane,P24610672,6H,Sixth Grade,Mrs. Kaley Hefley
+Generic,QRCode,George Kuettel,20510587,5W,Fifth Grade,Miss Grace Webb
+Generic,QRCode,Emersyn Kuettel,20510587,8B,Eighth Grade,Miss Emily Boutin
+Generic,QRCode,John Pablo Hutchinson,12210365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Generic,QRCode,Roman Wood,13610376,3L,Third Grade,Mrs. Ginny Luffman
+Generic,QRCode,Sophia Strickert,13910365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Generic,QRCode,Elizabeth Leis,13910365,KN,Kindergarten,Miss Julia Necessary
+Generic,QRCode,Riley Strickert,13910365,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Generic,QRCode,Katie Horine,25210671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Generic,QRCode,David Galvan,1110171,1G,First Grade,Mrs. Olga Griffin
+Generic,QRCode,Kayden Mulcare,12410365,3A,Third Grade,Mrs. Leigh Anne Aldama
+Generic,QRCode,Caroline Reed,6110282,2R,Second Grade,Mrs. Katy Ramos
+Generic,QRCode,Andrew Reed,6110282,KC,Kindergarten,Mrs. Hazel Chidyausiku
+Generic,QRCode,Benjamin Finer,15010480,4P,Fourth Grade,Miss Litzi Perea
+Generic,QRCode,Paige Voss,9110266,2B,Second Grade,Mrs. Jamie Bell
+Generic,QRCode,Kate Voss,9110266,6H,Sixth Grade,Mrs. Kaley Hefley
+Generic,QRCode,Jack Overbey,21210587,5W,Fifth Grade,Miss Grace Webb
+Generic,QRCode,Avey Overbey,21210587,6G,Sixth Grade,Mrs. Karla Gollhofer
+Generic,QRCode,William Perez-Serrano,18410467,4C,Fourth Grade,Mrs. Roberta Casey
+Generic,QRCode,Sofia Perez-Serrano,18410467,7M,Seventh Grade,Mrs. Melissa McCarty
+Generic,QRCode,Fiona Murphy,1810171,1G,First Grade,Mrs. Olga Griffin
+Generic,QRCode,Lucas Anderson,36610067,KB,Kindergarten,Mrs. Julia Bierhaus-Conway
+Generic,QRCode,John Harrington,24810671,6G,Sixth Grade,Mrs. Karla Gollhofer
+Generic,QRCode,Ayelen Trejo,10110376,3L,Third Grade,Mrs. Ginny Luffman
+Generic,QRCode,Azalia Torrez,5510282,2R,Second Grade,Mrs. Katy Ramos
+Generic,QRCode,Isabella Torrez,5510282,6H,Sixth Grade,Mrs. Kaley Hefley
+Marian,Michael,Liliana Michael,P99911122,5W,Fifth Grade,Miss Grace Webb
+Parent,Ottrix,Ashton Ottrix,P77772211,5S,Fifth Grade,Mrs. Amanda Stephens

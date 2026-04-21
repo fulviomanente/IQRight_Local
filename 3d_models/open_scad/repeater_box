@@ -1,0 +1,29 @@
+// =============================================
+// Box — open bottom with base plate ledge
+// 130 x 130 mm outer, 90 mm tall
+// =============================================
+
+outer_size      = 130;
+lip_size        = 119.0;        // Lid lip outer dimension
+press_fit       = 0.2;          // Snug press-fit clearance
+box_inner       = lip_size + press_fit;   // 119.2 mm
+wall_thick      = (outer_size - box_inner) / 2;   // 5.4 mm
+box_height      = 90;
+
+ledge_thick     = 2;            // Ledge vertical thickness
+ledge_width     = 9;            // How far ledge extends inward
+ledge_opening   = box_inner - (2 * ledge_width);   // 101.2 mm opening
+
+difference() {
+
+    // Outer shell (solid)
+    cube([outer_size, outer_size, box_height]);
+
+    // Inner cavity (full height — no bottom)
+    translate([wall_thick, wall_thick, ledge_thick])
+        cube([box_inner, box_inner, box_height]);
+
+    // Bottom opening (center cutout below ledge)
+    translate([wall_thick + ledge_width, wall_thick + ledge_width, -0.1])
+        cube([ledge_opening, ledge_opening, ledge_thick + 0.2]);
+}
