@@ -31,3 +31,4 @@ full_load*
 /logs/
 /package/
 /SVDP_Server_Files/
+/tests/results/
