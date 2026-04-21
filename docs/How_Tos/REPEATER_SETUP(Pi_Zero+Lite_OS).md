@@ -467,7 +467,30 @@ The repeater is configured for autonomous operation. The shutdown and wake-up me
 
 **Shutdown**: The HAT drives GPIO 20 HIGH when it's time to shut down. The repeater detects this in its main loop, sends a SHUTDOWN status to the server, and calls `shutdown -h now`. On startup, the repeater sets GPIO 21 HIGH to tell the HAT the Pi is running. No cron job needed.
 
-**Power monitoring**: Every 10 minutes (when LoRa is idle), the repeater reads the HAT's serial output (`/dev/ttyS0`) to check Vin voltage, Vout voltage, RTC state, and time drift. Alerts are sent to the server as STATUS packets.
+**Power monitoring**: Every 10 minutes (when LoRa is idle), the repeater reads the HAT's serial output (`/dev/ttyS0` at 115200 baud) via `minicom`. The raw serial output looks like:
+
+```
+Now_time is Thursday 2 April 12:51:50 2026
+Power_State : 1
+Rtc_State : 1
+Running_State : 1
+Vin_Voltage(V) : 4.99
+Vout_Voltage(V) : 5.22
+Vout_Current(MA) : 226.00
+```
+
+The repeater parses this and evaluates the following alert conditions:
+
+| Check | Condition | Alert Code |
+|-------|-----------|------------|
+| RTC time drift | HAT time vs Pi time > 5 min | `RTC_TIMING_ERROR` |
+| RTC scheduler | `Rtc_State` != 1 | `RTC_ALARM_ERROR` |
+| Input voltage | Vin < 4.7V | `BATTERY_WARNING` |
+| Input voltage | Vin >= 4.9V | OK |
+| Output voltage | Vout < 5.0V | `POWER_WARNING` |
+
+Alerts are sent to the server as STATUS packets in the format: `vin|vout|current|rtc_status|power_alerts|Waveshare[|event]`
+Example: `4.99|5.22|226.0|OK|OK|Waveshare|STARTUP`
 
 ### PiSugar 3 (alternative)
 
@@ -653,10 +676,10 @@ python3 run_repeater.py                    # Run in foreground
 - Test the HAT serial output: `sudo minicom -b 115200 -o -D /dev/ttyS0`
 
 **PiSugar:**
-- Verify the cron job exists: `sudo crontab -u root -l | grep shutdown`
+- Verify the cron job exists: `sudo crontab -l | grep shutdown`
 - Verify cron service is running: `sudo systemctl status cron`
 - Check shutdown script exists and is executable: `ls -la /usr/local/bin/shutdown_repeater.sh`
-- To recreate: `(sudo crontab -u root -l; echo "0 18 * * * /usr/local/bin/shutdown_repeater.sh # IQRight Repeater daily shutdown") | sudo crontab -u root -`
+- To recreate: `sudo bash -c '(crontab -l 2>/dev/null; echo "0 18 * * * /usr/local/bin/shutdown_repeater.sh # IQRight Repeater daily shutdown") | crontab -'`
 
 ### Waveshare HAT serial not working
 
