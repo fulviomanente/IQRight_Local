@@ -38,7 +38,7 @@ class StudentMatcher:
                 col_map["last"] = col
             elif c in ("deviceid", "device_id", "qrcode", "qr_code", "code"):
                 col_map["device_id"] = col
-            elif c in ("grade", "class", "classroom"):
+            elif c in ("grade", "class", "classroom", "classcode", "class_code"):
                 col_map["grade"] = col
 
         if "first" not in col_map or "last" not in col_map:
