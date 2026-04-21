@@ -29,3 +29,4 @@ full_load*
 *.key
 /static/sounds/
 /logs/
+/package/
