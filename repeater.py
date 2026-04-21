@@ -100,13 +100,13 @@ if POWER_HAT == 'WAVESHARE' and os.getenv("LOCAL") != 'TRUE':
         logging.warning(f"Waveshare GPIO setup failed: {e}")
 
 
-# Logging setup
+# Logging setup — daily rotation at midnight
 try:
-    handler = logging.handlers.RotatingFileHandler(
-        f'{HOME_DIR}/log/repeater_{LORA_NODE_ID}.log',
-        maxBytes=MAX_LOG_SIZE,
-        backupCount=BACKUP_COUNT
+    log_file = f'{HOME_DIR}/log/repeater_{LORA_NODE_ID}.log'
+    handler = logging.handlers.TimedRotatingFileHandler(
+        log_file, when='midnight', interval=1, backupCount=BACKUP_COUNT
     )
+    handler.suffix = "%Y-%m-%d"
     log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(log_formatter)
     logging.getLogger().addHandler(handler)
