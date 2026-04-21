@@ -44,9 +44,12 @@ else:
 COMMAND_TOPIC = "IQRSend"
 
 try:
-    #LOGGING Setup ####################################################
-    handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=MAX_LOG_SIZE, backupCount=BACKUP_COUNT)
-    logging.basicConfig(filename=f'{HOME_DIR}/log/{LOG_FILENAME}')
+    #LOGGING Setup — daily rotation at midnight ########################
+    log_path = f'{HOME_DIR}/log/{LOG_FILENAME}'
+    handler = logging.handlers.TimedRotatingFileHandler(
+        log_path, when='midnight', interval=1, backupCount=BACKUP_COUNT
+    )
+    handler.suffix = "%Y-%m-%d"
     log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(log_formatter)
     logging.getLogger().addHandler(handler)
@@ -109,9 +112,12 @@ client.subscribe("IQRHandshake", qos=1)
 client.loop_start()
 logging.info("[MQTT] Subscribed to IQRHandshake, loop started")
 
-# Per-scanner response cache for deduplication
-# Key: (source_node, code) → Value: list of result dicts (the payload_to_scanner)
-# Prevents double-publish to MQTT when scanner retries after timeout
+# Per-scanner response cache for retry dedup.
+# Key: (source_node, code) → Value: list of result dicts (payload_to_scanner)
+# Each scanner has its own independent entries — activity on one scanner never
+# evicts another scanner's cached response. This guarantees that if scanner 102
+# scans P123 and the response is lost, scanner 102 can retry and still get the
+# cached response even after scanner 103 processed P888 in between.
 scanner_response_cache = {}
 
 offlineData = OfflineData()
@@ -359,7 +365,7 @@ async def handleInfo(packet_payload_str: str, source_node: int, packet_type: Pac
         command = packet_payload_str.split("|")
         logging.info(f"Received command '{command[2]}' from scanner {source_node}")
         
-        # Clear dedup cache for this scanner on cleanup (fresh session)
+        # Clear this scanner's cache on cleanup (fresh session)
         cmd_name = command[2]
         if cmd_name == 'cleanup':
             cleared = {k for k in scanner_response_cache if k[0] == source_node}
@@ -388,13 +394,15 @@ async def handleInfo(packet_payload_str: str, source_node: int, packet_type: Pac
         beacon, payload_code, distance = parts
         logging.info(f"Received data from scanner {source_node}: Beacon={beacon}, Code={payload_code}, Distance={distance}")
 
-        # Check dedup cache — if scanner is retrying after timeout, re-send cached response without MQTT
+        # Per-scanner retry dedup — if same scanner retries the same code,
+        # re-send the cached response without redoing the lookup or republishing MQTT.
+        # Each scanner has independent cache entries keyed by (source_node, code).
         cache_key = (source_node, payload_code)
-        is_duplicate = cache_key in scanner_response_cache
+        is_retry = cache_key in scanner_response_cache
 
-        if is_duplicate:
+        if is_retry:
             payload_to_scanner = scanner_response_cache[cache_key]
-            logging.warning(f"[DEDUP] Duplicate code {payload_code} from scanner {source_node} - re-sending cached response, skipping MQTT")
+            logging.warning(f"[DEDUP] Retry for code {payload_code} from scanner {source_node} - re-sending cached, skipping MQTT")
         else:
             sendObj = await getInfo(beacon, payload_code, distance)
             if sendObj:
@@ -427,8 +435,8 @@ async def handleInfo(packet_payload_str: str, source_node: int, packet_type: Pac
             payload_to_scanner = sendObj if sendObj else None
 
         if payload_to_scanner:
-            # Cache the response for future dedup
-            if not is_duplicate:
+            # Cache the response on fresh lookup — preserved per-scanner until cleanup/HELLO
+            if not is_retry:
                 scanner_response_cache[cache_key] = payload_to_scanner
 
             total_packets = len(payload_to_scanner)
@@ -437,7 +445,7 @@ async def handleInfo(packet_payload_str: str, source_node: int, packet_type: Pac
                 if sendDataScanner(item, source_node, packet_type=PacketType.DATA, packet_index=idx, total_packets=total_packets) == False:
                     logging.error(f'FAILED to send data to Scanner: {json.dumps(item)}')
                 else:
-                    if not is_duplicate:
+                    if not is_retry:
                         sendObj_json = json.dumps(item)
                         hierarchyID = str(item.get("hierarchyID", '00'))
                         if publishMQTT(sendObj_json, hierarchyID):
@@ -445,7 +453,7 @@ async def handleInfo(packet_payload_str: str, source_node: int, packet_type: Pac
                         else:
                             logging.error('MQTT ERROR publishing data')
                     else:
-                        logging.info(f"[DEDUP] Skipped MQTT publish for duplicate {payload_code}")
+                        logging.info(f"[DEDUP] Skipped MQTT publish for retry of {payload_code} from scanner {source_node}")
         else:
             logging.warning(f"No data found for code {payload_code} from scanner {source_node}. Sending NOT_FOUND response.")
             # Send NOT_FOUND response so scanner doesn't timeout waiting
@@ -584,19 +592,20 @@ def beaconLocator(idBeacon):
     try:
         idBeacon = int(idBeacon)
     except (ValueError, TypeError):
+        logging.error(f'[LOCATION] FAILED: Couldnt find a match for idBeacon {idBeacon}')
         return ''
     if idBeacon in BEACON_LOCATIONS:
         return BEACON_LOCATIONS[idBeacon]["location"]
     return ''
 
-# Setup device status logger (separate file for device status tracking)
+# Setup device status logger (separate file for repeater status tracking)
 device_status_logger = logging.getLogger('device_status')
 device_status_logger.setLevel(logging.INFO)
-device_status_handler = logging.handlers.RotatingFileHandler(
+device_status_handler = logging.handlers.TimedRotatingFileHandler(
     f'{HOME_DIR}/log/device_status.log',
-    maxBytes=MAX_LOG_SIZE,
-    backupCount=BACKUP_COUNT
+    when='midnight', interval=1, backupCount=BACKUP_COUNT
 )
+device_status_handler.suffix = "%Y-%m-%d"
 device_status_formatter = logging.Formatter('%(asctime)s - %(message)s')
 device_status_handler.setFormatter(device_status_formatter)
 device_status_logger.addHandler(device_status_handler)
@@ -691,7 +700,8 @@ def handle_hello_packet(packet: LoRaPacket):
 
         logging.info(f"HELLO from {node_type} node {source_node}, seq={scanner_seq}")
 
-        # Clear response dedup cache for this node (scanner rebooted)
+        # Clear response cache for this node only (scanner rebooted)
+        # Other scanners' entries are untouched.
         cleared = {k for k in scanner_response_cache if k[0] == source_node}
         for k in cleared:
             del scanner_response_cache[k]

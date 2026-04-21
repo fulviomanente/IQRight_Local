@@ -84,5 +84,6 @@ IDFACILITY = 1
 BEACON_LOCATIONS = {
     102: {"device": "QR Reader", "location": "Gym Side"},
     103: {"device": "QR Reader", "location": "Gym Side"},
+    104: {"device": "QR Reader", "location": "West Side"},
     2: {"device": "QR Reader", "location": "East Side"},
     3: {"device": "BLE Reader","location": "Main Entrance"}}
