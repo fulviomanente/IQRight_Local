@@ -69,6 +69,36 @@ transceiver = LoRaTransceiver(
 )
 
 
+# Broadcast HELLO on startup — clears repeater caches for server node.
+# Without this, if the server reboots while repeaters are running, the
+# repeaters' seen_packets still contain (server_node=1, old_seq) entries.
+# The server's new packets (starting from seq=0) are silently dropped as
+# duplicates. The HELLO tells every repeater in range to flush its cache
+# for source_node=1, restoring packet flow through the mesh.
+def broadcast_server_hello():
+    if transceiver.rfm9x is None:
+        return
+    try:
+        hello_payload = f"HELLO|{transceiver.sequence_num}|SERVER".encode('utf-8')
+        hello_packet = LoRaPacket.create(
+            packet_type=PacketType.HELLO,
+            source_node=LORA_NODE_ID,
+            dest_node=0xFF,  # Broadcast
+            payload=hello_payload,
+            sequence_num=transceiver.get_next_sequence(),
+            ttl=3
+        )
+        success = transceiver.send_packet(hello_packet, use_ack=False)
+        if success:
+            logging.info(f"SERVER HELLO broadcast sent (seq={hello_packet.sequence_num}) — repeater caches will be cleared")
+        else:
+            logging.warning("Failed to broadcast SERVER HELLO")
+    except Exception as e:
+        logging.error(f"Error broadcasting SERVER HELLO: {e}")
+
+broadcast_server_hello()
+
+
 client = mqtt.Client(client_id="IQRight_Daemon", transport=MQTT_TRANSPORT, protocol=mqtt.MQTTv5)
 client.username_pw_set("IQRight", "123456")
  

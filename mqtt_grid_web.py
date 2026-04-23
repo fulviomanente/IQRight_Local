@@ -105,12 +105,15 @@ def handle_release_complete(data):
 
 # LOGGING Setup
 log_filename = "logs/IQRight_FE_WEB.debug"
-max_log_size = 20 * 1024 * 1024  # 20Mb
 backup_count = 10
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 debug = DEBUG
-handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=max_log_size, backupCount=backup_count)
 
+# Daily rotation at midnight — single handler to avoid duplicate lines
+handler = logging.handlers.TimedRotatingFileHandler(
+    log_filename, when='midnight', interval=1, backupCount=backup_count
+)
+handler.suffix = "%Y-%m-%d"
 handler.setFormatter(log_formatter)
 logging.getLogger().addHandler(handler)
 logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)

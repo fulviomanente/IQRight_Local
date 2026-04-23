@@ -38,10 +38,12 @@ if os.getenv('LOCAL', None) == 'TRUE':
     LORASERVICE_PATH = '.'
     LORASERVICE_LOG_PATH = './LoraService.log'
     HOME_DIR = '.'
+    WEBAPP_LOG_DIR = './log'
 else:
     LORASERVICE_PATH = '/etc/iqright/LoraService'
     LORASERVICE_LOG_PATH = '/etc/iqright/LoraService/LoraService.log'
     HOME_DIR = '/etc/iqright/LoraService'
+    WEBAPP_LOG_DIR = '/etc/iqright/WebApp/logs'
 
 
 #MQTT Configuration

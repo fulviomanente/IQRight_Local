@@ -37,10 +37,12 @@ if os.getenv('LOCAL', None) == 'TRUE':
     LORASERVICE_PATH = './data'
     LORASERVICE_LOG_PATH = './log/Server.log'
     HOME_DIR = '.'
+    WEBAPP_LOG_DIR = './log'
 else:
     LORASERVICE_PATH = '/etc/iqright/LoraService'
     LORASERVICE_LOG_PATH = '/etc/iqright/LoraService/LoraService.log'
     HOME_DIR = '/etc/iqright/LoraService'
+    WEBAPP_LOG_DIR = '/etc/iqright/WebApp/logs'
 
 # MQTT Configuration
 TOPIC_PREFIX = 'Class'
@@ -85,5 +87,7 @@ BEACON_LOCATIONS = {
     102: {"device": "QR Reader", "location": "Gym Side"},
     103: {"device": "QR Reader", "location": "Gym Side"},
     104: {"device": "QR Reader", "location": "West Side"},
+    201: {"device": "Repeater", "location": "Gym Side"},
+    202: {"device": "Repeater", "location": "West Side"},
     2: {"device": "QR Reader", "location": "East Side"},
-    3: {"device": "BLE Reader","location": "Main Entrance"}}
+    3: {"device": "BLE Reader","location": "East Side"}}

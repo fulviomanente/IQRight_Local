@@ -50,12 +50,16 @@ cp lora/packet_handler.py "$LORA_DEST/lora/"
 cp lora/node_types.py "$LORA_DEST/lora/"
 cp lora/collision_avoidance.py "$LORA_DEST/lora/"
 
-# Utils (config + api_client + offline_data for data download)
+# Utils (config + api_client + offline_data + daily_report)
 mkdir -p "$LORA_DEST/utils"
 cp utils/__init__.py "$LORA_DEST/utils/"
 cp utils/config.py "$LORA_DEST/utils/"
 cp utils/api_client.py "$LORA_DEST/utils/"
 cp utils/offline_data.py "$LORA_DEST/utils/"
+cp utils/daily_report.py "$LORA_DEST/utils/"
+
+# Server cockpit (desktop dashboard)
+cp server_cockpit.py "$LORA_DEST/"
 
 # Data files (encrypted student database + keys + credentials)
 mkdir -p "$LORA_DEST/data"
@@ -155,8 +159,9 @@ EOF
 mkdir -p "$DEST/loraservice/log"
 mkdir -p "$DEST/webapp/logs"
 
-# Remove .DS_Store files
+# Remove macOS metadata files
 find "$DEST" -name '.DS_Store' -delete 2>/dev/null || true
+find "$DEST" -name '._*' -delete 2>/dev/null || true
 
 # ---------------------------------------------------------------
 # Create tarball

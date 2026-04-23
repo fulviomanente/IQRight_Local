@@ -74,7 +74,7 @@ print_info() {
     echo -e "  ${CYAN}ℹ $1${NC}"
 }
 
-TOTAL_STEPS=11
+TOTAL_STEPS=12
 
 # ------------------------------------------------------------------
 # Step 1: System packages
@@ -144,6 +144,11 @@ extract_bundle() {
     # Create required directories
     mkdir -p "$LORA_DIR/log"
     mkdir -p "$LORA_DIR/data"
+    mkdir -p "$LORA_DIR/data/reports"
+
+    # Remove macOS metadata files
+    find "$LORA_DIR" -name '._*' -delete 2>/dev/null || true
+    find "$LORA_DIR" -name '.DS_Store' -delete 2>/dev/null || true
 
     # Copy configs for requirements
     mkdir -p "$LORA_DIR/configs"
@@ -585,6 +590,36 @@ EOF
 }
 
 # ------------------------------------------------------------------
+# Step 12: Schedule daily report generation (4:00 PM)
+# ------------------------------------------------------------------
+configure_daily_report() {
+    print_step 12 "Scheduling daily report generation"
+
+    CRON_MARKER="# IQRight daily operation report"
+    CRON_LINE="0 16 * * 1-5 cd ${LORA_DIR} && ${LORA_DIR}/.venv/bin/python3 -m utils.daily_report >> ${LORA_DIR}/log/daily_report.log 2>&1 ${CRON_MARKER}"
+
+    # Ensure cron is installed and running
+    systemctl enable cron 2>/dev/null || true
+    systemctl start cron 2>/dev/null || true
+
+    # Add cron job for the service user (not root — runs as the same user as LoraService)
+    if sudo -u "$RUN_USER" crontab -l 2>/dev/null | grep -q "$CRON_MARKER"; then
+        print_warning "Daily report cron already configured"
+    else
+        (sudo -u "$RUN_USER" crontab -l 2>/dev/null; echo "$CRON_LINE") | sudo -u "$RUN_USER" crontab -
+        # Verify
+        if sudo -u "$RUN_USER" crontab -l 2>/dev/null | grep -q "$CRON_MARKER"; then
+            print_success "Daily report scheduled: weekdays at 4:00 PM"
+        else
+            print_error "Failed to write cron job"
+        fi
+    fi
+
+    print_info "Reports saved to: ${LORA_DIR}/data/reports/daily_YYYY-MM-DD.json"
+    print_info "Cockpit: python3 ${LORA_DIR}/server_cockpit.py"
+}
+
+# ------------------------------------------------------------------
 # Main
 # ------------------------------------------------------------------
 main() {
@@ -635,6 +670,8 @@ main() {
     configure_nginx
     echo ""
     configure_mosquitto
+    echo ""
+    configure_daily_report
 
     # Summary
     print_header "Setup Complete!"
@@ -660,6 +697,11 @@ main() {
     echo -e "    journalctl -u iqright-web -f"
     echo -e "    tail -f ${LORA_DIR}/log/IQRight_Daemon.debug"
     echo -e "    tail -f ${WEB_DIR}/logs/IQRight_FE_WEB.debug"
+    echo ""
+    echo -e "  ${CYAN}Cockpit + Reports:${NC}"
+    echo -e "    python3 ${LORA_DIR}/server_cockpit.py   # Desktop dashboard"
+    echo -e "    Daily report auto-generates weekdays at 4:00 PM"
+    echo -e "    Reports: ${LORA_DIR}/data/reports/daily_YYYY-MM-DD.json"
     echo ""
     echo -e "  ${CYAN}Web interface:${NC}"
     echo -e "    http://<server-ip>/"
