@@ -82,22 +82,20 @@ except ImportError:
     WAVESHARE_SERIAL_DEVICE = '/dev/ttyS0'
     WAVESHARE_SERIAL_BAUD = 115200
 
-# GPIO setup for Waveshare HAT communication (only for Waveshare HAT)
+# OLED display switch on GPIO 5 (physical toggle switch)
+# ON = display active (no auto-off), OFF = display fully off
+OLED_SWITCH_PIN = 16
+
+# GPIO state
 WAVESHARE_GPIO_AVAILABLE = False
-if POWER_HAT == 'WAVESHARE' and os.getenv("LOCAL") != 'TRUE':
+GPIO_AVAILABLE = False
+GPIO = None  # Module-level reference, set in _init_gpio()
+
+if os.getenv("LOCAL") != 'TRUE':
     try:
         import RPi.GPIO as GPIO
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
-        # Pin 20: HAT signals Pi to shutdown (input)
-        GPIO.setup(WAVESHARE_SHUTDOWN_PIN, GPIO.IN)
-        # Pin 21: Pi tells HAT it's running (output, HIGH = running)
-        GPIO.setup(WAVESHARE_RUNNING_PIN, GPIO.OUT)
-        GPIO.output(WAVESHARE_RUNNING_PIN, GPIO.HIGH)
-        WAVESHARE_GPIO_AVAILABLE = True
-        logging.info(f"Waveshare GPIO initialized: shutdown=GPIO{WAVESHARE_SHUTDOWN_PIN}, running=GPIO{WAVESHARE_RUNNING_PIN}")
-    except Exception as e:
-        logging.warning(f"Waveshare GPIO setup failed: {e}")
+    except ImportError:
+        pass
 
 
 # Logging setup — daily rotation at midnight
@@ -136,6 +134,113 @@ class RepeaterStats:
         logging.info(f"Forward Rate: {self.packets_forwarded/max(self.packets_received, 1)*100:.1f}%")
 
 
+def _get_wifi_info() -> tuple:
+    """Get WiFi connection status and IP address. Returns (connected: bool, ip: str)."""
+    try:
+        result = subprocess.run(
+            ["hostname", "-I"], capture_output=True, text=True, timeout=3
+        )
+        ips = result.stdout.strip().split()
+        if ips:
+            return True, ips[0]
+    except Exception:
+        pass
+    return False, ""
+
+
+def _get_pisugar_wakeup() -> str:
+    """Get next PiSugar RTC wakeup time. Returns time string or '--'."""
+    try:
+        result = subprocess.run(
+            ["bash", "-c", "echo 'get rtc_alarm_time' | nc -q 0 127.0.0.1 8423"],
+            capture_output=True, text=True, timeout=3
+        )
+        out = result.stdout.strip()
+        # Format: "rtc_alarm_time: 2026-04-23T13:00:00.000-05:00"
+        if "rtc_alarm_time:" in out:
+            time_str = out.split(": ", 1)[1].strip()
+            # Extract just HH:MM
+            if "T" in time_str:
+                return time_str.split("T")[1][:5]
+    except Exception:
+        pass
+    return "--"
+
+
+def _show_info_screens(oled, power_status, start_time: float):
+    """Show 4 info screens when the OLED switch is turned on.
+
+    Screen 1 (5s): Battery level + charging status
+    Screen 2 (5s): RTC wakeup time + current time (sync check)
+    Screen 3 (5s): WiFi status + IP address
+    Screen 4 (5s): Service start time + Node ID + current time
+    """
+    try:
+        # --- Screen 1: Battery ---
+        oled._turn_on()
+        oled._clear()
+        oled.draw.text((5, 5), "Power Status", font=oled.font, fill=255)
+        oled.draw.rectangle((0, 18, oled.width, 20), outline=255, fill=255)
+
+        if power_status and power_status.get('available'):
+            if POWER_HAT == 'PISUGAR':
+                oled.draw.text((5, 25), f"Battery: {power_status['battery']:.0f}%", font=oled.font, fill=255)
+                oled.draw.text((5, 38), f"Voltage: {power_status['voltage']:.2f}V", font=oled.font, fill=255)
+                charging = "Yes" if power_status.get('charging') else "No"
+                oled.draw.text((5, 51), f"Charging: {charging}", font=oled.font, fill=255)
+            else:
+                oled.draw.text((5, 25), f"Vin:  {power_status['vin_voltage']:.2f}V", font=oled.font, fill=255)
+                oled.draw.text((5, 38), f"Vout: {power_status['vout_voltage']:.2f}V", font=oled.font, fill=255)
+        else:
+            oled.draw.text((5, 25), "No power data", font=oled.font, fill=255)
+
+        oled._update()
+        time.sleep(5)
+
+        # --- Screen 2: Wakeup + Current Time ---
+        oled._clear()
+        oled.draw.text((5, 5), "RTC Schedule", font=oled.font, fill=255)
+        oled.draw.rectangle((0, 18, oled.width, 20), outline=255, fill=255)
+
+        wakeup = _get_pisugar_wakeup() if POWER_HAT == 'PISUGAR' else "--"
+        oled.draw.text((5, 25), f"Wakeup: {wakeup}", font=oled.font, fill=255)
+        oled.draw.text((5, 42), f"Now:    {datetime.now().strftime('%H:%M:%S')}", font=oled.font, fill=255)
+
+        oled._update()
+        time.sleep(5)
+
+        # --- Screen 3: WiFi + IP ---
+        oled._clear()
+        oled.draw.text((5, 5), "Network", font=oled.font, fill=255)
+        oled.draw.rectangle((0, 18, oled.width, 20), outline=255, fill=255)
+
+        connected, ip = _get_wifi_info()
+        if connected:
+            oled.draw.text((5, 25), "WiFi: Connected", font=oled.font, fill=255)
+            oled.draw.text((5, 42), f"IP: {ip}", font=oled.font, fill=255)
+        else:
+            oled.draw.text((5, 25), "WiFi: Not connected", font=oled.font, fill=255)
+
+        oled._update()
+        time.sleep(5)
+
+        # --- Screen 4: Service start + current time ---
+        oled._clear()
+        oled.draw.text((5, 5), "Service Info", font=oled.font, fill=255)
+        oled.draw.rectangle((0, 18, oled.width, 20), outline=255, fill=255)
+
+        start_dt = datetime.fromtimestamp(start_time)
+        oled.draw.text((5, 25), f"Started: {start_dt.strftime('%H:%M:%S')}", font=oled.font, fill=255)
+        oled.draw.text((5, 38), f"Node ID: {LORA_NODE_ID}", font=oled.font, fill=255)
+        oled.draw.text((5, 51), f"Now: {datetime.now().strftime('%H:%M:%S')}", font=oled.font, fill=255)
+
+        oled._update()
+        time.sleep(5)
+
+    except Exception as e:
+        logging.error(f"Error showing info screens: {e}")
+
+
 def _get_lora_pins():
     """Get board pin objects for CS and RST based on config GPIO numbers."""
     if os.getenv("LOCAL") == 'TRUE':
@@ -165,9 +270,32 @@ def _get_lora_pins():
 
 def main():
     """Main repeater loop"""
+    global GPIO_AVAILABLE, WAVESHARE_GPIO_AVAILABLE
 
-    # Initialize OLED display (auto-off after 30s of inactivity)
-    oled = get_oled_display(auto_off_seconds=30)
+    # Initialize GPIO pins (after logging is configured so messages are visible)
+    if GPIO is not None:
+        try:
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setwarnings(False)
+
+            # OLED switch (GPIO 5, input with pull-up — switch connects to GND)
+            GPIO.setup(OLED_SWITCH_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            GPIO_AVAILABLE = True
+            switch_val = GPIO.input(OLED_SWITCH_PIN)
+            logging.info(f"OLED switch initialized on GPIO{OLED_SWITCH_PIN} (value={switch_val}, {'OFF' if switch_val else 'ON'})")
+
+            # Waveshare HAT pins (only if Waveshare selected)
+            if POWER_HAT == 'WAVESHARE':
+                GPIO.setup(WAVESHARE_SHUTDOWN_PIN, GPIO.IN)
+                GPIO.setup(WAVESHARE_RUNNING_PIN, GPIO.OUT)
+                GPIO.output(WAVESHARE_RUNNING_PIN, GPIO.HIGH)
+                WAVESHARE_GPIO_AVAILABLE = True
+                logging.info(f"Waveshare GPIO initialized: shutdown=GPIO{WAVESHARE_SHUTDOWN_PIN}, running=GPIO{WAVESHARE_RUNNING_PIN}")
+        except Exception as e:
+            logging.error(f"GPIO setup failed: {e}")
+
+    # Initialize OLED display (auto-off disabled — controlled by GPIO switch)
+    oled = get_oled_display(auto_off_seconds=0)
 
     # Validate node ID is in repeater range
     if LORA_NODE_ID < 200 or LORA_NODE_ID > 256:
@@ -208,6 +336,11 @@ def main():
     # Pending status to send when LoRa becomes idle
     pending_status_event = None
     pending_status_ready = False
+
+    # OLED switch state tracking (GPIO 5)
+    oled_switch_was_on = False
+    oled_display_active = False
+    service_start_time = time.time()
 
     def send_status(event=None):
         """Send a STATUS packet to the server. Only call when LoRa is idle."""
@@ -256,9 +389,27 @@ def main():
 
     logging.info("Repeater ready, listening for packets...")
 
-    # Show ready status on OLED
-    time.sleep(2)  # Wait for startup message to display
+    # Show ready status on OLED briefly during startup
+    time.sleep(2)
     oled.show_ready(LORA_NODE_ID, device_type="Repeater")
+    time.sleep(2)
+
+    # Check initial switch state — if OFF, turn display off now
+    if GPIO_AVAILABLE:
+        initial_switch = not GPIO.input(OLED_SWITCH_PIN)
+        if initial_switch:
+            oled_switch_was_on = True
+            oled_display_active = True
+            logging.info("OLED switch is ON at startup — display stays on")
+        else:
+            oled._turn_off()
+            oled_switch_was_on = False
+            oled_display_active = False
+            logging.info("OLED switch is OFF at startup — display off")
+    else:
+        # No GPIO — keep display on (fallback behavior)
+        oled_display_active = True
+        oled_switch_was_on = True
 
     # Queue STARTUP status to send when idle
     pending_status_event = "STARTUP"
@@ -312,19 +463,39 @@ def main():
                     send_status()
                     last_status_sent = time.time()
 
-                # Periodically update OLED stats
-                if time.time() - last_oled_update > OLED_STATS_INTERVAL:
+                # --- OLED switch control (GPIO 5) ---
+                oled_switch_on = (not GPIO.input(OLED_SWITCH_PIN)) if GPIO_AVAILABLE else False
+
+                if oled_switch_on and not oled_switch_was_on:
+                    # Switch just turned ON — show info screens then enter normal display
+                    logging.info("OLED switch ON — showing info screens")
+                    oled_display_active = True
+                    _show_info_screens(oled, last_power_status, service_start_time)
+                    last_oled_update = 0  # Force immediate stats display after info screens
+
+                elif not oled_switch_on and oled_switch_was_on:
+                    # Switch just turned OFF — shut down display
+                    logging.info("OLED switch OFF — display off")
+                    oled_display_active = False
+                    try:
+                        oled._turn_off()
+                    except Exception:
+                        pass
+
+                oled_switch_was_on = oled_switch_on
+
+                # Normal OLED stats (only when switch is ON)
+                if oled_display_active and time.time() - last_oled_update > OLED_STATS_INTERVAL:
                     try:
                         total_dropped = (stats.packets_dropped_ttl +
                                        stats.packets_dropped_duplicate +
                                        stats.packets_dropped_crc)
-                        # Show power info on OLED if available
                         vin_display = None
                         if last_power_status and last_power_status.get('available'):
                             if POWER_HAT == 'WAVESHARE':
-                                vin_display = int(last_power_status['vin_voltage'] * 100)  # e.g. 499 for 4.99V
+                                vin_display = int(last_power_status['vin_voltage'] * 100)
                             else:
-                                vin_display = int(last_power_status['battery'])  # e.g. 85 for 85%
+                                vin_display = int(last_power_status['battery'])
                         oled.show_repeater_stats(
                             stats.packets_received,
                             stats.packets_forwarded,
@@ -334,12 +505,6 @@ def main():
                         last_oled_update = time.time()
                     except Exception as e:
                         logging.error(f"Failed to update OLED: {e}")
-
-                # Check OLED auto-off
-                try:
-                    oled.update()
-                except Exception:
-                    pass
 
                 continue
 
@@ -387,11 +552,12 @@ def main():
 
             logging.info(f"Forwarding packet: {packet}")
 
-            # Show forwarding on OLED (brief)
-            try:
-                oled.show_packet_forwarded(packet.source_node, packet.dest_node)
-            except Exception:
-                pass
+            # Show forwarding on OLED (only when switch is ON)
+            if oled_display_active:
+                try:
+                    oled.show_packet_forwarded(packet.source_node, packet.dest_node)
+                except Exception:
+                    pass
 
             # Forward with collision avoidance
             try:
