@@ -35,7 +35,7 @@ if os.getenv("LOCAL", "FALSE") != "TRUE":
 debug = False
 
 # LOGGING Setup
-log_filename = "logs/IQRight_Scanner.debug"
+log_filename = "log/IQRight_Scanner.debug"
 os.makedirs("logs", exist_ok=True)
 max_log_size = 20 * 1024 * 1024  # 20Mb
 backup_count = 10
@@ -857,15 +857,17 @@ class App(tk.Tk):
                 # Handle invalid QR codes from serial thread
                 if qrCode.startswith("INVALID:"):
                     raw_code = qrCode[8:]  # Strip "INVALID:" prefix
-                    self.car_number += 1
-                    self.sheet.insert_row([self.car_number, raw_code, 'N/A'], redraw=True)
-                    self.sheet.highlight_rows(rows=[self.sheet.get_total_rows() - 1],
-                                              bg='#fbbf24', fg='black', highlight_index=True, redraw=True)
-                    self.sheet.see(self.sheet.get_total_rows() - 1, 0)
                     self.lbl_name.config(text=f"{raw_code}")
                     self.lbl_status.config(text="INVALID QR CODE", bg="orange", fg="black")
                     self.after(3000, lambda: self.lbl_status.config(text="Ready", bg="green", fg="white"))
-                    logging.warning(f"[QUEUE] Invalid QR displayed: {raw_code}")
+                    logging.warning(f"[QUEUE] Invalid QR ({self.mode}): {raw_code}")
+                    # Only add to grid in validation mode (for documenting bad codes)
+                    if self.mode == "validation":
+                        self.car_number += 1
+                        self.sheet.insert_row([self.car_number, raw_code, 'N/A'], redraw=True)
+                        self.sheet.highlight_rows(rows=[self.sheet.get_total_rows() - 1],
+                                                  bg='#fbbf24', fg='black', highlight_index=True, redraw=True)
+                        self.sheet.see(self.sheet.get_total_rows() - 1, 0)
                 elif qrCode in self.lstCode:
                     self.lbl_name.config(text=f"{qrCode}")
                     self.lbl_status.config(text="Duplicate QRCode")
@@ -897,6 +899,9 @@ class App(tk.Tk):
         except Exception as e:
             logging.info(f"Shutdown cleanup error: {e}")
         finally:
+            # Flush all log handlers before shutdown — prevents data loss
+            for handler in logging.getLogger().handlers:
+                handler.flush()
             os.system('sudo shutdown -h now')
 
     def pileCommands(self, command: str):

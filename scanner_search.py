@@ -62,7 +62,7 @@ if os.getenv("LOCAL", "FALSE") != "TRUE":
 debug = False
 
 #LOGGING Setup
-log_filename = "logs/IQRight_Scanner.debug"
+log_filename = "log/IQRight_Scanner.debug"
 os.makedirs("logs", exist_ok=True)
 max_log_size = 20 * 1024 * 1024 #20Mb
 backup_count = 10
