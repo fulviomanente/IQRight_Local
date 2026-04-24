@@ -421,26 +421,27 @@ def main():
 
     except KeyboardInterrupt:
         logging.info("Repeater shutting down (manual stop)...")
-        send_status(event="SHUTDOWN")
-        stats.log_stats()
-        try:
-            oled.shutdown()
-        except Exception as e:
-            logging.error(f"Error shutting down OLED: {e}")
         print("\nRepeater stopped")
 
     except Exception as e:
         logging.error(f"Fatal error in repeater: {e}")
-        stats.log_stats()
         try:
             oled.show_error(f"Fatal error: {str(e)[:20]}")
             time.sleep(5)
-            oled.shutdown()
         except Exception:
             pass
         raise
 
     finally:
+        # Always send SHUTDOWN status to server so device_status.log records the exact time
+        try:
+            send_status(event="SHUTDOWN")
+            logging.info("SHUTDOWN status sent to server")
+        except Exception:
+            pass
+
+        stats.log_stats()
+
         # Always turn off OLED on exit — prevents battery drain after shutdown
         try:
             oled.shutdown()
