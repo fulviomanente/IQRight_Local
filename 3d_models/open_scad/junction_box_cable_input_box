@@ -1,0 +1,51 @@
+// =============================================
+// Antenna Bracket — Part 1: Main Body
+// Rectangular, open bottom, cable redirect
+// =============================================
+
+body_x       = 40;
+body_y       = 40;
+body_h       = 25;
+wall_t       = 2.5;
+collar_od    = 15;
+collar_id    = 8;
+collar_len   = 12;
+flange_od    = 22;
+flange_t     = 2;
+sma_d        = 6.5;
+
+col_y = body_y * 0.5;
+col_z = body_h / 2;
+
+difference() {
+    union() {
+        // Main rectangular shell — open bottom
+        difference() {
+            cube([body_x, body_y, body_h]);
+
+            // Hollow interior (open at bottom)
+            translate([wall_t, wall_t, -0.1])
+                cube([
+                    body_x - 2 * wall_t,
+                    body_y - 2 * wall_t,
+                    body_h - wall_t + 0.1    // Leave top cap
+                ]);
+        }
+
+        // Collar
+        translate([-collar_len, col_y, col_z])
+            rotate([0, 90, 0])
+                cylinder(h=collar_len, d=collar_od, $fn=64);
+
+    }
+
+    // Cable hole — collar and side wall only
+    translate([-collar_len - 0.1, col_y, col_z])
+        rotate([0, 90, 0])
+            cylinder(h=collar_len + wall_t + 0.2, d=collar_id, $fn=32);
+
+    // SMA hole on forward face
+    translate([body_x * 0.5, -0.1, col_z])
+        rotate([-90, 0, 0])
+            cylinder(h=wall_t + 0.2, d=sma_d, $fn=32);
+}

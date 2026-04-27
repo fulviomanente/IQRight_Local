@@ -8,11 +8,20 @@ lip_size        = 119.0;        // Lid lip outer dimension
 press_fit       = 0.2;          // Snug press-fit clearance
 box_inner       = lip_size + press_fit;   // 119.2 mm
 wall_thick      = (outer_size - box_inner) / 2;   // 5.4 mm
-box_height      = 90;
+box_height      = 78;
 
-ledge_thick     = 2;            // Ledge vertical thickness
+ledge_thick     = 3;            // Ledge vertical thickness
 ledge_width     = 9;            // How far ledge extends inward
 ledge_opening   = box_inner - (2 * ledge_width);   // 101.2 mm opening
+
+// Side holes
+hole_d          = 12;
+hole_from_top   = 25;
+hole_from_front = 20;
+
+hole_z = box_height - hole_from_top;    // 75mm from bottom
+hole_y = hole_from_front;               // 22mm from front
+
 
 difference() {
 
@@ -26,4 +35,14 @@ difference() {
     // Bottom opening (center cutout below ledge)
     translate([wall_thick + ledge_width, wall_thick + ledge_width, -0.1])
         cube([ledge_opening, ledge_opening, ledge_thick + 0.2]);
+
+    // Left side hole (X=0 face)
+    translate([-0.1, hole_y, hole_z])
+        rotate([0, 90, 0])
+            cylinder(h=wall_thick + 0.2, d=hole_d, $fn=64);
+
+    // Right side hole (X=outer_size face)
+    translate([outer_size - wall_thick - 0.1, hole_y, hole_z])
+        rotate([0, 90, 0])
+            cylinder(h=wall_thick + 0.2, d=hole_d, $fn=64);
 }

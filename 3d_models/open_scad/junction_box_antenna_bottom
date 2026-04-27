@@ -1,0 +1,32 @@
+// =============================================
+// Antenna Bracket — Part 2: Bottom Plate
+// Inner plug self-aligns + full outer flange
+// =============================================
+
+body_x       = 40;
+body_y       = 40;
+wall_t       = 2.5;
+plug_clear   = 0.6;      // Snug fit inside walls
+plug_t       = 5;        // Plug height (grips inside bracket)
+flange_t     = 3;        // Flange thickness (sits under bracket)
+
+// Inner plug — fits inside bracket walls
+plug_x = body_x - (2 * wall_t) - plug_clear;   // 34.6mm
+plug_y = body_y - (2 * wall_t) - plug_clear;   // 34.6mm
+
+// Flange — full exterior size of bracket
+flange_x = body_x;   // 40mm
+flange_y = body_y;   // 40mm
+
+// Center plug on flange
+plug_offset_x = (flange_x - plug_x) / 2;   // 2.7mm
+plug_offset_y = (flange_y - plug_y) / 2;   // 2.7mm
+
+union() {
+    // Full size flange — sits flush under bracket
+    cube([flange_x, flange_y, flange_t]);
+
+    // Inner plug — slides up into bracket walls
+    translate([plug_offset_x, plug_offset_y, flange_t])
+        cube([plug_x, plug_y, plug_t]);
+}

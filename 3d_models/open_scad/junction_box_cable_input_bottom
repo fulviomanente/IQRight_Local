@@ -1,0 +1,42 @@
+// =============================================
+// Antenna Bracket — Part 2: Bottom Plate
+// Locating rim fits inside bracket walls
+// Seal with silicone when assembling
+// =============================================
+
+tri_leg      = 35;
+wall_t       = 2.5;
+rim_h        = 4;            // How far rim inserts into bracket
+rim_clear    = 0.3;          // Clearance for easy fit
+plate_t      = 2.5;          // Bottom plate thickness
+
+// Outer triangle — flush with bracket exterior
+module outer_tri() {
+    polygon([[0,0],[tri_leg,0],[0,tri_leg]]);
+}
+
+// Inner locating rim — slightly smaller than inner cavity
+module rim_tri() {
+    offset_val = wall_t + rim_clear;
+    polygon([
+        [offset_val,             offset_val            ],
+        [tri_leg - offset_val*2.5, offset_val          ],
+        [offset_val,             tri_leg - offset_val*2.5]
+    ]);
+}
+
+union() {
+    // Flat base plate
+    linear_extrude(plate_t)
+        outer_tri();
+
+    // Locating rim sitting on top of plate
+    translate([0, 0, plate_t])
+        linear_extrude(rim_h)
+            difference() {
+                rim_tri();
+                // Hollow rim — just walls
+                offset(r = -wall_t)
+                    rim_tri();
+            }
+}
